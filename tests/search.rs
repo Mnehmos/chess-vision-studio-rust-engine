@@ -14,7 +14,7 @@ fn pos(fen: &str) -> Position {
 }
 
 fn opts(depth: u32, quiet_checks: bool, use_tt: bool) -> SearchOptions {
-    SearchOptions { depth, max_time_ms: None, quiet_checks, use_tt }
+    SearchOptions { depth, max_time_ms: None, quiet_checks, use_tt, danger_extension: false }
 }
 
 /// The trained Rung-2 mixed weights — same fixture as the TS search-boundary suite.

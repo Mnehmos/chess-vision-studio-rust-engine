@@ -32,9 +32,12 @@ fn main() {
     });
     let opts = SearchOptions {
         depth,
-        max_time_ms: None,
+        // --movetime <ms>: wall-clock cap for equal-clock matches (R4 fairness run).
+        max_time_ms: get("--movetime").and_then(|s| s.parse().ok()),
         quiet_checks: !args.iter().any(|a| a == "--no-quiet-checks"),
         use_tt: !args.iter().any(|a| a == "--no-tt"),
+        // --danger: danger-triggered root depth extension (RSI loop 1, gated).
+        danger_extension: args.iter().any(|a| a == "--danger"),
     };
 
     let analyze_one = |fen: &str| -> String {

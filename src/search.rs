@@ -9,13 +9,14 @@
 //! replacement, same ordering priorities (TT move ≫ captures by MVV-LVA ≫
 //! promotions). Layers are config-gated (`quiet_checks`, `use_tt`) so each can
 //! be exercised independently in tests.
+use crate::attacks::{attackers_of, king_attacks};
 use crate::eval::{
     evaluate, evaluate_white_float_nonterminal, insufficient_material, js_round, Rung2Weights,
     ValueWeights,
 };
 use crate::movegen::{generate_legal, gives_check, in_check};
 use crate::see::{see, SEE_VALUE};
-use crate::{Color, Move, MoveFlag, Piece, Position};
+use crate::{rank_of, Color, Move, MoveFlag, Piece, Position};
 use std::collections::HashMap;
 use std::time::Instant;
 
@@ -38,11 +39,22 @@ pub struct SearchOptions {
     pub quiet_checks: bool,
     /// Transposition table (R3.5). Default on.
     pub use_tt: bool,
+    /// Danger-triggered root depth extension (RSI loop 1, gated OFF by default):
+    /// when the side to move faces king danger (enemy queen + king-zone pressure
+    /// / king off home rank), search 1–2 plies deeper. Motivated by the
+    /// sf2200-g14 forensic: d5 missed defensive resources that d7 finds.
+    pub danger_extension: bool,
 }
 
 impl Default for SearchOptions {
     fn default() -> Self {
-        SearchOptions { depth: 4, max_time_ms: None, quiet_checks: true, use_tt: true }
+        SearchOptions {
+            depth: 4,
+            max_time_ms: None,
+            quiet_checks: true,
+            use_tt: true,
+            danger_extension: false,
+        }
     }
 }
 
@@ -58,6 +70,8 @@ pub struct Telemetry {
     pub tt_hits: u64,
     pub beta_cutoffs: u64,
     pub elapsed_ms: u64,
+    /// Extra root plies granted by the danger trigger this search (0–2).
+    pub danger_extension_plies: u32,
 }
 
 #[derive(Clone, Debug)]
@@ -87,6 +101,40 @@ struct TtEntry {
     mv: Option<Move>,
 }
 
+/// Cheap root-level king-danger classifier (RSI loop 1). 0 = normal, 1 = danger
+/// (+1 ply), 2 = critical (+2 plies). Fires only with an enemy queen on the
+/// board; combines king-zone pressure (attacked squares in the king's 9-square
+/// zone) with the king being off its home rank. Cost: ≤9 attack queries, once
+/// per search call. Evidence: the sf2200-g14 loss FENs trigger 2; quiet
+/// openings trigger 0.
+pub fn danger_level(pos: &Position) -> u32 {
+    let us = pos.stm;
+    let them = us.flip();
+    if pos.pieces[them.index()][Piece::Queen.index()] == 0 {
+        return 0;
+    }
+    let ksq = pos.king_sq(us);
+    let mut zone = king_attacks(ksq) | (1u64 << ksq);
+    let mut pressure = 0u32;
+    while zone != 0 {
+        let sq = zone.trailing_zeros() as u8;
+        zone &= zone - 1;
+        if attackers_of(&pos.pieces, sq, them, pos.all) != 0 {
+            pressure += 1;
+        }
+    }
+    let home_rank = if us == Color::White { 0 } else { 7 };
+    let off_home = rank_of(ksq) != home_rank;
+    let mut danger = 0;
+    if pressure >= 2 {
+        danger += 1;
+    }
+    if (off_home && pressure >= 1) || pressure >= 4 {
+        danger += 1;
+    }
+    danger.min(2)
+}
+
 pub struct Searcher {
     weights: ValueWeights,
     rung2: Option<Rung2Weights>,
@@ -111,10 +159,14 @@ impl Searcher {
     }
 
     pub fn search(&mut self, pos: &mut Position, opts: SearchOptions) -> SearchResult {
-        let max_depth = opts.depth.max(1);
+        let mut max_depth = opts.depth.max(1);
+        // Danger-triggered root extension (gated): king danger buys 1–2 extra plies.
+        let danger_plies = if opts.danger_extension { danger_level(pos) } else { 0 };
+        max_depth += danger_plies;
         self.opts = opts;
         self.tt.clear();
         self.tel = Telemetry::default();
+        self.tel.danger_extension_plies = danger_plies;
         self.aborted = false;
         let started = Instant::now();
         self.deadline = opts.max_time_ms.map(|ms| started + std::time::Duration::from_millis(ms));
