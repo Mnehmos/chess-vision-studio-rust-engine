@@ -2,7 +2,7 @@
 name = "cvs-bitboard-core"
 version = "0.0.0"
 edition = "2021"
-description = "CVS Bitboard Core v0 — fast legal move generation + perft. Engine core for Chess Vision Studio (Rust). Does NOT replace the chess.js engine yet."
+description = "CVS Rust engine core — bitboard movegen + perft + SEE + value eval. The active engine path for Chess Vision Studio; the TS/chess.js engine is legacy/reference-only."
 
 [lib]
 name = "cvs_bitboard_core"
@@ -11,6 +11,14 @@ path = "src/lib.rs"
 [[bin]]
 name = "perft"
 path = "src/bin/perft.rs"
+
+[[bin]]
+name = "eval_parity"
+path = "src/bin/eval_parity.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 
 [profile.release]
 opt-level = 3

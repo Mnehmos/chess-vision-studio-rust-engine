@@ -9,6 +9,7 @@
 //! so a1=0, b1=1, …, h1=7, a2=8, …, h8=63. Bit `s` of a `u64` bitboard = that square.
 
 pub mod attacks;
+pub mod eval;
 pub mod movegen;
 pub mod perft;
 pub mod position;
