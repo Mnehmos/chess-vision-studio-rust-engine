@@ -36,7 +36,7 @@ pub fn phase_units(pos: &Position) -> i32 {
 
 /// chess.js `isInsufficientMaterial` semantics: K vs K; K+minor vs K; or kings +
 /// bishops only with every bishop on the same square color.
-fn insufficient_material(pos: &Position) -> bool {
+pub fn insufficient_material(pos: &Position) -> bool {
     let total = pos.all.count_ones();
     if total == 2 {
         return true;
@@ -69,7 +69,18 @@ pub fn evaluate_white_float(pos: &mut Position, w: &ValueWeights, r2: Option<&Ru
     if pos.halfmove >= 100 || insufficient_material(pos) {
         return 0.0;
     }
+    evaluate_white_float_nonterminal(pos, w, r2)
+}
 
+/// The weighted-term sum WITHOUT terminal short-circuits — for search leaves that
+/// already know the position has legal moves (avoids a second movegen per leaf).
+/// Callers must handle mate/stalemate/draw themselves (the search does, mirroring
+/// the TS searcher's own terminal handling).
+pub fn evaluate_white_float_nonterminal(
+    pos: &Position,
+    w: &ValueWeights,
+    r2: Option<&Rung2Weights>,
+) -> f64 {
     let units = phase_units(pos);
     let mg_w = units as f64 / MAX_PHASE as f64;
     let eg_w = 1.0 - mg_w;
@@ -118,7 +129,7 @@ pub fn evaluate_white_float(pos: &mut Position, w: &ValueWeights, r2: Option<&Ru
 
 /// JS `Math.round` (half toward +infinity), for byte-parity with the TS `evaluateWhite`.
 #[inline]
-fn js_round(x: f64) -> i32 {
+pub fn js_round(x: f64) -> i32 {
     (x + 0.5).floor() as i32
 }
 

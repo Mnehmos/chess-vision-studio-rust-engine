@@ -1,7 +1,60 @@
 //! Board state, FEN parsing, and make/unmake. Bitboards are maintained
 //! incrementally. make/unmake is exact (an undo stack records the captured piece
 //! and the prior castling/ep/halfmove state), which is what perft validates.
+//! A Zobrist hash is maintained incrementally (piece-square keys xored in
+//! set/clear_piece; stm/castling/ep deltas applied in make; unmake restores the
+//! recorded prior hash) — the transposition-table key for the search.
 use crate::{castle, Color, Move, MoveFlag, Piece};
+use std::sync::OnceLock;
+
+struct Zobrist {
+    piece_sq: [[[u64; 64]; 6]; 2],
+    stm_black: u64,
+    castling: [u64; 16],
+    ep_file: [u64; 8],
+}
+
+static ZOBRIST: OnceLock<Zobrist> = OnceLock::new();
+
+fn zobrist() -> &'static Zobrist {
+    ZOBRIST.get_or_init(|| {
+        // splitmix64 from a fixed seed → deterministic keys.
+        let mut state: u64 = 0x9E37_79B9_7F4A_7C15;
+        let mut next = move || {
+            state = state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+            let mut z = state;
+            z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+            z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+            z ^ (z >> 31)
+        };
+        let mut piece_sq = [[[0u64; 64]; 6]; 2];
+        for c in piece_sq.iter_mut() {
+            for p in c.iter_mut() {
+                for s in p.iter_mut() {
+                    *s = next();
+                }
+            }
+        }
+        let stm_black = next();
+        let mut castling = [0u64; 16];
+        for v in castling.iter_mut() {
+            *v = next();
+        }
+        let mut ep_file = [0u64; 8];
+        for v in ep_file.iter_mut() {
+            *v = next();
+        }
+        Zobrist { piece_sq, stm_black, castling, ep_file }
+    })
+}
+
+#[inline]
+fn ep_key(ep: Option<u8>) -> u64 {
+    match ep {
+        Some(sq) => zobrist().ep_file[(sq & 7) as usize],
+        None => 0,
+    }
+}
 
 #[derive(Clone)]
 struct Undo {
@@ -10,6 +63,7 @@ struct Undo {
     prev_castling: u8,
     prev_ep: Option<u8>,
     prev_halfmove: u16,
+    prev_hash: u64,
 }
 
 #[derive(Clone)]
@@ -25,6 +79,8 @@ pub struct Position {
     pub ep: Option<u8>,
     pub halfmove: u16,
     pub fullmove: u16,
+    /// Zobrist hash of (pieces, stm, castling, ep-file).
+    pub hash: u64,
     history: Vec<Undo>,
 }
 
@@ -45,6 +101,7 @@ impl Position {
             ep: None,
             halfmove: 0,
             fullmove: 1,
+            hash: 0,
             history: Vec::with_capacity(64),
         };
         let parts: Vec<&str> = fen.split_whitespace().collect();
@@ -95,6 +152,12 @@ impl Position {
         if let Some(f) = parts.get(5) {
             pos.fullmove = f.parse().unwrap_or(1);
         }
+        // Finalize the Zobrist hash (piece keys were xored by set_piece during parse).
+        if pos.stm == Color::Black {
+            pos.hash ^= zobrist().stm_black;
+        }
+        pos.hash ^= zobrist().castling[pos.castling as usize];
+        pos.hash ^= ep_key(pos.ep);
         Ok(pos)
     }
 
@@ -109,6 +172,7 @@ impl Position {
         self.pieces[color.index()][piece.index()] |= b;
         self.occ[color.index()] |= b;
         self.all |= b;
+        self.hash ^= zobrist().piece_sq[color.index()][piece.index()][sq as usize];
     }
     #[inline]
     fn clear_piece(&mut self, color: Color, piece: Piece, sq: u8) {
@@ -116,6 +180,7 @@ impl Position {
         self.pieces[color.index()][piece.index()] &= b;
         self.occ[color.index()] &= b;
         self.all &= b;
+        self.hash ^= zobrist().piece_sq[color.index()][piece.index()][sq as usize];
     }
     #[inline]
     fn move_piece(&mut self, color: Color, piece: Piece, from: u8, to: u8) {
@@ -168,6 +233,7 @@ impl Position {
         let prev_castling = self.castling;
         let prev_ep = self.ep;
         let prev_halfmove = self.halfmove;
+        let prev_hash = self.hash;
         self.ep = None;
 
         match mv.flag {
@@ -227,7 +293,13 @@ impl Position {
             self.fullmove += 1;
         }
         self.stm = them;
-        self.history.push(Undo { mv, captured, prev_castling, prev_ep, prev_halfmove });
+        // Hash deltas for the non-piece state (piece keys already xored by
+        // set/clear/move_piece during the mutations above).
+        let z = zobrist();
+        self.hash ^= z.stm_black;
+        self.hash ^= z.castling[prev_castling as usize] ^ z.castling[self.castling as usize];
+        self.hash ^= ep_key(prev_ep) ^ ep_key(self.ep);
+        self.history.push(Undo { mv, captured, prev_castling, prev_ep, prev_halfmove, prev_hash });
     }
 
     pub fn unmake(&mut self) {
@@ -280,6 +352,9 @@ impl Position {
         self.castling = undo.prev_castling;
         self.ep = undo.prev_ep;
         self.halfmove = undo.prev_halfmove;
+        // Restoring the recorded hash wipes out the piece-key xors applied during
+        // the restore moves above — exact by construction.
+        self.hash = undo.prev_hash;
     }
 }
 

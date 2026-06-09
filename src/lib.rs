@@ -13,6 +13,7 @@ pub mod eval;
 pub mod movegen;
 pub mod perft;
 pub mod position;
+pub mod search;
 pub mod see;
 
 pub use position::Position;
