@@ -1,0 +1,19 @@
+[package]
+name = "cvs-bitboard-core"
+version = "0.0.0"
+edition = "2021"
+description = "CVS Bitboard Core v0 — fast legal move generation + perft. Engine core for Chess Vision Studio (Rust). Does NOT replace the chess.js engine yet."
+
+[lib]
+name = "cvs_bitboard_core"
+path = "src/lib.rs"
+
+[[bin]]
+name = "perft"
+path = "src/bin/perft.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"

@@ -1,0 +1,192 @@
+//! Legal move generation. Pseudo-legal moves are generated with bitboards, then
+//! filtered for legality by make → "is the mover's king attacked?" → unmake. This
+//! is the simplest provably-correct scheme; pin-aware legal gen can come later.
+use crate::attacks::{
+    bishop_attacks, is_square_attacked, king_attacks, knight_attacks, pawn_attacks, queen_attacks,
+    rook_attacks,
+};
+use crate::{castle, rank_of, Color, Move, MoveFlag, Piece, Position};
+
+#[inline]
+fn pop_lsb(b: &mut u64) -> u8 {
+    let s = b.trailing_zeros() as u8;
+    *b &= *b - 1;
+    s
+}
+
+#[inline]
+fn add_quiet_or_cap(moves: &mut Vec<Move>, from: u8, mut targets: u64, them_occ: u64) {
+    while targets != 0 {
+        let to = pop_lsb(&mut targets);
+        let flag = if (1u64 << to) & them_occ != 0 {
+            MoveFlag::Capture
+        } else {
+            MoveFlag::Quiet
+        };
+        moves.push(Move::new(from, to, flag));
+    }
+}
+
+const PROMOS: [MoveFlag; 4] = [MoveFlag::PromoQ, MoveFlag::PromoR, MoveFlag::PromoB, MoveFlag::PromoN];
+const PROMO_CAPS: [MoveFlag; 4] = [
+    MoveFlag::PromoQCap,
+    MoveFlag::PromoRCap,
+    MoveFlag::PromoBCap,
+    MoveFlag::PromoNCap,
+];
+
+fn gen_pawns(pos: &Position, moves: &mut Vec<Move>) {
+    let us = pos.stm;
+    let them = us.flip();
+    let them_occ = pos.occ[them.index()];
+    let empty = !pos.all;
+    let white = us == Color::White;
+    let promo_rank = if white { 7 } else { 0 };
+    let start_rank = if white { 1 } else { 6 };
+
+    let mut pawns = pos.pieces[us.index()][Piece::Pawn.index()];
+    while pawns != 0 {
+        let from = pop_lsb(&mut pawns);
+        let one = if white { from + 8 } else { from - 8 };
+        // Single push (to empty).
+        if empty & (1u64 << one) != 0 {
+            if rank_of(one) == promo_rank {
+                for f in PROMOS {
+                    moves.push(Move::new(from, one, f));
+                }
+            } else {
+                moves.push(Move::new(from, one, MoveFlag::Quiet));
+                // Double push.
+                if rank_of(from) == start_rank {
+                    let two = if white { from + 16 } else { from - 16 };
+                    if empty & (1u64 << two) != 0 {
+                        moves.push(Move::new(from, two, MoveFlag::DoublePush));
+                    }
+                }
+            }
+        }
+        // Captures.
+        let mut caps = pawn_attacks(us, from) & them_occ;
+        while caps != 0 {
+            let to = pop_lsb(&mut caps);
+            if rank_of(to) == promo_rank {
+                for f in PROMO_CAPS {
+                    moves.push(Move::new(from, to, f));
+                }
+            } else {
+                moves.push(Move::new(from, to, MoveFlag::Capture));
+            }
+        }
+        // En passant.
+        if let Some(ep) = pos.ep {
+            if pawn_attacks(us, from) & (1u64 << ep) != 0 {
+                moves.push(Move::new(from, ep, MoveFlag::EnPassant));
+            }
+        }
+    }
+}
+
+fn gen_leapers_and_sliders(pos: &Position, moves: &mut Vec<Move>) {
+    let us = pos.stm;
+    let them_occ = pos.occ[them_index(us)];
+    let not_us = !pos.occ[us.index()];
+    let occ = pos.all;
+
+    let mut kn = pos.pieces[us.index()][Piece::Knight.index()];
+    while kn != 0 {
+        let from = pop_lsb(&mut kn);
+        add_quiet_or_cap(moves, from, knight_attacks(from) & not_us, them_occ);
+    }
+    let mut bi = pos.pieces[us.index()][Piece::Bishop.index()];
+    while bi != 0 {
+        let from = pop_lsb(&mut bi);
+        add_quiet_or_cap(moves, from, bishop_attacks(from, occ) & not_us, them_occ);
+    }
+    let mut ro = pos.pieces[us.index()][Piece::Rook.index()];
+    while ro != 0 {
+        let from = pop_lsb(&mut ro);
+        add_quiet_or_cap(moves, from, rook_attacks(from, occ) & not_us, them_occ);
+    }
+    let mut qu = pos.pieces[us.index()][Piece::Queen.index()];
+    while qu != 0 {
+        let from = pop_lsb(&mut qu);
+        add_quiet_or_cap(moves, from, queen_attacks(from, occ) & not_us, them_occ);
+    }
+    let mut ki = pos.pieces[us.index()][Piece::King.index()];
+    while ki != 0 {
+        let from = pop_lsb(&mut ki);
+        add_quiet_or_cap(moves, from, king_attacks(from) & not_us, them_occ);
+    }
+}
+
+#[inline]
+fn them_index(us: Color) -> usize {
+    us.flip().index()
+}
+
+fn gen_castling(pos: &Position, moves: &mut Vec<Move>) {
+    let us = pos.stm;
+    let them = us.flip();
+    let occ = pos.all;
+    // (kingside_right, queenside_right, e, f, g, b, c, d, g_to, c_to)
+    let (kr, qr, e, f, g, b, c, d) = if us == Color::White {
+        (castle::WK, castle::WQ, 4u8, 5u8, 6u8, 1u8, 2u8, 3u8)
+    } else {
+        (castle::BK, castle::BQ, 60u8, 61u8, 62u8, 57u8, 58u8, 59u8)
+    };
+    let attacked = |sq: u8| is_square_attacked(pos, sq, them, occ);
+    let empty = |sq: u8| occ & (1u64 << sq) == 0;
+
+    // Kingside: f,g empty; king path e,f,g safe.
+    if pos.castling & kr != 0
+        && empty(f)
+        && empty(g)
+        && !attacked(e)
+        && !attacked(f)
+        && !attacked(g)
+    {
+        moves.push(Move::new(e, g, MoveFlag::KingCastle));
+    }
+    // Queenside: b,c,d empty; king path e,d,c safe.
+    if pos.castling & qr != 0
+        && empty(b)
+        && empty(c)
+        && empty(d)
+        && !attacked(e)
+        && !attacked(d)
+        && !attacked(c)
+    {
+        moves.push(Move::new(e, c, MoveFlag::QueenCastle));
+    }
+}
+
+/// All pseudo-legal moves (may leave the king in check; not castling-through-check).
+pub fn generate_pseudo(pos: &Position, moves: &mut Vec<Move>) {
+    gen_pawns(pos, moves);
+    gen_leapers_and_sliders(pos, moves);
+    gen_castling(pos, moves);
+}
+
+/// All strictly legal moves for the side to move.
+pub fn generate_legal(pos: &mut Position) -> Vec<Move> {
+    let mut pseudo = Vec::with_capacity(48);
+    generate_pseudo(pos, &mut pseudo);
+    let us = pos.stm;
+    let them = us.flip();
+    let mut legal = Vec::with_capacity(pseudo.len());
+    for mv in pseudo {
+        pos.make(mv);
+        let ksq = pos.king_sq(us);
+        if !is_square_attacked(pos, ksq, them, pos.all) {
+            legal.push(mv);
+        }
+        pos.unmake();
+    }
+    legal
+}
+
+/// Is the side to move currently in check?
+pub fn in_check(pos: &Position) -> bool {
+    let us = pos.stm;
+    is_square_attacked(pos, pos.king_sq(us), us.flip(), pos.all)
+}
