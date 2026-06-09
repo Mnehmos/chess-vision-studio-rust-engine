@@ -190,3 +190,12 @@ pub fn in_check(pos: &Position) -> bool {
     let us = pos.stm;
     is_square_attacked(pos, pos.king_sq(us), us.flip(), pos.all)
 }
+
+/// Does playing `mv` give check to the opponent? (make → test → unmake.)
+pub fn gives_check(pos: &mut Position, mv: Move) -> bool {
+    pos.make(mv);
+    let opp = pos.stm; // after make, the opponent is to move
+    let checked = is_square_attacked(pos, pos.king_sq(opp), opp.flip(), pos.all);
+    pos.unmake();
+    checked
+}

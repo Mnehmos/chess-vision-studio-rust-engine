@@ -127,27 +127,29 @@ pub fn queen_attacks(sq: u8, occ: u64) -> u64 {
     bishop_attacks(sq, occ) | rook_attacks(sq, occ)
 }
 
-/// Is `sq` attacked by any piece of color `by`, given occupancy `occ`?
-pub fn is_square_attacked(pos: &Position, sq: u8, by: Color, occ: u64) -> bool {
+/// Bitboard of all `by`-colored pieces attacking `sq`, given occupancy `occ` and a
+/// piece-set `pieces` (the live board OR a SEE scratch set). Sliders re-resolve
+/// through `occ`, so removing a piece from `occ` reveals x-ray attackers behind it.
+pub fn attackers_of(pieces: &[[u64; 6]; 2], sq: u8, by: Color, occ: u64) -> u64 {
     let bi = by.index();
-    // Pawns: sq is hit by a `by` pawn iff a `by` pawn sits on a square that attacks
-    // sq — equivalently, on a square in the OPPOSITE-color pawn-attack set from sq.
-    if pawn_attacks(by.flip(), sq) & pos.pieces[bi][Piece::Pawn.index()] != 0 {
-        return true;
-    }
-    if knight_attacks(sq) & pos.pieces[bi][Piece::Knight.index()] != 0 {
-        return true;
-    }
-    if king_attacks(sq) & pos.pieces[bi][Piece::King.index()] != 0 {
-        return true;
-    }
-    let bishops = pos.pieces[bi][Piece::Bishop.index()] | pos.pieces[bi][Piece::Queen.index()];
-    if bishop_attacks(sq, occ) & bishops != 0 {
-        return true;
-    }
-    let rooks = pos.pieces[bi][Piece::Rook.index()] | pos.pieces[bi][Piece::Queen.index()];
-    if rook_attacks(sq, occ) & rooks != 0 {
-        return true;
-    }
-    false
+    // Pawns: sq is hit by a `by` pawn iff such a pawn sits on a square in the
+    // OPPOSITE-color pawn-attack set from sq.
+    let mut a = pawn_attacks(by.flip(), sq) & pieces[bi][Piece::Pawn.index()];
+    a |= knight_attacks(sq) & pieces[bi][Piece::Knight.index()];
+    a |= king_attacks(sq) & pieces[bi][Piece::King.index()];
+    a |= bishop_attacks(sq, occ) & (pieces[bi][Piece::Bishop.index()] | pieces[bi][Piece::Queen.index()]);
+    a |= rook_attacks(sq, occ) & (pieces[bi][Piece::Rook.index()] | pieces[bi][Piece::Queen.index()]);
+    a
+}
+
+/// Bitboard of `by`-colored pieces attacking `sq` on the live board.
+#[inline]
+pub fn attackers_to_color(pos: &Position, sq: u8, by: Color, occ: u64) -> u64 {
+    attackers_of(&pos.pieces, sq, by, occ)
+}
+
+/// Is `sq` attacked by any piece of color `by`, given occupancy `occ`?
+#[inline]
+pub fn is_square_attacked(pos: &Position, sq: u8, by: Color, occ: u64) -> bool {
+    attackers_of(&pos.pieces, sq, by, occ) != 0
 }

@@ -12,6 +12,7 @@ pub mod attacks;
 pub mod movegen;
 pub mod perft;
 pub mod position;
+pub mod see;
 
 pub use position::Position;
 

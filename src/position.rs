@@ -132,6 +132,19 @@ impl Position {
         }
         None
     }
+
+    /// The (color, piece) on `sq`, or None if empty.
+    #[inline]
+    pub fn piece_at(&self, sq: u8) -> Option<(Color, Piece)> {
+        let b = 1u64 << sq;
+        if self.occ[Color::White.index()] & b != 0 {
+            self.piece_at_color(Color::White, sq).map(|p| (Color::White, p))
+        } else if self.occ[Color::Black.index()] & b != 0 {
+            self.piece_at_color(Color::Black, sq).map(|p| (Color::Black, p))
+        } else {
+            None
+        }
+    }
     #[inline]
     fn clear_castle_for_square(&mut self, sq: u8) {
         // Any move FROM or TO a corner clears that corner's castling right
