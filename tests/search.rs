@@ -50,6 +50,8 @@ fn mixed() -> (ValueWeights, Rung2Weights) {
         bishop_pair_mg: -1.6363672647332876,
         bishop_pair_eg: -0.5084261873731701,
         hanging_piece: 11.6631476916599,
+        // 2B King-Exposure Head fields default to 0 (inert).
+        ..Default::default()
     };
     (base, rung2)
 }

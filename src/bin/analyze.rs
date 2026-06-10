@@ -40,6 +40,35 @@ fn main() {
         danger_extension: args.iter().any(|a| a == "--danger"),
     };
 
+    // --features: emit the eval + Rung-2 feature vector per FEN instead of
+    // searching — the training-data faucet for head fitting (TS orchestration
+    // does the regression; Rust owns extraction).
+    let features_mode = args.iter().any(|a| a == "--features");
+    let features_one = |fen: &str| -> String {
+        match Position::from_fen(fen) {
+            Ok(mut pos) => {
+                let f = cvs_bitboard_core::eval::extract_rung2(&pos);
+                let eval_cp = evaluate_white(&mut pos, &base, rung2.as_ref());
+                serde_json::json!({
+                    "fen": fen,
+                    "evalWhiteCp": eval_cp,
+                    "features": {
+                        "kingCentralExposure": f.king_central_exposure,
+                        "enemyQueenNearKing": f.enemy_queen_near_king,
+                        "openCenterKingPenalty": f.open_center_king_penalty,
+                        "kingEscapeDeficit": f.king_escape_deficit,
+                        "hangingPiece": f.hanging_piece,
+                        "kingZonePressure": f.king_zone_pressure,
+                        "kingShield": f.king_shield,
+                        "kingOpenFile": f.king_open_file,
+                    },
+                })
+                .to_string()
+            }
+            Err(e) => serde_json::json!({ "fen": fen, "error": e }).to_string(),
+        }
+    };
+
     let analyze_one = |fen: &str| -> String {
         let mut pos = match Position::from_fen(fen) {
             Ok(p) => p,
@@ -87,8 +116,35 @@ fn main() {
                 }
                 continue;
             }
-            // `eval <fen>` → static eval only (White-POV rounded cp, TS-parity).
-            let out = if let Some(efen) = fen.strip_prefix("eval ") {
+            // `go <ms> <fen>` → search with a per-request wall-clock budget (the
+            // Lichess bot's clock-budgeted picks; depth acts as the cap).
+            let out = if let Some(rest) = fen.strip_prefix("go ") {
+                let mut it = rest.splitn(2, ' ');
+                let ms: u64 = it.next().and_then(|s| s.parse().ok()).unwrap_or(500);
+                let gfen = it.next().unwrap_or("").trim();
+                match Position::from_fen(gfen) {
+                    Ok(mut pos) => {
+                        let mut searcher = Searcher::new(base, rung2);
+                        let timed = SearchOptions { max_time_ms: Some(ms), ..opts };
+                        let r = searcher.search(&mut pos, timed);
+                        let t = r.telemetry;
+                        serde_json::json!({
+                            "fen": gfen,
+                            "uci": r.best_move.map(|m| m.to_uci()),
+                            "scoreCp": r.score_cp,
+                            "mate": r.mate,
+                            "pv": r.pv.iter().map(|m| m.to_uci()).collect::<Vec<_>>(),
+                            "depth": r.depth,
+                            "nodes": t.nodes,
+                            "qNodes": t.q_nodes,
+                            "ttHits": t.tt_hits,
+                            "timeMs": t.elapsed_ms,
+                        })
+                        .to_string()
+                    }
+                    Err(e) => serde_json::json!({ "fen": gfen, "error": e }).to_string(),
+                }
+            } else if let Some(efen) = fen.strip_prefix("eval ") {
                 match Position::from_fen(efen.trim()) {
                     Ok(mut pos) => serde_json::json!({
                         "fen": efen.trim(),
@@ -108,6 +164,10 @@ fn main() {
 
     let fens = std::fs::read_to_string(fens_path.unwrap()).expect("read fens");
     for fen in fens.lines().map(str::trim).filter(|l| !l.is_empty()) {
-        println!("{}", analyze_one(fen));
+        if features_mode {
+            println!("{}", features_one(fen));
+        } else {
+            println!("{}", analyze_one(fen));
+        }
     }
 }

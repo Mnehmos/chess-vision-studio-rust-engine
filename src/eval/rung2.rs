@@ -30,6 +30,19 @@ pub struct Rung2Features {
     pub bishop_pair_mg: f64,
     pub bishop_pair_eg: f64,
     pub hanging_piece: f64,
+    // --- 2B King-Exposure Head (loop 2; all White-POV signed, + favors White) ---
+    /// Enemy-queen-conditioned king displacement: rank distance from home rank
+    /// (+1 if on a central file c–f), mg-tapered. black − white.
+    pub king_central_exposure: f64,
+    /// Queen proximity: max(0, 4 − Chebyshev(queen, enemy king)) per queen.
+    /// (White queen near Black king) − (Black queen near White king).
+    pub enemy_queen_near_king: f64,
+    /// King on a central file with an EMPTY pawn shield while the enemy queen is
+    /// on the board, mg-tapered. black − white.
+    pub open_center_king_penalty: f64,
+    /// Flight-square shortage with enemy queen on: max(0, 3 − safe king moves).
+    /// black − white (the side with fewer escapes is worse off).
+    pub king_escape_deficit: f64,
 }
 
 #[inline]
@@ -256,6 +269,60 @@ pub fn extract_rung2(pos: &Position) -> Rung2Features {
     f.king_open_file =
         (king_file_exposure(&b_files, file_of(bk)) - king_file_exposure(&w_files, file_of(wk))) as f64;
 
+    // --- 2B King-Exposure Head (enemy-queen-conditioned; the g14/g13/mini-g04
+    // loss family: quiet-position king danger the base terms cannot see) ---
+    {
+        let wq = pos.pieces[w][Piece::Queen.index()];
+        let bq = pos.pieces[b][Piece::Queen.index()];
+        let cheb = |a: u8, c: u8| -> i32 {
+            let df = (file_of(a) as i32 - file_of(c) as i32).abs();
+            let dr = (rank_of(a) as i32 - rank_of(c) as i32).abs();
+            df.max(dr)
+        };
+        // Queen proximity (both directions, independent of own-king exposure).
+        let mut near = 0i32;
+        let mut t = wq;
+        while t != 0 {
+            let q = pop_lsb(&mut t);
+            near += (4 - cheb(q, bk)).max(0);
+        }
+        let mut t = bq;
+        while t != 0 {
+            let q = pop_lsb(&mut t);
+            near -= (4 - cheb(q, wk)).max(0);
+        }
+        f.enemy_queen_near_king = near as f64;
+
+        // Per-side exposure terms, conditioned on the ENEMY queen existing.
+        let side_terms = |ksq: u8, own_pawns: u64, color: Color, enemy_queen: u64| -> (f64, f64, f64) {
+            if enemy_queen == 0 {
+                return (0.0, 0.0, 0.0);
+            }
+            let home: i32 = if color == Color::White { 0 } else { 7 };
+            let displacement = (rank_of(ksq) as i32 - home).abs();
+            let central = (2..=5).contains(&file_of(ksq)); // files c–f
+            let exposure = (displacement + if central { 1 } else { 0 }) as f64 * mg_w;
+            let open_center = if central && shield_pawns(own_pawns, ksq, color) == 0 { mg_w } else { 0.0 };
+            // Flight squares: king moves to squares not occupied by own pieces and
+            // not attacked by the enemy.
+            let mut flights = 0i32;
+            let mut esc = king_attacks(ksq) & !pos.occ[color.index()];
+            while esc != 0 {
+                let sq = pop_lsb(&mut esc);
+                if attackers_of(&pos.pieces, sq, color.flip(), pos.all) == 0 {
+                    flights += 1;
+                }
+            }
+            let deficit = (3 - flights).max(0) as f64;
+            (exposure, open_center, deficit)
+        };
+        let (we, wo, wd) = side_terms(wk, wp, Color::White, bq);
+        let (be, bo, bd) = side_terms(bk, bp, Color::Black, wq);
+        f.king_central_exposure = be - we;
+        f.open_center_king_penalty = bo - wo;
+        f.king_escape_deficit = bd - wd;
+    }
+
     // --- Hanging material (attacked-and-undefended non-king pieces, in pawns) ---
     let mut white_hanging = 0i32;
     let mut black_hanging = 0i32;
@@ -308,4 +375,8 @@ pub fn rung2_contribution(pos: &Position, w: &super::weights::Rung2Weights) -> f
         + w.bishop_pair_mg * f.bishop_pair_mg
         + w.bishop_pair_eg * f.bishop_pair_eg
         + w.hanging_piece * f.hanging_piece
+        + w.king_central_exposure * f.king_central_exposure
+        + w.enemy_queen_near_king * f.enemy_queen_near_king
+        + w.open_center_king_penalty * f.open_center_king_penalty
+        + w.king_escape_deficit * f.king_escape_deficit
 }

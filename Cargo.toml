@@ -2,7 +2,8 @@
 name = "cvs-bitboard-core"
 version = "0.0.0"
 edition = "2021"
-description = "CVS Rust engine core — bitboard movegen + perft + SEE + value eval. The active engine path for Chess Vision Studio; the TS/chess.js engine is legacy/reference-only."
+license = "MIT"
+description = "CVS Rust engine core — bitboard movegen + perft + SEE + value eval + search. The active engine for Chess Vision Studio (MIT, public)."
 
 [lib]
 name = "cvs_bitboard_core"
