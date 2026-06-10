@@ -14,7 +14,7 @@ fn pos(fen: &str) -> Position {
 }
 
 fn opts(depth: u32, quiet_checks: bool, use_tt: bool) -> SearchOptions {
-    SearchOptions { depth, max_time_ms: None, quiet_checks, use_tt, danger_extension: false }
+    SearchOptions { depth, max_time_ms: None, quiet_checks, use_tt, danger_extension: false, null_move: true }
 }
 
 /// The trained Rung-2 mixed weights — same fixture as the TS search-boundary suite.
@@ -245,4 +245,64 @@ fn search_converts_instead_of_repeating_when_winning() {
         r.score_cp,
         best
     );
+}
+
+// ---- Search Patch 2: null-move pruning ----
+
+#[test]
+fn null_move_never_fires_in_pawn_only_endings() {
+    // Zugzwang country: the side to move has only king + pawns, so the
+    // non-pawn-material guard must keep null-move OFF entirely.
+    let mut p = pos("8/8/1p6/1P6/8/5k2/8/5K2 w - - 0 1");
+    let mut s = Searcher::new(ValueWeights::default(), None);
+    let r = s.search(&mut p, opts(5, true, true));
+    assert_eq!(r.telemetry.null_cutoffs, 0, "null must be disabled without pieces");
+}
+
+#[test]
+fn null_move_fires_and_prunes_when_clearly_better() {
+    // Kiwipete minus Black's queen: White is winning everywhere, so "pass and
+    // still fail high" triggers constantly — the null heuristic's home turf.
+    let mut p = pos("r3k2r/p1pp1pb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+    let mut s = Searcher::new(ValueWeights::default(), None);
+    let r = s.search(&mut p, opts(5, true, true));
+    assert!(r.telemetry.null_cutoffs > 0, "null-move should prune when ahead");
+}
+
+#[test]
+fn null_move_preserves_mate_detection() {
+    // Mate scores must never be fabricated or lost by the null heuristic.
+    let mut p = pos("6k1/5ppp/8/8/8/8/8/R6K w - - 0 1");
+    let mut s = Searcher::new(ValueWeights::default(), None);
+    let r = s.search(&mut p, opts(4, true, true));
+    assert_eq!(r.best_move.unwrap().to_uci(), "a1a8");
+    assert_eq!(r.mate, Some(1));
+}
+
+#[test]
+fn null_move_keeps_the_d4_forensic_fix() {
+    // The quiet-refuted Bf7 blunder must STILL be avoided with pruning on.
+    let (base, rung2) = mixed();
+    let mut p = pos("5r2/pp5R/1kp3p1/6b1/4P1b1/1BNP2P1/PPP4P/1K6 w - - 1 22");
+    let mut s = Searcher::new(base, Some(rung2));
+    let r = s.search(&mut p, opts(4, true, true));
+    assert_ne!(r.best_move.unwrap().to_uci(), "b3f7");
+}
+
+#[test]
+fn make_unmake_null_restores_position_exactly() {
+    // EP square present so the null make/unmake exercises the ep hash delta.
+    let mut p = pos("rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2");
+    let h0 = p.hash;
+    let ep0 = p.ep;
+    let hm0 = p.halfmove;
+    let stm0 = p.stm;
+    let undo = p.make_null();
+    assert_ne!(p.hash, h0, "null must change the hash (stm flip)");
+    assert_eq!(p.ep, None, "null clears the ep right");
+    p.unmake_null(undo);
+    assert_eq!(p.hash, h0);
+    assert_eq!(p.ep, ep0);
+    assert_eq!(p.halfmove, hm0);
+    assert_eq!(p.stm, stm0);
 }

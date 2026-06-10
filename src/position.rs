@@ -318,6 +318,28 @@ impl Position {
         self.history.push(Undo { mv, captured, prev_castling, prev_ep, prev_halfmove, prev_hash });
     }
 
+    /// Null move (Search Patch 2): pass the turn without moving a piece. Only
+    /// the side to move, the en-passant right, and the hash change; piece
+    /// placement, castling, and the repetition history window are untouched.
+    /// Returns the undo data the caller must hand back to `unmake_null`.
+    pub fn make_null(&mut self) -> (Option<u8>, u64, u16) {
+        let undo = (self.ep, self.hash, self.halfmove);
+        let z = zobrist();
+        self.hash ^= z.stm_black;
+        self.hash ^= ep_key(self.ep);
+        self.ep = None;
+        self.halfmove += 1; // a passed turn makes no progress toward anything
+        self.stm = self.stm.flip();
+        undo
+    }
+
+    pub fn unmake_null(&mut self, undo: (Option<u8>, u64, u16)) {
+        self.stm = self.stm.flip();
+        self.ep = undo.0;
+        self.hash = undo.1;
+        self.halfmove = undo.2;
+    }
+
     pub fn unmake(&mut self) {
         let undo = self.history.pop().expect("unmake: empty history");
         let mv = undo.mv;

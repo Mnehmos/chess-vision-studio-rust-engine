@@ -38,6 +38,7 @@ fn main() {
         use_tt: !args.iter().any(|a| a == "--no-tt"),
         // --danger: danger-triggered root depth extension (RSI loop 1, gated).
         danger_extension: args.iter().any(|a| a == "--danger"),
+        null_move: !args.iter().any(|a| a == "--no-null"),
     };
 
     // --features: emit the eval + Rung-2 feature vector per FEN instead of
@@ -95,6 +96,9 @@ fn main() {
             "quietExt": t.quiet_check_extensions,
             "ttHits": t.tt_hits,
             "cutoffs": t.beta_cutoffs,
+            "killerCutoffs": t.killer_cutoffs,
+            "historyCutoffs": t.history_cutoffs,
+            "nullCutoffs": t.null_cutoffs,
             "timeMs": t.elapsed_ms,
         })
         .to_string()

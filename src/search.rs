@@ -17,7 +17,6 @@ use crate::eval::{
 use crate::movegen::{generate_legal, gives_check, in_check};
 use crate::see::{see, SEE_VALUE};
 use crate::{rank_of, Color, Move, MoveFlag, Piece, Position};
-use std::collections::HashMap;
 use std::time::Instant;
 
 pub const MATE_SCORE: i32 = 1_000_000;
@@ -44,6 +43,8 @@ pub struct SearchOptions {
     /// / king off home rank), search 1–2 plies deeper. Motivated by the
     /// sf2200-g14 forensic: d5 missed defensive resources that d7 finds.
     pub danger_extension: bool,
+    /// Null-move pruning (Search Patch 2). Default on; gate for A/B tests.
+    pub null_move: bool,
 }
 
 impl Default for SearchOptions {
@@ -54,6 +55,7 @@ impl Default for SearchOptions {
             quiet_checks: true,
             use_tt: true,
             danger_extension: false,
+            null_move: true,
         }
     }
 }
@@ -76,6 +78,8 @@ pub struct Telemetry {
     pub killer_cutoffs: u64,
     /// Quiet beta cutoffs ordered up purely by the history table.
     pub history_cutoffs: u64,
+    /// Nodes pruned by the null-move heuristic (Patch 2).
+    pub null_cutoffs: u64,
 }
 
 #[derive(Clone, Debug)]
@@ -97,13 +101,26 @@ enum Flag {
     Upper,
 }
 
+/// Fixed-size TT slot (audit: replace the dev-grade HashMap). `key == 0`
+/// means empty; generation aging lets stale entries lose replacement fights
+/// without a full clear, so the table survives across `search()` calls and
+/// feeds move-to-move reuse under UCI.
 #[derive(Clone, Copy)]
-struct TtEntry {
+struct TtSlot {
+    key: u64,
     depth: i32,
     score: i32,
     flag: Flag,
     mv: Option<Move>,
+    generation: u8,
 }
+
+const EMPTY_SLOT: TtSlot =
+    TtSlot { key: 0, depth: 0, score: 0, flag: Flag::Exact, mv: None, generation: 0 };
+/// 2^21 slots ≈ 2M entries (~64 MB) — fixed, power of two for mask indexing.
+const TT_BITS: u32 = 21;
+const TT_SIZE: usize = 1 << TT_BITS;
+const TT_MASK: u64 = (TT_SIZE as u64) - 1;
 
 /// Cheap root-level king-danger classifier (RSI loop 1). 0 = normal, 1 = danger
 /// (+1 ply), 2 = critical (+2 plies). Fires only with an enemy queen on the
@@ -148,7 +165,8 @@ const HISTORY_CAP: i32 = 1 << 14;
 pub struct Searcher {
     weights: ValueWeights,
     rung2: Option<Rung2Weights>,
-    tt: HashMap<u64, TtEntry>,
+    tt: Vec<TtSlot>,
+    tt_generation: u8,
     tel: Telemetry,
     deadline: Option<Instant>,
     aborted: bool,
@@ -166,7 +184,8 @@ impl Searcher {
         Searcher {
             weights,
             rung2,
-            tt: HashMap::new(),
+            tt: vec![EMPTY_SLOT; TT_SIZE],
+            tt_generation: 0,
             tel: Telemetry::default(),
             deadline: None,
             aborted: false,
@@ -203,7 +222,8 @@ impl Searcher {
         let danger_plies = if opts.danger_extension { danger_level(pos) } else { 0 };
         max_depth += danger_plies;
         self.opts = opts;
-        self.tt.clear();
+        // Persistent TT: age the generation instead of clearing (audit fix).
+        self.tt_generation = self.tt_generation.wrapping_add(1);
         // Killers/history reset per search call (kept across the iterative-
         // deepening iterations within it) — searches stay deterministic.
         self.killers.iter_mut().for_each(|k| *k = [None; 2]);
@@ -260,7 +280,7 @@ impl Searcher {
         if legal.is_empty() {
             return (if in_check(pos) { -MATE_SCORE } else { 0 }, None);
         }
-        let tt_move = if self.opts.use_tt { self.tt.get(&pos.hash).and_then(|e| e.mv) } else { None };
+        let tt_move = if self.opts.use_tt { self.tt_probe(pos.hash).and_then(|e| e.mv) } else { None };
         self.order_moves(pos, &mut legal, tt_move, 0);
 
         let mut alpha = -INF;
@@ -269,7 +289,7 @@ impl Searcher {
         let mut best_move: Option<Move> = None;
         for mv in legal {
             pos.make(mv);
-            let score = -self.negamax(pos, depth - 1, -beta, -alpha, 1);
+            let score = -self.negamax(pos, depth - 1, -beta, -alpha, 1, true);
             pos.unmake();
             if self.aborted {
                 return (best, best_move);
@@ -314,7 +334,7 @@ impl Searcher {
         }
     }
 
-    fn negamax(&mut self, pos: &mut Position, depth: i32, alpha_in: i32, beta_in: i32, ply: u32) -> i32 {
+    fn negamax(&mut self, pos: &mut Position, depth: i32, alpha_in: i32, beta_in: i32, ply: u32, allow_null: bool) -> i32 {
         if self.time_up() {
             self.aborted = true;
             return evaluate(pos, &self.weights, self.rung2.as_ref());
@@ -344,7 +364,7 @@ impl Searcher {
         let mut beta = beta_in;
         let mut tt_move: Option<Move> = None;
         if self.opts.use_tt {
-            if let Some(e) = self.tt.get(&pos.hash).copied() {
+            if let Some(e) = self.tt_probe(pos.hash) {
                 tt_move = e.mv;
                 if e.depth >= depth {
                     self.tel.tt_hits += 1;
@@ -368,6 +388,36 @@ impl Searcher {
             }
         }
 
+        // Null-move pruning (Search Patch 2, hardened per audit): if passing
+        // the turn STILL fails high on a reduced search, a real move surely
+        // will — prune. Guards: never in check, never two nulls in a row,
+        // depth ≥ 3, never around mate scores, the static eval must already
+        // be ≥ beta (don't speculate from below — the classic guard that also
+        // keeps null out of PV-ish nodes pre-PVS), and a strong zugzwang
+        // filter (a major piece, or at least two minors). R scales with depth.
+        // The cutoff is fail-hard beta and deliberately NOT stored in the TT
+        // (null results are window/path-dependent).
+        if allow_null
+            && self.opts.null_move
+            && !checked
+            && depth >= 3
+            && beta.abs() < MATE_THRESHOLD
+            && Self::null_material_ok(pos)
+            && evaluate(pos, &self.weights, self.rung2.as_ref()) >= beta
+        {
+            let null_r = if depth >= 6 { 3 } else { 2 };
+            let undo = pos.make_null();
+            let score = -self.negamax(pos, depth - 1 - null_r, -beta, -beta + 1, ply + 1, false);
+            pos.unmake_null(undo);
+            if self.aborted {
+                return score;
+            }
+            if score >= beta {
+                self.tel.null_cutoffs += 1;
+                return beta;
+            }
+        }
+
         self.order_moves(pos, &mut legal, tt_move, ply);
         let key = pos.hash;
         let side = pos.stm.index();
@@ -375,7 +425,7 @@ impl Searcher {
         let mut best_move: Option<Move> = None;
         for mv in legal {
             pos.make(mv);
-            let score = -self.negamax(pos, depth - 1, -beta, -alpha, ply + 1);
+            let score = -self.negamax(pos, depth - 1, -beta, -alpha, ply + 1, true);
             pos.unmake();
             if self.aborted {
                 return if best > -INF { best } else { score };
@@ -509,6 +559,19 @@ impl Searcher {
         best
     }
 
+    /// Strong zugzwang guard for null-move pruning: the side to move needs a
+    /// major piece (rook/queen) or at least two minor pieces. Knight-only and
+    /// single-minor endings are classic null-move blind spots.
+    fn null_material_ok(pos: &Position) -> bool {
+        let c = pos.stm.index();
+        let majors = pos.pieces[c][Piece::Rook.index()] | pos.pieces[c][Piece::Queen.index()];
+        if majors != 0 {
+            return true;
+        }
+        let minors = pos.pieces[c][Piece::Knight.index()] | pos.pieces[c][Piece::Bishop.index()];
+        minors.count_ones() >= 2
+    }
+
     /// MVV-LVA ordering score (captures first, by victim/attacker), matching the
     /// TS `captureOrder`: victim·16 − attacker (ep victim = pawn; quiets victim 0).
     fn capture_order(&self, pos: &Position, mv: Move) -> i32 {
@@ -558,14 +621,26 @@ impl Searcher {
         moves.sort_by_key(|m| -score_of(m));
     }
 
+    #[inline]
+    fn tt_probe(&self, key: u64) -> Option<TtSlot> {
+        let slot = &self.tt[(key & TT_MASK) as usize];
+        if slot.key == key { Some(*slot) } else { None }
+    }
+
     fn store(&mut self, key: u64, depth: i32, score: i32, flag: Flag, mv: Option<Move>) {
-        // Deeper-entry-wins replacement, like the TS reference.
-        if let Some(existing) = self.tt.get(&key) {
-            if existing.depth > depth {
-                return;
-            }
+        // Replacement: same position keeps the deeper entry; entries from an
+        // older generation always lose; otherwise depth decides.
+        let idx = (key & TT_MASK) as usize;
+        let slot = &self.tt[idx];
+        let replace = slot.key == 0
+            || slot.key == key && depth >= slot.depth
+            || slot.key != key
+                && (slot.generation != self.tt_generation || depth >= slot.depth);
+        if !replace {
+            return;
         }
-        self.tt.insert(key, TtEntry { depth, score, flag, mv });
+        self.tt[idx] =
+            TtSlot { key, depth, score, flag, mv, generation: self.tt_generation };
     }
 
     /// Walk the TT from the root following stored moves (the TS PV extraction).
@@ -584,7 +659,7 @@ impl Searcher {
             if !seen.insert(pos.hash) {
                 break;
             }
-            let Some(entry) = self.tt.get(&pos.hash) else { break };
+            let Some(entry) = self.tt_probe(pos.hash) else { break };
             let Some(mv) = entry.mv else { break };
             // Only follow strictly legal continuations.
             if !generate_legal(pos).contains(&mv) {
