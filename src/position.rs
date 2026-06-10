@@ -44,7 +44,12 @@ fn zobrist() -> &'static Zobrist {
         for v in ep_file.iter_mut() {
             *v = next();
         }
-        Zobrist { piece_sq, stm_black, castling, ep_file }
+        Zobrist {
+            piece_sq,
+            stm_black,
+            castling,
+            ep_file,
+        }
     })
 }
 
@@ -176,6 +181,71 @@ impl Position {
         Ok(pos)
     }
 
+    /// Serialize to a FEN string (inverse of `from_fen`).
+    pub fn to_fen(&self) -> String {
+        let mut board = String::with_capacity(80);
+        for rank in (0..8).rev() {
+            let mut empty = 0;
+            for file in 0..8 {
+                let sq = (rank * 8 + file) as u8;
+                match self.piece_at(sq) {
+                    Some((color, piece)) => {
+                        if empty > 0 {
+                            board.push(char::from_digit(empty, 10).unwrap());
+                            empty = 0;
+                        }
+                        let ch = match piece {
+                            Piece::Pawn => 'p',
+                            Piece::Knight => 'n',
+                            Piece::Bishop => 'b',
+                            Piece::Rook => 'r',
+                            Piece::Queen => 'q',
+                            Piece::King => 'k',
+                        };
+                        board.push(if color == Color::White {
+                            ch.to_ascii_uppercase()
+                        } else {
+                            ch
+                        });
+                    }
+                    None => empty += 1,
+                }
+            }
+            if empty > 0 {
+                board.push(char::from_digit(empty, 10).unwrap());
+            }
+            if rank > 0 {
+                board.push('/');
+            }
+        }
+        let mut castling = String::new();
+        if self.castling & castle::WK != 0 {
+            castling.push('K');
+        }
+        if self.castling & castle::WQ != 0 {
+            castling.push('Q');
+        }
+        if self.castling & castle::BK != 0 {
+            castling.push('k');
+        }
+        if self.castling & castle::BQ != 0 {
+            castling.push('q');
+        }
+        if castling.is_empty() {
+            castling.push('-');
+        }
+        let ep = match self.ep {
+            Some(sq) => format!("{}{}", (b'a' + (sq & 7)) as char, (sq >> 3) + 1),
+            None => "-".into(),
+        };
+        format!(
+            "{board} {} {castling} {ep} {} {}",
+            if self.stm == Color::White { 'w' } else { 'b' },
+            self.halfmove,
+            self.fullmove
+        )
+    }
+
     #[inline]
     pub fn king_sq(&self, color: Color) -> u8 {
         self.pieces[color.index()][Piece::King.index()].trailing_zeros() as u8
@@ -218,9 +288,11 @@ impl Position {
     pub fn piece_at(&self, sq: u8) -> Option<(Color, Piece)> {
         let b = 1u64 << sq;
         if self.occ[Color::White.index()] & b != 0 {
-            self.piece_at_color(Color::White, sq).map(|p| (Color::White, p))
+            self.piece_at_color(Color::White, sq)
+                .map(|p| (Color::White, p))
         } else if self.occ[Color::Black.index()] & b != 0 {
-            self.piece_at_color(Color::Black, sq).map(|p| (Color::Black, p))
+            self.piece_at_color(Color::Black, sq)
+                .map(|p| (Color::Black, p))
         } else {
             None
         }
@@ -259,7 +331,9 @@ impl Position {
         let them = us.flip();
         let from = mv.from;
         let to = mv.to;
-        let moving = self.piece_at_color(us, from).expect("make: no piece on from");
+        let moving = self
+            .piece_at_color(us, from)
+            .expect("make: no piece on from");
         let mut captured: Option<Piece> = None;
         let prev_castling = self.castling;
         let prev_ep = self.ep;
@@ -274,7 +348,9 @@ impl Position {
                 self.ep = Some(if us == Color::White { to - 8 } else { to + 8 });
             }
             MoveFlag::Capture => {
-                let cap = self.piece_at_color(them, to).expect("make: capture on empty");
+                let cap = self
+                    .piece_at_color(them, to)
+                    .expect("make: capture on empty");
                 self.clear_piece(them, cap, to);
                 captured = Some(cap);
                 self.move_piece(us, moving, from, to);
@@ -299,7 +375,9 @@ impl Position {
                 // Promotion (with or without capture).
                 self.clear_piece(us, Piece::Pawn, from);
                 if mv.flag.is_capture() {
-                    let cap = self.piece_at_color(them, to).expect("make: promo-cap on empty");
+                    let cap = self
+                        .piece_at_color(them, to)
+                        .expect("make: promo-cap on empty");
                     self.clear_piece(them, cap, to);
                     captured = Some(cap);
                 }
@@ -309,17 +387,22 @@ impl Position {
 
         // Castling rights.
         if moving == Piece::King {
-            let mask = if us == Color::White { castle::WK | castle::WQ } else { castle::BK | castle::BQ };
+            let mask = if us == Color::White {
+                castle::WK | castle::WQ
+            } else {
+                castle::BK | castle::BQ
+            };
             self.castling &= !mask;
         }
         self.clear_castle_for_square(from);
         self.clear_castle_for_square(to);
 
-        self.halfmove = if moving == Piece::Pawn || captured.is_some() || mv.flag.promo_piece().is_some() {
-            0
-        } else {
-            self.halfmove + 1
-        };
+        self.halfmove =
+            if moving == Piece::Pawn || captured.is_some() || mv.flag.promo_piece().is_some() {
+                0
+            } else {
+                self.halfmove + 1
+            };
         if us == Color::Black {
             self.fullmove += 1;
         }
@@ -330,7 +413,14 @@ impl Position {
         self.hash ^= z.stm_black;
         self.hash ^= z.castling[prev_castling as usize] ^ z.castling[self.castling as usize];
         self.hash ^= ep_key(prev_ep) ^ ep_key(self.ep);
-        self.history.push(Undo { mv, captured, prev_castling, prev_ep, prev_halfmove, prev_hash });
+        self.history.push(Undo {
+            mv,
+            captured,
+            prev_castling,
+            prev_ep,
+            prev_halfmove,
+            prev_hash,
+        });
     }
 
     /// Null move (Search Patch 2): pass the turn without moving a piece. Only
@@ -412,7 +502,11 @@ impl Position {
 }
 
 fn parse_piece(ch: char) -> Option<(Color, Piece)> {
-    let color = if ch.is_ascii_uppercase() { Color::White } else { Color::Black };
+    let color = if ch.is_ascii_uppercase() {
+        Color::White
+    } else {
+        Color::Black
+    };
     let piece = match ch.to_ascii_lowercase() {
         'p' => Piece::Pawn,
         'n' => Piece::Knight,

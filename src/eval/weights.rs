@@ -28,7 +28,13 @@ pub struct MaterialWeights {
 impl Default for ValueWeights {
     fn default() -> Self {
         ValueWeights {
-            material: MaterialWeights { p: 1.0, n: 1.0, b: 1.0, r: 1.0, q: 1.0 },
+            material: MaterialWeights {
+                p: 1.0,
+                n: 1.0,
+                b: 1.0,
+                r: 1.0,
+                q: 1.0,
+            },
             pst_scale: 1.0,
             bishop_pair: 30.0,
             tempo: 10.0,

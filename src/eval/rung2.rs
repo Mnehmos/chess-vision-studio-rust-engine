@@ -5,7 +5,9 @@
 //! open-file, passed pawns (mg/eg tapered + connected), rook files/7th, doubled +
 //! isolated pawns, tapered bishop pair, and hanging material (attacked-and-
 //! undefended, in pawns). Parity target: the TS `extractRung2Features`.
-use crate::attacks::{attackers_of, bishop_attacks, king_attacks, knight_attacks, queen_attacks, rook_attacks};
+use crate::attacks::{
+    attackers_of, bishop_attacks, king_attacks, knight_attacks, queen_attacks, rook_attacks,
+};
 use crate::eval::{phase_units, MAX_PHASE};
 use crate::see::SEE_VALUE;
 use crate::{file_of, rank_of, Color, Piece, Position};
@@ -84,7 +86,11 @@ fn shield_pawns(own_pawns: u64, ksq: u8, color: Color) -> i32 {
             continue;
         }
         for step in 1..=2 {
-            let rr = if color == Color::White { kr + step } else { kr - step };
+            let rr = if color == Color::White {
+                kr + step
+            } else {
+                kr - step
+            };
             if !(0..8).contains(&rr) {
                 continue;
             }
@@ -267,11 +273,12 @@ pub fn extract_rung2(pos: &Position) -> Rung2Features {
     // --- King safety ---
     let wk = pos.king_sq(Color::White);
     let bk = pos.king_sq(Color::Black);
-    f.king_shield = (shield_pawns(wp, wk, Color::White) - shield_pawns(bp, bk, Color::Black)) as f64;
-    f.king_zone_pressure =
-        (king_zone_attacked(pos, bk, Color::White) - king_zone_attacked(pos, wk, Color::Black)) as f64;
-    f.king_open_file =
-        (king_file_exposure(&b_files, file_of(bk)) - king_file_exposure(&w_files, file_of(wk))) as f64;
+    f.king_shield =
+        (shield_pawns(wp, wk, Color::White) - shield_pawns(bp, bk, Color::Black)) as f64;
+    f.king_zone_pressure = (king_zone_attacked(pos, bk, Color::White)
+        - king_zone_attacked(pos, wk, Color::Black)) as f64;
+    f.king_open_file = (king_file_exposure(&b_files, file_of(bk))
+        - king_file_exposure(&w_files, file_of(wk))) as f64;
 
     // --- 2B King-Exposure Head (enemy-queen-conditioned; the g14/g13/mini-g04
     // loss family: quiet-position king danger the base terms cannot see) ---
@@ -298,28 +305,33 @@ pub fn extract_rung2(pos: &Position) -> Rung2Features {
         f.enemy_queen_near_king = near as f64;
 
         // Per-side exposure terms, conditioned on the ENEMY queen existing.
-        let side_terms = |ksq: u8, own_pawns: u64, color: Color, enemy_queen: u64| -> (f64, f64, f64) {
-            if enemy_queen == 0 {
-                return (0.0, 0.0, 0.0);
-            }
-            let home: i32 = if color == Color::White { 0 } else { 7 };
-            let displacement = (rank_of(ksq) as i32 - home).abs();
-            let central = (2..=5).contains(&file_of(ksq)); // files c–f
-            let exposure = (displacement + if central { 1 } else { 0 }) as f64 * mg_w;
-            let open_center = if central && shield_pawns(own_pawns, ksq, color) == 0 { mg_w } else { 0.0 };
-            // Flight squares: king moves to squares not occupied by own pieces and
-            // not attacked by the enemy.
-            let mut flights = 0i32;
-            let mut esc = king_attacks(ksq) & !pos.occ[color.index()];
-            while esc != 0 {
-                let sq = pop_lsb(&mut esc);
-                if attackers_of(&pos.pieces, sq, color.flip(), pos.all) == 0 {
-                    flights += 1;
+        let side_terms =
+            |ksq: u8, own_pawns: u64, color: Color, enemy_queen: u64| -> (f64, f64, f64) {
+                if enemy_queen == 0 {
+                    return (0.0, 0.0, 0.0);
                 }
-            }
-            let deficit = (3 - flights).max(0) as f64;
-            (exposure, open_center, deficit)
-        };
+                let home: i32 = if color == Color::White { 0 } else { 7 };
+                let displacement = (rank_of(ksq) as i32 - home).abs();
+                let central = (2..=5).contains(&file_of(ksq)); // files c–f
+                let exposure = (displacement + if central { 1 } else { 0 }) as f64 * mg_w;
+                let open_center = if central && shield_pawns(own_pawns, ksq, color) == 0 {
+                    mg_w
+                } else {
+                    0.0
+                };
+                // Flight squares: king moves to squares not occupied by own pieces and
+                // not attacked by the enemy.
+                let mut flights = 0i32;
+                let mut esc = king_attacks(ksq) & !pos.occ[color.index()];
+                while esc != 0 {
+                    let sq = pop_lsb(&mut esc);
+                    if attackers_of(&pos.pieces, sq, color.flip(), pos.all) == 0 {
+                        flights += 1;
+                    }
+                }
+                let deficit = (3 - flights).max(0) as f64;
+                (exposure, open_center, deficit)
+            };
         let (we, wo, wd) = side_terms(wk, wp, Color::White, bq);
         let (be, bo, bd) = side_terms(bk, bp, Color::Black, wq);
         f.king_central_exposure = be - we;
@@ -377,8 +389,9 @@ pub fn extract_rung2(pos: &Position) -> Rung2Features {
             let file_mask = 0x0101010101010101u64 << kf;
             let enemy_pawns = pos.pieces[e][Piece::Pawn.index()];
             if enemy_pawns & file_mask == 0 {
-                let mut heavy =
-                    (pos.pieces[e][Piece::Rook.index()] | pos.pieces[e][Piece::Queen.index()]) & file_mask;
+                let mut heavy = (pos.pieces[e][Piece::Rook.index()]
+                    | pos.pieces[e][Piece::Queen.index()])
+                    & file_mask;
                 while heavy != 0 {
                     let s = pop_lsb(&mut heavy);
                     // Direct zone attackers were already counted above.
@@ -394,7 +407,8 @@ pub fn extract_rung2(pos: &Position) -> Rung2Features {
             units += (3 - shield_pawns(own_pawns, ksq, color)).max(0);
             ((units * units) as f64 / 16.0).min(40.0)
         };
-        f.king_danger = (zone_danger(bk, Color::Black, bp) - zone_danger(wk, Color::White, wp)) * mg_w;
+        f.king_danger =
+            (zone_danger(bk, Color::Black, bp) - zone_danger(wk, Color::White, wp)) * mg_w;
     }
 
     // --- Hanging material (attacked-and-undefended non-king pieces, in pawns) ---

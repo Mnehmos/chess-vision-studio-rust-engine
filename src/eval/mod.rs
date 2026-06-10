@@ -5,10 +5,12 @@
 //!   tempo → optional Rung-2 contribution. With default weights this reproduces
 //!   the handcrafted eval; with the trained mixed weights it reproduces the gated
 //!   Rung-2 head. Parity target: TS float within tolerance on a curated FEN suite.
+pub mod nnue;
 pub mod pst;
 pub mod rung2;
 pub mod weights;
 
+pub use nnue::Nnue;
 pub use rung2::{extract_rung2, rung2_contribution, Rung2Features};
 pub use weights::{Rung2Weights, ValueWeights};
 
@@ -56,13 +58,21 @@ pub fn insufficient_material(pos: &Position) -> bool {
 }
 
 /// Pre-round White-POV float — the parity target against the TS `evaluateWhiteFloat`.
-pub fn evaluate_white_float(pos: &mut Position, w: &ValueWeights, r2: Option<&Rung2Weights>) -> f64 {
+pub fn evaluate_white_float(
+    pos: &mut Position,
+    w: &ValueWeights,
+    r2: Option<&Rung2Weights>,
+) -> f64 {
     // Terminal short-circuits, in the same order as the TS reference.
     let no_legal = generate_legal(pos).is_empty();
     if no_legal {
         if in_check(pos) {
             // Side to move is mated => bad for them.
-            return if pos.stm == Color::White { -MATE_SCORE } else { MATE_SCORE };
+            return if pos.stm == Color::White {
+                -MATE_SCORE
+            } else {
+                MATE_SCORE
+            };
         }
         return 0.0; // stalemate
     }
@@ -86,7 +96,10 @@ pub fn evaluate_white_float_nonterminal(
     let eg_w = 1.0 - mg_w;
 
     let mut score = 0.0f64;
-    for (ci, color, sign) in [(0usize, Color::White, 1.0f64), (1usize, Color::Black, -1.0f64)] {
+    for (ci, color, sign) in [
+        (0usize, Color::White, 1.0f64),
+        (1usize, Color::Black, -1.0f64),
+    ] {
         for p in Piece::ALL {
             let mat_mul = match p {
                 Piece::Pawn => w.material.p,
@@ -118,7 +131,11 @@ pub fn evaluate_white_float_nonterminal(
         score -= w.bishop_pair;
     }
 
-    score += if pos.stm == Color::White { w.tempo } else { -w.tempo };
+    score += if pos.stm == Color::White {
+        w.tempo
+    } else {
+        -w.tempo
+    };
 
     if let Some(r2w) = r2 {
         score += rung2_contribution(pos, r2w);

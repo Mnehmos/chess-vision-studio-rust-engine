@@ -2,7 +2,9 @@
 //! Rung-2 invariants (start-position feature symmetry, inert default, reachable
 //! capacity). Full numeric parity vs TS is proven by the `eval_parity` binary
 //! over the 628-FEN fixture suite (max diff 0.000000cp).
-use cvs_bitboard_core::eval::{evaluate, evaluate_white, extract_rung2, Rung2Weights, ValueWeights};
+use cvs_bitboard_core::eval::{
+    evaluate, evaluate_white, extract_rung2, Rung2Weights, ValueWeights,
+};
 use cvs_bitboard_core::Position;
 
 const START_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -44,7 +46,10 @@ fn mate_and_stalemate_short_circuit() {
     assert!(evaluate_white(&mut mated, &ValueWeights::default(), None) <= -999_999);
     // Classic stalemate: Black to move, no legal moves, not in check -> 0.
     let mut stale = pos("7k/5Q2/6K1/8/8/8/8/8 b - - 0 1");
-    assert_eq!(evaluate_white(&mut stale, &ValueWeights::default(), None), 0);
+    assert_eq!(
+        evaluate_white(&mut stale, &ValueWeights::default(), None),
+        0
+    );
 }
 
 #[test]
@@ -71,7 +76,10 @@ fn rung2_startpos_features_symmetric_zero() {
         f.bishop_pair_eg,
         f.hanging_piece,
     ] {
-        assert!(v.abs() < 1e-9, "startpos Rung-2 features must be symmetric-zero");
+        assert!(
+            v.abs() < 1e-9,
+            "startpos Rung-2 features must be symmetric-zero"
+        );
     }
 }
 
@@ -82,7 +90,10 @@ fn rung2_inert_default_and_reachable_capacity() {
     let base = evaluate_white(&mut p, &ValueWeights::default(), None);
     // All-zero Rung-2 weights are byte-inert.
     let zero = Rung2Weights::default();
-    assert_eq!(evaluate_white(&mut p, &ValueWeights::default(), Some(&zero)), base);
+    assert_eq!(
+        evaluate_white(&mut p, &ValueWeights::default(), Some(&zero)),
+        base
+    );
     // A non-zero weight changes the eval (open-file rook helps White).
     let mut w = Rung2Weights::default();
     w.rook_open_file = 50.0;

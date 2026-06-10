@@ -9,7 +9,7 @@
 //! (paths resolve from the cwd cutechess launches us in, so pass absolute
 //! paths in the engine config). The clock policy mirrors the Lichess bot:
 //! spend ~1/30 of remaining time + most of the increment, floor 50ms.
-use cvs_bitboard_core::eval::{Rung2Weights, ValueWeights};
+use cvs_bitboard_core::eval::{Nnue, Rung2Weights, ValueWeights};
 use cvs_bitboard_core::movegen::generate_legal;
 use cvs_bitboard_core::search::{SearchOptions, Searcher};
 use cvs_bitboard_core::Position;
@@ -21,20 +21,29 @@ const DEPTH_CAP: u32 = 30;
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let get = |flag: &str| -> Option<String> {
-        args.iter().position(|a| a == flag).and_then(|i| args.get(i + 1).cloned())
+        args.iter()
+            .position(|a| a == flag)
+            .and_then(|i| args.get(i + 1).cloned())
     };
     let base: ValueWeights = match get("--base") {
-        Some(p) => serde_json::from_str(&std::fs::read_to_string(p).expect("base weights")).expect("parse base"),
+        Some(p) => serde_json::from_str(&std::fs::read_to_string(p).expect("base weights"))
+            .expect("parse base"),
         None => ValueWeights::default(),
     };
     let rung2: Option<Rung2Weights> = get("--rung2").map(|p| {
-        serde_json::from_str(&std::fs::read_to_string(p).expect("rung2 weights")).expect("parse rung2")
+        serde_json::from_str(&std::fs::read_to_string(p).expect("rung2 weights"))
+            .expect("parse rung2")
     });
 
+    let nnue: Option<Nnue> = get("--nnue").map(|p| Nnue::load(&p).expect("load nnue"));
+    let mk = |base: ValueWeights, rung2: Option<Rung2Weights>| match &nnue {
+        Some(n) => Searcher::with_nnue(base, rung2, n.clone()),
+        None => Searcher::new(base, rung2),
+    };
     let stdin = std::io::stdin();
     let mut out = std::io::stdout();
     let mut pos = Position::from_fen(START_FEN).unwrap();
-    let mut searcher = Searcher::new(base, rung2);
+    let mut searcher = mk(base, rung2);
 
     for line in stdin.lock().lines() {
         let line = match line {
@@ -52,7 +61,7 @@ fn main() {
                 let _ = writeln!(out, "readyok");
             }
             Some("ucinewgame") => {
-                searcher = Searcher::new(base, rung2.clone());
+                searcher = mk(base, rung2.clone());
                 pos = Position::from_fen(START_FEN).unwrap();
             }
             Some("position") => {
@@ -66,7 +75,9 @@ fn main() {
                     }
                     _ => continue,
                 };
-                let Ok(mut p) = Position::from_fen(&fen) else { continue };
+                let Ok(mut p) = Position::from_fen(&fen) else {
+                    continue;
+                };
                 let mut idx = moves_at;
                 if rest.get(idx) == Some(&"moves") {
                     idx += 1;
@@ -107,10 +118,13 @@ fn main() {
                     i += 2;
                 }
                 let white_to_move = pos.stm == cvs_bitboard_core::Color::White;
-                let (my_time, my_inc) = if white_to_move { (wtime, winc) } else { (btime, binc) };
-                let budget: Option<u64> = movetime.or_else(|| {
-                    my_time.map(|t| ((t / 30 + my_inc * 4 / 5).clamp(50, 10_000)))
-                });
+                let (my_time, my_inc) = if white_to_move {
+                    (wtime, winc)
+                } else {
+                    (btime, binc)
+                };
+                let budget: Option<u64> = movetime
+                    .or_else(|| my_time.map(|t| ((t / 30 + my_inc * 4 / 5).clamp(50, 10_000))));
                 let opts = SearchOptions {
                     depth: depth.unwrap_or(DEPTH_CAP),
                     max_time_ms: if depth.is_some() { None } else { budget },

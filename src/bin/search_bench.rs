@@ -10,9 +10,18 @@ use cvs_bitboard_core::search::{SearchOptions, Searcher};
 use cvs_bitboard_core::Position;
 
 const POSITIONS: &[(&str, &str)] = &[
-    ("549-d4d5-blunder", "5r2/pp5R/1kp3p1/6b1/4P1b1/1BNP2P1/PPP4P/1K6 w - - 1 22"),
-    ("startpos", "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"),
-    ("midgame-r1", "4r1k1/1p3pp1/p1p3rp/P1Qnq3/1PB5/4P3/5PPP/3R1RK1 b - - 5 27"),
+    (
+        "549-d4d5-blunder",
+        "5r2/pp5R/1kp3p1/6b1/4P1b1/1BNP2P1/PPP4P/1K6 w - - 1 22",
+    ),
+    (
+        "startpos",
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    ),
+    (
+        "midgame-r1",
+        "4r1k1/1p3pp1/p1p3rp/P1Qnq3/1PB5/4P3/5PPP/3R1RK1 b - - 5 27",
+    ),
 ];
 
 fn main() {
@@ -45,16 +54,33 @@ fn main() {
             for depth in 2..=max_depth {
                 let mut pos = Position::from_fen(fen).expect("valid FEN");
                 let mut s = Searcher::new(*w, *r2);
-                let r = s.search(&mut pos, SearchOptions { depth, ..Default::default() });
+                let r = s.search(
+                    &mut pos,
+                    SearchOptions {
+                        depth,
+                        ..Default::default()
+                    },
+                );
                 let t = r.telemetry;
                 let ms = t.elapsed_ms.max(1);
                 let nps = t.nodes * 1000 / ms;
-                let best = r.best_move.map(|m| m.to_uci()).unwrap_or_else(|| "(none)".into());
+                let best = r
+                    .best_move
+                    .map(|m| m.to_uci())
+                    .unwrap_or_else(|| "(none)".into());
                 println!(
                     "| {name} | {pname} | {depth} | {} | {} | {} | {} | {} | {nps} | {best} | {} |",
-                    t.elapsed_ms, t.nodes, t.q_nodes, t.quiet_check_extensions, t.tt_hits, r.score_cp
+                    t.elapsed_ms,
+                    t.nodes,
+                    t.q_nodes,
+                    t.quiet_check_extensions,
+                    t.tt_hits,
+                    r.score_cp
                 );
-                parity.push(format!("PARITY {name}|{pname}|d{depth} => {best}@{}", r.score_cp));
+                parity.push(format!(
+                    "PARITY {name}|{pname}|d{depth} => {best}@{}",
+                    r.score_cp
+                ));
             }
         }
     }

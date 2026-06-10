@@ -45,7 +45,16 @@ fn build_tables() -> Tables {
         let r = sq / 8;
 
         // Knight.
-        for (df, dr) in [(1, 2), (2, 1), (2, -1), (1, -2), (-1, -2), (-2, -1), (-2, 1), (-1, 2)] {
+        for (df, dr) in [
+            (1, 2),
+            (2, 1),
+            (2, -1),
+            (1, -2),
+            (-1, -2),
+            (-2, -1),
+            (-2, 1),
+            (-1, 2),
+        ] {
             if on(f + df, r + dr) {
                 knight[sq as usize] |= bit(f + df, r + dr);
             }
@@ -82,7 +91,12 @@ fn build_tables() -> Tables {
         }
     }
 
-    Tables { knight, king, pawn, rays }
+    Tables {
+        knight,
+        king,
+        pawn,
+        rays,
+    }
 }
 
 #[inline]
@@ -137,8 +151,10 @@ pub fn attackers_of(pieces: &[[u64; 6]; 2], sq: u8, by: Color, occ: u64) -> u64 
     let mut a = pawn_attacks(by.flip(), sq) & pieces[bi][Piece::Pawn.index()];
     a |= knight_attacks(sq) & pieces[bi][Piece::Knight.index()];
     a |= king_attacks(sq) & pieces[bi][Piece::King.index()];
-    a |= bishop_attacks(sq, occ) & (pieces[bi][Piece::Bishop.index()] | pieces[bi][Piece::Queen.index()]);
-    a |= rook_attacks(sq, occ) & (pieces[bi][Piece::Rook.index()] | pieces[bi][Piece::Queen.index()]);
+    a |= bishop_attacks(sq, occ)
+        & (pieces[bi][Piece::Bishop.index()] | pieces[bi][Piece::Queen.index()]);
+    a |= rook_attacks(sq, occ)
+        & (pieces[bi][Piece::Rook.index()] | pieces[bi][Piece::Queen.index()]);
     a
 }
 

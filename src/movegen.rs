@@ -27,7 +27,12 @@ fn add_quiet_or_cap(moves: &mut Vec<Move>, from: u8, mut targets: u64, them_occ:
     }
 }
 
-const PROMOS: [MoveFlag; 4] = [MoveFlag::PromoQ, MoveFlag::PromoR, MoveFlag::PromoB, MoveFlag::PromoN];
+const PROMOS: [MoveFlag; 4] = [
+    MoveFlag::PromoQ,
+    MoveFlag::PromoR,
+    MoveFlag::PromoB,
+    MoveFlag::PromoN,
+];
 const PROMO_CAPS: [MoveFlag; 4] = [
     MoveFlag::PromoQCap,
     MoveFlag::PromoRCap,

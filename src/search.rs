@@ -11,7 +11,7 @@
 //! be exercised independently in tests.
 use crate::attacks::{attackers_of, king_attacks};
 use crate::eval::{
-    evaluate, evaluate_white_float_nonterminal, insufficient_material, js_round, phase_units,
+    evaluate, evaluate_white_float_nonterminal, insufficient_material, js_round, phase_units, Nnue,
     Rung2Weights, ValueWeights,
 };
 use crate::movegen::{generate_legal, generate_legal_noisy, gives_check, has_legal_move, in_check};
@@ -97,8 +97,8 @@ pub struct Telemetry {
     pub q_nodes: u64,
     pub q_capture_nodes: u64,
     pub quiet_check_extensions: u64,
-    pub mate_threat_extensions: u64,        // scaffolded (not yet implemented)
-    pub hanging_major_extensions: u64,      // scaffolded (not yet implemented)
+    pub mate_threat_extensions: u64, // scaffolded (not yet implemented)
+    pub hanging_major_extensions: u64, // scaffolded (not yet implemented)
     pub max_q_depth: u32,
     pub tt_hits: u64,
     pub beta_cutoffs: u64,
@@ -164,8 +164,14 @@ struct TtSlot {
     generation: u8,
 }
 
-const EMPTY_SLOT: TtSlot =
-    TtSlot { key: 0, depth: 0, score: 0, flag: Flag::Exact, mv: None, generation: 0 };
+const EMPTY_SLOT: TtSlot = TtSlot {
+    key: 0,
+    depth: 0,
+    score: 0,
+    flag: Flag::Exact,
+    mv: None,
+    generation: 0,
+};
 /// 2^21 slots ≈ 2M entries (~64 MB) — fixed, power of two for mask indexing.
 const TT_BITS: u32 = 21;
 const TT_SIZE: usize = 1 << TT_BITS;
@@ -226,6 +232,9 @@ pub struct Searcher {
     /// History heuristic: [side][from][to] — quiet cutoff counts weighted by
     /// depth², so deep cutoffs teach more than leaf noise.
     history: Vec<i32>, // 2*64*64, flat for cache friendliness
+    /// NNUE eval head — when loaded, replaces the classical eval at every
+    /// static/leaf eval site (search shape unchanged).
+    nnue: Option<Nnue>,
 }
 
 impl Searcher {
@@ -241,7 +250,16 @@ impl Searcher {
             opts: SearchOptions::default(),
             killers: vec![[None; 2]; MAX_KILLER_PLY],
             history: vec![0; 2 * 64 * 64],
+            nnue: None,
         }
+    }
+
+    /// NNUE-backed searcher: the net replaces the classical eval at every
+    /// leaf/static-eval site (search shape is otherwise identical).
+    pub fn with_nnue(weights: ValueWeights, rung2: Option<Rung2Weights>, nnue: Nnue) -> Searcher {
+        let mut s = Searcher::new(weights, rung2);
+        s.nnue = Some(nnue);
+        s
     }
 
     #[inline]
@@ -268,7 +286,11 @@ impl Searcher {
     pub fn search(&mut self, pos: &mut Position, opts: SearchOptions) -> SearchResult {
         let mut max_depth = opts.depth.max(1);
         // Danger-triggered root extension (gated): king danger buys 1–2 extra plies.
-        let danger_plies = if opts.danger_extension { danger_level(pos) } else { 0 };
+        let danger_plies = if opts.danger_extension {
+            danger_level(pos)
+        } else {
+            0
+        };
         max_depth += danger_plies;
         self.opts = opts;
         // Persistent TT: age the generation instead of clearing (audit fix).
@@ -281,7 +303,9 @@ impl Searcher {
         self.tel.danger_extension_plies = danger_plies;
         self.aborted = false;
         let started = Instant::now();
-        self.deadline = opts.max_time_ms.map(|ms| started + std::time::Duration::from_millis(ms));
+        self.deadline = opts
+            .max_time_ms
+            .map(|ms| started + std::time::Duration::from_millis(ms));
 
         let mut result = SearchResult {
             best_move: None,
@@ -352,12 +376,22 @@ impl Searcher {
 
     /// Root: an explicit negamax move loop so the best move is tracked directly
     /// (the TS reference reads it back from the root TT entry — equivalent).
-    fn root(&mut self, pos: &mut Position, depth: i32, alpha0: i32, beta: i32) -> (i32, Option<Move>) {
+    fn root(
+        &mut self,
+        pos: &mut Position,
+        depth: i32,
+        alpha0: i32,
+        beta: i32,
+    ) -> (i32, Option<Move>) {
         let mut legal = generate_legal(pos);
         if legal.is_empty() {
             return (if in_check(pos) { -MATE_SCORE } else { 0 }, None);
         }
-        let tt_move = if self.opts.use_tt { self.tt_probe(pos.hash).and_then(|e| e.mv) } else { None };
+        let tt_move = if self.opts.use_tt {
+            self.tt_probe(pos.hash).and_then(|e| e.mv)
+        } else {
+            None
+        };
         self.order_moves(pos, &mut legal, tt_move, 0);
 
         let mut alpha = alpha0;
@@ -405,6 +439,14 @@ impl Searcher {
 
     /// Leaf eval = the TS `evaluate()` (stm POV, terminal-aware), given that the
     /// caller already knows whether legal moves exist (avoids a second movegen).
+    /// Side-to-move static eval — NNUE when loaded, classical otherwise.
+    fn static_eval(&self, pos: &mut Position) -> i32 {
+        if let Some(n) = &self.nnue {
+            return n.eval_stm(pos);
+        }
+        evaluate(pos, &self.weights, self.rung2.as_ref())
+    }
+
     fn leaf_eval(&self, pos: &Position, no_legal: bool, checked: bool) -> i32 {
         if no_legal {
             return if checked { -MATE_SCORE } else { 0 };
@@ -412,7 +454,14 @@ impl Searcher {
         if pos.halfmove >= 100 || insufficient_material(pos) {
             return 0;
         }
-        let white = js_round(evaluate_white_float_nonterminal(pos, &self.weights, self.rung2.as_ref()));
+        if let Some(n) = &self.nnue {
+            return n.eval_stm(pos);
+        }
+        let white = js_round(evaluate_white_float_nonterminal(
+            pos,
+            &self.weights,
+            self.rung2.as_ref(),
+        ));
         if pos.stm == Color::White {
             white
         } else {
@@ -420,10 +469,18 @@ impl Searcher {
         }
     }
 
-    fn negamax(&mut self, pos: &mut Position, depth: i32, alpha_in: i32, beta_in: i32, ply: u32, allow_null: bool) -> i32 {
+    fn negamax(
+        &mut self,
+        pos: &mut Position,
+        depth: i32,
+        alpha_in: i32,
+        beta_in: i32,
+        ply: u32,
+        allow_null: bool,
+    ) -> i32 {
         if self.time_up() {
             self.aborted = true;
-            return evaluate(pos, &self.weights, self.rung2.as_ref());
+            return self.static_eval(pos);
         }
         self.tel.nodes += 1;
 
@@ -487,7 +544,7 @@ impl Searcher {
         macro_rules! static_eval {
             () => {{
                 if static_cache.is_none() {
-                    static_cache = Some(evaluate(pos, &self.weights, self.rung2.as_ref()));
+                    static_cache = Some(self.static_eval(pos));
                 }
                 static_cache.unwrap()
             }};
@@ -648,7 +705,11 @@ impl Searcher {
             }
         }
         if self.opts.use_tt {
-            let flag = if best > alpha_in { Flag::Exact } else { Flag::Upper };
+            let flag = if best > alpha_in {
+                Flag::Exact
+            } else {
+                Flag::Upper
+            };
             self.store(key, depth, best, flag, best_move);
         }
         best
@@ -660,7 +721,14 @@ impl Searcher {
     /// the q-tree. Quiet-check candidates only force full gen inside the small
     /// QUIET_CHECK_MAX_PLY window. Stalemate on no-noisy nodes uses the
     /// early-exit has_legal_move probe.
-    fn quiesce(&mut self, pos: &mut Position, alpha_in: i32, beta: i32, ply: u32, q_depth: u32) -> i32 {
+    fn quiesce(
+        &mut self,
+        pos: &mut Position,
+        alpha_in: i32,
+        beta: i32,
+        ply: u32,
+        q_depth: u32,
+    ) -> i32 {
         let checked = in_check(pos);
         if self.time_up() {
             self.aborted = true;
@@ -724,8 +792,10 @@ impl Searcher {
                 .filter(|m| !m.flag.is_capture() && m.flag.promo_piece().is_none())
                 .filter(|m| see(pos, m.from, m.to) >= 0)
                 .collect();
-            let mut quiet_checks: Vec<Move> =
-                candidates.into_iter().filter(|m| gives_check(pos, *m)).collect();
+            let mut quiet_checks: Vec<Move> = candidates
+                .into_iter()
+                .filter(|m| gives_check(pos, *m))
+                .collect();
             quiet_checks.sort_by_key(|m| -self.capture_order(pos, *m));
             quiet_checks.truncate(MAX_QUIET_CHECKS_PER_NODE);
             if !quiet_checks.is_empty() {
@@ -795,7 +865,9 @@ impl Searcher {
         let victim_value = if mv.flag == MoveFlag::EnPassant {
             SEE_VALUE[Piece::Pawn.index()]
         } else if mv.flag.is_capture() {
-            pos.piece_at(mv.to).map(|(_, p)| SEE_VALUE[p.index()]).unwrap_or(0)
+            pos.piece_at(mv.to)
+                .map(|(_, p)| SEE_VALUE[p.index()])
+                .unwrap_or(0)
         } else {
             0
         };
@@ -840,7 +912,11 @@ impl Searcher {
     #[inline]
     fn tt_probe(&self, key: u64) -> Option<TtSlot> {
         let slot = &self.tt[(key & TT_MASK) as usize];
-        if slot.key == key { Some(*slot) } else { None }
+        if slot.key == key {
+            Some(*slot)
+        } else {
+            None
+        }
     }
 
     fn store(&mut self, key: u64, depth: i32, score: i32, flag: Flag, mv: Option<Move>) {
@@ -850,13 +926,18 @@ impl Searcher {
         let slot = &self.tt[idx];
         let replace = slot.key == 0
             || slot.key == key && depth >= slot.depth
-            || slot.key != key
-                && (slot.generation != self.tt_generation || depth >= slot.depth);
+            || slot.key != key && (slot.generation != self.tt_generation || depth >= slot.depth);
         if !replace {
             return;
         }
-        self.tt[idx] =
-            TtSlot { key, depth, score, flag, mv, generation: self.tt_generation };
+        self.tt[idx] = TtSlot {
+            key,
+            depth,
+            score,
+            flag,
+            mv,
+            generation: self.tt_generation,
+        };
     }
 
     /// Walk the TT from the root following stored moves (the TS PV extraction).
@@ -875,7 +956,9 @@ impl Searcher {
             if !seen.insert(pos.hash) {
                 break;
             }
-            let Some(entry) = self.tt_probe(pos.hash) else { break };
+            let Some(entry) = self.tt_probe(pos.hash) else {
+                break;
+            };
             let Some(mv) = entry.mv else { break };
             // Only follow strictly legal continuations.
             if !generate_legal(pos).contains(&mv) {

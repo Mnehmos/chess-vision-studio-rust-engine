@@ -6,7 +6,7 @@
 //!
 //!   analyze (--fens <file> | --serve) --depth N [--base w.json --rung2 r.json]
 //!           [--no-quiet-checks] [--no-tt]
-use cvs_bitboard_core::eval::{evaluate_white, Rung2Weights, ValueWeights};
+use cvs_bitboard_core::eval::{evaluate_white, Nnue, Rung2Weights, ValueWeights};
 use cvs_bitboard_core::search::{SearchOptions, Searcher};
 use cvs_bitboard_core::Position;
 use std::io::{BufRead, Write};
@@ -14,22 +14,32 @@ use std::io::{BufRead, Write};
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let get = |flag: &str| -> Option<String> {
-        args.iter().position(|a| a == flag).and_then(|i| args.get(i + 1).cloned())
+        args.iter()
+            .position(|a| a == flag)
+            .and_then(|i| args.get(i + 1).cloned())
     };
     let serve = args.iter().any(|a| a == "--serve");
     let fens_path = get("--fens");
     if !serve && fens_path.is_none() {
-        eprintln!("usage: analyze (--fens <file> | --serve) --depth N [--base w.json --rung2 r.json]");
+        eprintln!(
+            "usage: analyze (--fens <file> | --serve) --depth N [--base w.json --rung2 r.json]"
+        );
         std::process::exit(2);
     }
-    let depth: u32 = get("--depth").expect("--depth required").parse().expect("depth");
+    let depth: u32 = get("--depth")
+        .expect("--depth required")
+        .parse()
+        .expect("depth");
     let base: ValueWeights = match get("--base") {
-        Some(p) => serde_json::from_str(&std::fs::read_to_string(p).expect("base weights")).expect("parse base"),
+        Some(p) => serde_json::from_str(&std::fs::read_to_string(p).expect("base weights"))
+            .expect("parse base"),
         None => ValueWeights::default(),
     };
     let rung2: Option<Rung2Weights> = get("--rung2").map(|p| {
-        serde_json::from_str(&std::fs::read_to_string(p).expect("rung2 weights")).expect("parse rung2")
+        serde_json::from_str(&std::fs::read_to_string(p).expect("rung2 weights"))
+            .expect("parse rung2")
     });
+    let nnue: Option<Nnue> = get("--nnue").map(|p| Nnue::load(&p).expect("load nnue"));
     let opts = SearchOptions {
         depth,
         // --movetime <ms>: wall-clock cap for equal-clock matches (R4 fairness run).
@@ -86,7 +96,10 @@ fn main() {
                 return serde_json::json!({ "fen": fen, "error": e }).to_string();
             }
         };
-        let mut searcher = Searcher::new(base, rung2);
+        let mut searcher = match &nnue {
+            Some(n) => Searcher::with_nnue(base, rung2, n.clone()),
+            None => Searcher::new(base, rung2),
+        };
         let r = searcher.search(&mut pos, opts);
         let t = r.telemetry;
         let uci = r.best_move.map(|m| m.to_uci());
@@ -137,8 +150,14 @@ fn main() {
                 let gfen = it.next().unwrap_or("").trim();
                 match Position::from_fen(gfen) {
                     Ok(mut pos) => {
-                        let mut searcher = Searcher::new(base, rung2);
-                        let timed = SearchOptions { max_time_ms: Some(ms), ..opts };
+                        let mut searcher = match &nnue {
+                            Some(n) => Searcher::with_nnue(base, rung2, n.clone()),
+                            None => Searcher::new(base, rung2),
+                        };
+                        let timed = SearchOptions {
+                            max_time_ms: Some(ms),
+                            ..opts
+                        };
                         let r = searcher.search(&mut pos, timed);
                         let t = r.telemetry;
                         serde_json::json!({
@@ -159,11 +178,16 @@ fn main() {
                 }
             } else if let Some(efen) = fen.strip_prefix("eval ") {
                 match Position::from_fen(efen.trim()) {
-                    Ok(mut pos) => serde_json::json!({
-                        "fen": efen.trim(),
-                        "evalWhiteCp": evaluate_white(&mut pos, &base, rung2.as_ref()),
-                    })
-                    .to_string(),
+                    Ok(mut pos) => {
+                        let mut j = serde_json::json!({
+                            "fen": efen.trim(),
+                            "evalWhiteCp": evaluate_white(&mut pos, &base, rung2.as_ref()),
+                        });
+                        if let Some(n) = &nnue {
+                            j["nnueStmCp"] = n.eval_stm(&pos).into();
+                        }
+                        j.to_string()
+                    }
                     Err(e) => serde_json::json!({ "fen": efen.trim(), "error": e }).to_string(),
                 }
             } else {
