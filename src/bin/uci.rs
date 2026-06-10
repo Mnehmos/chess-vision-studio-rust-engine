@@ -114,12 +114,13 @@ fn main() {
                 let opts = SearchOptions {
                     depth: depth.unwrap_or(DEPTH_CAP),
                     max_time_ms: if depth.is_some() { None } else { budget },
-                    quiet_checks: true,
-                    use_tt: true,
-                    danger_extension: false,
-                    null_move: true,
-                    lmr: true,
-                    pvs: true,
+                    // Patch 7 kill switches, mirrored from analyze for A/B gates.
+                    rfp: args.iter().any(|a| a == "--rfp"),
+                    futility: args.iter().any(|a| a == "--futility"),
+                    lmp: args.iter().any(|a| a == "--lmp"),
+                    see_prune: args.iter().any(|a| a == "--seeprune"),
+                    delta_prune: args.iter().any(|a| a == "--delta"),
+                    ..Default::default()
                 };
                 let r = searcher.search(&mut pos, opts);
                 let score = match r.mate {

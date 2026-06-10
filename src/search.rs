@@ -11,8 +11,8 @@
 //! be exercised independently in tests.
 use crate::attacks::{attackers_of, king_attacks};
 use crate::eval::{
-    evaluate, evaluate_white_float_nonterminal, insufficient_material, js_round, Rung2Weights,
-    ValueWeights,
+    evaluate, evaluate_white_float_nonterminal, insufficient_material, js_round, phase_units,
+    Rung2Weights, ValueWeights,
 };
 use crate::movegen::{generate_legal, generate_legal_noisy, gives_check, has_legal_move, in_check};
 use crate::see::{see, SEE_VALUE};
@@ -49,6 +49,21 @@ pub struct SearchOptions {
     pub lmr: bool,
     /// PVS null-window searches + root aspiration windows (Search Patch 5).
     pub pvs: bool,
+    /// Reverse futility pruning (Search Patch 7): shallow non-PV nodes whose
+    /// static eval beats beta by a depth-scaled margin return immediately.
+    pub rfp: bool,
+    /// Futility pruning (Patch 7): at depth ≤ 3 with static eval far below
+    /// alpha, quiet non-checking moves are skipped.
+    pub futility: bool,
+    /// Late-move pruning (Patch 7): at shallow depth, stop trying quiet moves
+    /// after a move-count budget — ordering has had its chance.
+    pub lmp: bool,
+    /// SEE pruning (Patch 7): at shallow depth, skip captures that lose
+    /// material by a depth-scaled SEE margin.
+    pub see_prune: bool,
+    /// Delta pruning (Patch 7, quiescence): skip captures that cannot lift
+    /// stand-pat back to alpha even with a safety margin.
+    pub delta_prune: bool,
 }
 
 impl Default for SearchOptions {
@@ -62,6 +77,16 @@ impl Default for SearchOptions {
             null_move: true,
             lmr: true,
             pvs: true,
+            // Patch 7 verdict (2026-06-10): main-search prunes REJECTED at
+            // -188 Elo (futility/LMP cut quiet defenses the optimistic eval
+            // mislabels hopeless); delta+SEE measured neutral. All five stay
+            // OFF until the eval can be trusted (post-NNUE) or ordering
+            // improves enough to make the quiet tail safely prunable.
+            rfp: false,
+            futility: false,
+            lmp: false,
+            see_prune: false,
+            delta_prune: false,
         }
     }
 }
@@ -94,6 +119,16 @@ pub struct Telemetry {
     pub pvs_researches: u64,
     /// Aspiration windows that failed and re-searched at full width.
     pub aspiration_researches: u64,
+    /// Nodes cut by reverse futility pruning (Patch 7).
+    pub rfp_cutoffs: u64,
+    /// Quiet moves skipped by futility pruning (Patch 7).
+    pub futility_skips: u64,
+    /// Quiet moves skipped by late-move pruning (Patch 7).
+    pub lmp_skips: u64,
+    /// Captures skipped by SEE pruning in the main search (Patch 7).
+    pub see_prune_skips: u64,
+    /// Captures dropped by delta pruning in quiescence (Patch 7).
+    pub delta_skips: u64,
 }
 
 #[derive(Clone, Debug)]
@@ -446,6 +481,34 @@ impl Searcher {
             }
         }
 
+        // Lazy per-node static eval, shared by null-move / RFP / futility so
+        // the (expensive) eval runs at most once per node.
+        let mut static_cache: Option<i32> = None;
+        macro_rules! static_eval {
+            () => {{
+                if static_cache.is_none() {
+                    static_cache = Some(evaluate(pos, &self.weights, self.rung2.as_ref()));
+                }
+                static_cache.unwrap()
+            }};
+        }
+        let is_pv = beta_in - alpha_in > 1;
+
+        // Reverse futility pruning (Search Patch 7): at a shallow non-PV node
+        // whose static eval beats beta by a depth-scaled margin, a quiet
+        // continuation is overwhelmingly likely to hold — cut without moving.
+        // Guards mirror null: never in check, never around mate scores.
+        if self.opts.rfp
+            && !is_pv
+            && !checked
+            && depth <= 6
+            && beta.abs() < MATE_THRESHOLD
+            && static_eval!() - 90 * depth >= beta
+        {
+            self.tel.rfp_cutoffs += 1;
+            return beta;
+        }
+
         // Null-move pruning (Search Patch 2, hardened per audit): if passing
         // the turn STILL fails high on a reduced search, a real move surely
         // will — prune. Guards: never in check, never two nulls in a row,
@@ -461,7 +524,7 @@ impl Searcher {
             && depth >= 3
             && beta.abs() < MATE_THRESHOLD
             && Self::null_material_ok(pos)
-            && evaluate(pos, &self.weights, self.rung2.as_ref()) >= beta
+            && static_eval!() >= beta
         {
             let null_r = if depth >= 6 { 3 } else { 2 };
             let undo = pos.make_null();
@@ -482,7 +545,44 @@ impl Searcher {
         let mut best = -INF;
         let mut best_move: Option<Move> = None;
         let killer_pair = self.killers.get(ply as usize).copied().unwrap_or([None; 2]);
+        // Futility precondition (Patch 7): at frontier depths with the static
+        // eval hopelessly below alpha, quiet non-checking moves cannot recover
+        // — only tactics can, so only tactics get searched.
+        let futile = self.opts.futility
+            && !checked
+            && depth <= 3
+            && alpha.abs() < MATE_THRESHOLD
+            && static_eval!() + 120 + 150 * depth <= alpha;
+        // Late-move pruning budget (Patch 7): after ordering has surfaced the
+        // TT move, killers, and history leaders, the quiet tail at shallow
+        // depth is almost never the refutation.
+        let lmp_budget = (4 + depth * depth) as usize;
         for (move_index, mv) in legal.into_iter().enumerate() {
+            // Patch 7 skips. All require one searched move already (best is
+            // real, so a pruned node still returns a legal score), never fire
+            // in check, and exempt the TT move and killers.
+            if best > -INF && !checked && alpha.abs() < MATE_THRESHOLD {
+                let quiet = !mv.flag.is_capture() && mv.flag.promo_piece().is_none();
+                let exempt = Some(mv) == tt_move || killer_pair.contains(&Some(mv));
+                if quiet && !exempt {
+                    if self.opts.lmp && depth <= 4 && move_index >= lmp_budget {
+                        self.tel.lmp_skips += 1;
+                        continue;
+                    }
+                    if futile && !gives_check(pos, mv) {
+                        self.tel.futility_skips += 1;
+                        continue;
+                    }
+                } else if self.opts.see_prune
+                    && mv.flag.is_capture()
+                    && mv.flag.promo_piece().is_none()
+                    && depth <= 5
+                    && see(pos, mv.from, mv.to) < -50 * depth
+                {
+                    self.tel.see_prune_skips += 1;
+                    continue;
+                }
+            }
             // Late-move reductions (Search Patch 3, conservative tier): with
             // good ordering, late quiet non-checking moves rarely matter —
             // search them shallower first, and re-search at full depth only
@@ -597,6 +697,24 @@ impl Searcher {
         }
 
         noisy.retain(|m| see(pos, m.from, m.to) >= 0);
+        // Delta pruning (Patch 7): a capture whose victim value plus a safety
+        // margin cannot lift stand-pat back to alpha is hopeless. Promotions
+        // are exempt, and the whole filter switches off in low-material
+        // endgames where insufficient-material/zugzwang effects dominate.
+        if self.opts.delta_prune && phase_units(pos) > 6 {
+            let before = noisy.len();
+            noisy.retain(|m| {
+                if m.flag.promo_piece().is_some() {
+                    return true;
+                }
+                let victim = pos
+                    .piece_at(m.to)
+                    .map(|(_, p)| SEE_VALUE[p.index()])
+                    .unwrap_or(SEE_VALUE[Piece::Pawn.index()]);
+                stand + victim + 200 > alpha
+            });
+            self.tel.delta_skips += (before - noisy.len()) as u64;
+        }
         if self.opts.quiet_checks && q_depth < QUIET_CHECK_MAX_PLY {
             // The forcing quiet-check window is the ONLY non-evasion path that
             // still pays full legal generation - by design, it is tiny.

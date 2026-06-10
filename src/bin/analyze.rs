@@ -41,6 +41,12 @@ fn main() {
         null_move: !args.iter().any(|a| a == "--no-null"),
         lmr: !args.iter().any(|a| a == "--no-lmr"),
         pvs: !args.iter().any(|a| a == "--no-pvs"),
+        // Patch 7 prunes are opt-in for experiments (rejected as defaults).
+        rfp: args.iter().any(|a| a == "--rfp"),
+        futility: args.iter().any(|a| a == "--futility"),
+        lmp: args.iter().any(|a| a == "--lmp"),
+        see_prune: args.iter().any(|a| a == "--seeprune"),
+        delta_prune: args.iter().any(|a| a == "--delta"),
     };
 
     // --features: emit the eval + Rung-2 feature vector per FEN instead of
