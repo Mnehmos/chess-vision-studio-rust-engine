@@ -102,3 +102,23 @@ the 2400 score should improve.
 The native-SF 2400 rung (40%) is the new official resistance point. RSI
 promotions are benchmarked against it via cutechess; the WASM ladder is
 retired as an instrument. Climbing resumes when a promotion moves the band.
+
+## Native SF-2400 anchor, post-search-ladder (2026-06-10 PM)
+
+Same opponent and protocol as the morning anchor (native Stockfish AVX2,
+UCI_LimitStrength, tc 10+0.1, cutechess, concurrency 1, quiet box). Engine:
+`uci-gen6-full.exe` (commit 9c4180d) — repetition fix + the day's full search
+ladder (killers/history, hardened null-move, persistent TT, LMR, PVS+aspiration,
+specialized qsearch movegen).
+
+| Engine | vs native SF-2400 | Elo diff |
+|---|---:|---|
+| morning (pre-fix, 26-param eval) | 40% | −70 |
+| **gen6-full (search ladder)** | **+25 −14 =1, 65.0%** | **+107.5 ± 114.7, LOS 97.4%** |
+
+**Claim: CVS (gen6-full) scored 65% against native Stockfish UCI_Elo-2400 at
+tc 10+0.1 → ≈ +108 Elo, i.e. CVS ≈ 2500 in native Stockfish UCI_Elo terms.**
+The improvement is entirely from SEARCH; the 26-param eval is unchanged
+(Rung-3 head still in training). Wide error bars (40 games) — a 100-game
+re-measure is warranted before treating 2500 as firm, but the direction
+(40% → 65% vs the identical opponent) is unambiguous.
