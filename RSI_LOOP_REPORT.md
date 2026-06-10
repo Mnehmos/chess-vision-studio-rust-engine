@@ -84,9 +84,35 @@ not regress · experimental-identity mini-gauntlet does not worsen W/D/L or
 blunder rate · illegal = 0 · mate-missed = 0 · SF d20+ confirms · runtime
 acceptable. Promoted weights ship with versioned metadata.
 
-## Next experiment
-Train the 2B head: feature vectors via the Rust `--features` faucet over all
-scored-run positions, targets from the existing SF d12/d20 score archive,
-mixed regression+ranking objective (the Rung-2 recipe), old 26 weights frozen,
-new 4 weights L2-to-zero. Then the full gate stack, then (only if green)
-promotion and a time-odds curve re-measurement.
+## 2B linear head: three fits, three pre-gate failures (2026-06-10)
+
+Training data: 9,540 unique gauntlet FENs, SF d12 multipv-8 labels (sibling
+candidates + evals), deterministic fen-hash holdout.
+
+| Fit | Objective | Result |
+|---|---|---|
+| v1 | ridge on static residual (sfEval − staticEval) | holdout MAE worsened (−5.5cp on firing rows) |
+| v2 | mixed: residual regression + sibling-ranking hinge | top-1 flat (37.1% → 36.9% holdout), weights collapse to ±2cp |
+| v3 | v2 + nonlinear kingDanger (quadratic attack units, x-ray alignment) | kingDanger earns +7cp/unit but top-1 still flat |
+
+Targeted delusion check (the only test that matters for a targeted head):
+the five forensic FENs move 10–50cp toward SF where 300–1000cp is needed;
+g03 doesn't fire; g13 moves the wrong way (the danger index sees an attack
+SF refutes). **Conclusion: hand-crafted scalars with linear weights lack the
+capacity to express king-attack delusion** — the third independent
+confirmation of the capacity lesson (after Rung-1 and Phase-B ranking).
+
+All three weight sets remain UNPROMOTED; baseline untouched. The kingDanger
+feature itself is kept (inert) — it is a useful INPUT for a higher-capacity
+head. Bug lesson recorded: weight JSONs are camelCase (`kingDanger`);
+snake_case fields are silently ignored by serde and the head stays inert.
+
+## Next experiment — Rung 3: small nonlinear value head
+A 2-layer MLP over the full 23-feature Rung-2 vector (23→8→1, ~200 params,
+~30 multiplies per eval — negligible in Rust), trained with the proven mixed
+objective on the multipv dataset (10/10 shards once labeling completes).
+Capacity is the demonstrated blocker; this is the smallest capacity jump that
+can represent attacker-count × exposure interactions. Gate stack unchanged:
+regression rows + delusion FENs, eval-r4 non-regression, experimental
+mini-gauntlet, SF d20 confirm — promote only if green, then re-measure the
+time-odds curve.
