@@ -34,3 +34,7 @@ opt-level = 3
 lto = true
 codegen-units = 1
 panic = "abort"
+
+[[bin]]
+name = "uci"
+path = "src/bin/uci.rs"
