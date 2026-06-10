@@ -167,6 +167,110 @@ pub fn generate_pseudo(pos: &Position, moves: &mut Vec<Move>) {
     gen_castling(pos, moves);
 }
 
+/// Pseudo-legal NOISY moves only: captures, promotions (incl. push promotions)
+/// and en passant — the quiescence workload (Search Patch 6). Castling and
+/// quiet moves are never noisy.
+pub fn generate_pseudo_noisy(pos: &Position, moves: &mut Vec<Move>) {
+    let us = pos.stm;
+    let them = us.flip();
+    let them_occ = pos.occ[them.index()];
+    let empty = !pos.all;
+    let white = us == Color::White;
+    let promo_rank = if white { 7 } else { 0 };
+
+    let mut pawns = pos.pieces[us.index()][Piece::Pawn.index()];
+    while pawns != 0 {
+        let from = pop_lsb(&mut pawns);
+        let one = if white { from + 8 } else { from - 8 };
+        // Push promotions are forcing — they belong in quiescence.
+        if rank_of(one) == promo_rank && empty & (1u64 << one) != 0 {
+            for f in PROMOS {
+                moves.push(Move::new(from, one, f));
+            }
+        }
+        let mut caps = pawn_attacks(us, from) & them_occ;
+        while caps != 0 {
+            let to = pop_lsb(&mut caps);
+            if rank_of(to) == promo_rank {
+                for f in PROMO_CAPS {
+                    moves.push(Move::new(from, to, f));
+                }
+            } else {
+                moves.push(Move::new(from, to, MoveFlag::Capture));
+            }
+        }
+        if let Some(ep) = pos.ep {
+            if pawn_attacks(us, from) & (1u64 << ep) != 0 {
+                moves.push(Move::new(from, ep, MoveFlag::EnPassant));
+            }
+        }
+    }
+
+    let occ = pos.all;
+    let mut kn = pos.pieces[us.index()][Piece::Knight.index()];
+    while kn != 0 {
+        let from = pop_lsb(&mut kn);
+        add_quiet_or_cap(moves, from, knight_attacks(from) & them_occ, them_occ);
+    }
+    let mut bi = pos.pieces[us.index()][Piece::Bishop.index()];
+    while bi != 0 {
+        let from = pop_lsb(&mut bi);
+        add_quiet_or_cap(moves, from, bishop_attacks(from, occ) & them_occ, them_occ);
+    }
+    let mut ro = pos.pieces[us.index()][Piece::Rook.index()];
+    while ro != 0 {
+        let from = pop_lsb(&mut ro);
+        add_quiet_or_cap(moves, from, rook_attacks(from, occ) & them_occ, them_occ);
+    }
+    let mut qu = pos.pieces[us.index()][Piece::Queen.index()];
+    while qu != 0 {
+        let from = pop_lsb(&mut qu);
+        add_quiet_or_cap(moves, from, queen_attacks(from, occ) & them_occ, them_occ);
+    }
+    let mut ki = pos.pieces[us.index()][Piece::King.index()];
+    while ki != 0 {
+        let from = pop_lsb(&mut ki);
+        add_quiet_or_cap(moves, from, king_attacks(from) & them_occ, them_occ);
+    }
+}
+
+/// Strictly legal noisy moves for the side to move.
+pub fn generate_legal_noisy(pos: &mut Position) -> Vec<Move> {
+    let mut pseudo = Vec::with_capacity(16);
+    generate_pseudo_noisy(pos, &mut pseudo);
+    let us = pos.stm;
+    let them = us.flip();
+    let mut legal = Vec::with_capacity(pseudo.len());
+    for mv in pseudo {
+        pos.make(mv);
+        let ksq = pos.king_sq(us);
+        if !is_square_attacked(pos, ksq, them, pos.all) {
+            legal.push(mv);
+        }
+        pos.unmake();
+    }
+    legal
+}
+
+/// Does the side to move have ANY legal move? Early-exits on the first one —
+/// the cheap stalemate probe for noisy-only quiescence nodes.
+pub fn has_legal_move(pos: &mut Position) -> bool {
+    let mut pseudo = Vec::with_capacity(48);
+    generate_pseudo(pos, &mut pseudo);
+    let us = pos.stm;
+    let them = us.flip();
+    for mv in pseudo {
+        pos.make(mv);
+        let ksq = pos.king_sq(us);
+        let ok = !is_square_attacked(pos, ksq, them, pos.all);
+        pos.unmake();
+        if ok {
+            return true;
+        }
+    }
+    false
+}
+
 /// All strictly legal moves for the side to move.
 pub fn generate_legal(pos: &mut Position) -> Vec<Move> {
     let mut pseudo = Vec::with_capacity(48);

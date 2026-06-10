@@ -14,7 +14,7 @@ use crate::eval::{
     evaluate, evaluate_white_float_nonterminal, insufficient_material, js_round, Rung2Weights,
     ValueWeights,
 };
-use crate::movegen::{generate_legal, gives_check, in_check};
+use crate::movegen::{generate_legal, generate_legal_noisy, gives_check, has_legal_move, in_check};
 use crate::see::{see, SEE_VALUE};
 use crate::{rank_of, Color, Move, MoveFlag, Piece, Position};
 use std::time::Instant;
@@ -392,23 +392,30 @@ impl Searcher {
         }
         self.tel.nodes += 1;
 
-        let mut legal = generate_legal(pos);
+        // Node reorder (audit/Patch 6): everything that can cut this node off
+        // WITHOUT generating moves runs first - draw rules, repetition, TT
+        // probe, quiescence dispatch. Full legal movegen is the expensive step
+        // and now only runs for nodes that truly expand.
         let checked = in_check(pos);
-        if legal.is_empty() {
-            return if checked { -MATE_SCORE + ply as i32 } else { 0 };
-        }
-        if pos.halfmove >= 100 || insufficient_material(pos) {
+        if !checked && (pos.halfmove >= 100 || insufficient_material(pos)) {
             return 0;
         }
         // Draw by repetition: one prior occurrence in the path (or the game
         // history the position was built with) scores 0. Checked BEFORE the
-        // TT probe and returned WITHOUT storing — repetition scores are
+        // TT probe and returned WITHOUT storing - repetition scores are
         // path-dependent and must not leak into other lines via the table.
         if ply > 0 && pos.is_repetition() {
             return 0;
         }
         if depth <= 0 {
-            return self.quiesce_with(pos, legal, checked, alpha_in, beta_in, ply, 0);
+            return self.quiesce(pos, alpha_in, beta_in, ply, 0);
+        }
+        let mut legal = generate_legal(pos);
+        if legal.is_empty() {
+            return if checked { -MATE_SCORE + ply as i32 } else { 0 };
+        }
+        if checked && (pos.halfmove >= 100 || insufficient_material(pos)) {
+            return 0; // evasions exist so it is not mate; the draw rule wins
         }
 
         let mut alpha = alpha_in;
@@ -547,20 +554,17 @@ impl Searcher {
         best
     }
 
-    #[allow(clippy::too_many_arguments)]
-    fn quiesce_with(
-        &mut self,
-        pos: &mut Position,
-        legal: Vec<Move>,
-        checked: bool,
-        alpha_in: i32,
-        beta: i32,
-        ply: u32,
-        q_depth: u32,
-    ) -> i32 {
+    /// Quiescence (Search Patch 6: specialized generation). Evasion nodes
+    /// still pay full legal gen (exact mate detection); all other q-nodes
+    /// generate NOISY moves directly - captures, promotions, ep - the bulk of
+    /// the q-tree. Quiet-check candidates only force full gen inside the small
+    /// QUIET_CHECK_MAX_PLY window. Stalemate on no-noisy nodes uses the
+    /// early-exit has_legal_move probe.
+    fn quiesce(&mut self, pos: &mut Position, alpha_in: i32, beta: i32, ply: u32, q_depth: u32) -> i32 {
+        let checked = in_check(pos);
         if self.time_up() {
             self.aborted = true;
-            return self.leaf_eval(pos, legal.is_empty(), checked);
+            return self.leaf_eval(pos, false, checked);
         }
         self.tel.nodes += 1;
         self.tel.q_nodes += 1;
@@ -568,53 +572,64 @@ impl Searcher {
             self.tel.max_q_depth = q_depth;
         }
 
-        let mut alpha = alpha_in;
-        if !checked {
-            let stand = self.leaf_eval(pos, legal.is_empty(), checked);
-            if stand >= beta {
-                return beta; // fail-hard stand-pat, like the TS reference
+        if checked {
+            let legal = generate_legal(pos);
+            if legal.is_empty() {
+                return -MATE_SCORE + ply as i32;
             }
-            if stand > alpha {
-                alpha = stand;
-            }
-            if ply >= MAX_QUIESCENCE_PLY {
-                return stand;
-            }
-        }
-        if legal.is_empty() {
-            return if checked { -MATE_SCORE + ply as i32 } else { 0 };
+            return self.quiesce_moves(pos, legal, true, alpha_in, beta, ply, q_depth);
         }
 
-        let mut moves: Vec<Move>;
-        if checked {
-            moves = legal; // search all evasions
-        } else {
-            // Winning/equal captures and promotions...
-            moves = legal
-                .iter()
-                .copied()
-                .filter(|m| m.flag.is_capture() || m.flag.promo_piece().is_some())
+        let mut noisy = generate_legal_noisy(pos);
+        let mut alpha = alpha_in;
+        if noisy.is_empty() && !has_legal_move(pos) {
+            return 0; // stalemate (rare path; early-exit probe keeps it cheap)
+        }
+        let stand = self.leaf_eval(pos, false, false);
+        if stand >= beta {
+            return beta; // fail-hard stand-pat, like the TS reference
+        }
+        if stand > alpha {
+            alpha = stand;
+        }
+        if ply >= MAX_QUIESCENCE_PLY {
+            return stand;
+        }
+
+        noisy.retain(|m| see(pos, m.from, m.to) >= 0);
+        if self.opts.quiet_checks && q_depth < QUIET_CHECK_MAX_PLY {
+            // The forcing quiet-check window is the ONLY non-evasion path that
+            // still pays full legal generation - by design, it is tiny.
+            let legal = generate_legal(pos);
+            let candidates: Vec<Move> = legal
+                .into_iter()
+                .filter(|m| !m.flag.is_capture() && m.flag.promo_piece().is_none())
                 .filter(|m| see(pos, m.from, m.to) >= 0)
                 .collect();
-            // ...plus a capped set of forcing QUIET checks near the top of
-            // quiescence, so quiet refutations are seen — not only captures.
-            if self.opts.quiet_checks && q_depth < QUIET_CHECK_MAX_PLY {
-                let candidates: Vec<Move> = legal
-                    .iter()
-                    .copied()
-                    .filter(|m| !m.flag.is_capture() && m.flag.promo_piece().is_none())
-                    .filter(|m| see(pos, m.from, m.to) >= 0)
-                    .collect();
-                let mut quiet_checks: Vec<Move> =
-                    candidates.into_iter().filter(|m| gives_check(pos, *m)).collect();
-                quiet_checks.sort_by_key(|m| -self.capture_order(pos, *m));
-                quiet_checks.truncate(MAX_QUIET_CHECKS_PER_NODE);
-                if !quiet_checks.is_empty() {
-                    self.tel.quiet_check_extensions += quiet_checks.len() as u64;
-                }
-                moves.extend(quiet_checks);
+            let mut quiet_checks: Vec<Move> =
+                candidates.into_iter().filter(|m| gives_check(pos, *m)).collect();
+            quiet_checks.sort_by_key(|m| -self.capture_order(pos, *m));
+            quiet_checks.truncate(MAX_QUIET_CHECKS_PER_NODE);
+            if !quiet_checks.is_empty() {
+                self.tel.quiet_check_extensions += quiet_checks.len() as u64;
             }
+            noisy.extend(quiet_checks);
         }
+        self.quiesce_moves(pos, noisy, false, alpha, beta, ply, q_depth)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn quiesce_moves(
+        &mut self,
+        pos: &mut Position,
+        mut moves: Vec<Move>,
+        checked: bool,
+        alpha_in: i32,
+        beta: i32,
+        ply: u32,
+        q_depth: u32,
+    ) -> i32 {
+        let mut alpha = alpha_in;
         moves.sort_by_key(|m| -self.capture_order(pos, *m));
 
         let mut best = if checked { -INF } else { alpha };
@@ -623,9 +638,7 @@ impl Searcher {
                 self.tel.q_capture_nodes += 1;
             }
             pos.make(mv);
-            let next_legal = generate_legal(pos);
-            let next_checked = in_check(pos);
-            let score = -self.quiesce_with(pos, next_legal, next_checked, -beta, -alpha, ply + 1, q_depth + 1);
+            let score = -self.quiesce(pos, -beta, -alpha, ply + 1, q_depth + 1);
             pos.unmake();
             if self.aborted {
                 return best;
