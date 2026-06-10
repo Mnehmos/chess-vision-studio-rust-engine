@@ -44,3 +44,19 @@ sides share the load); absolute anchors run at concurrency 1 on a silent box.
 After ordering quality is proven (it now is): reduce late quiet non-checking
 moves at depth ≥ 3, re-search on alpha improvement; no reduction for captures,
 promotions, checks, TT move, killers, or the first few moves.
+
+## Patches 3–6 — Full Stack ✅ PROMOTED (gated as one generation)
+
+- **Binary:** `uci-gen6-full.exe` (sha256 `59EAD1FF…`) at commit `9c4180d`
+- **Baseline:** `patch2b-nullhard` (354fe01)
+- **Contents:** fixed 2^21-slot persistent TT with generation aging (Patch 4),
+  conservative LMR (Patch 3, `--no-lmr`), PVS + root aspiration windows
+  (Patch 5, `--no-pvs`), specialized noisy-only quiescence generation + node
+  reorder with TT-probe-before-movegen (Patch 6, semantics-preserving).
+- **Tests:** 47/47 at every step; Patch 6 verified node-identical.
+- **Throughput:** startpos d6 352ms → 35ms across the day's full stack (~10×);
+  kiwipete d6 −35% wall at identical nodes.
+- **Gate** (tc 10+0.1, conc 12, 300 games, fixed count):
+  **+196 −47 =57 — 75.2%, Elo +192.4 ± 39.3, LOS 100%.**
+- **Verdict:** new champion. Native SF-2400 quiet-box anchor next; bot rollout
+  follows the anchor.
