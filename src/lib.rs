@@ -15,6 +15,7 @@ pub mod perft;
 pub mod position;
 pub mod search;
 pub mod see;
+pub mod tt;
 
 pub use position::Position;
 

@@ -16,7 +16,10 @@ use crate::eval::{
 };
 use crate::movegen::{generate_legal, generate_legal_noisy, gives_check, has_legal_move, in_check};
 use crate::see::{see, SEE_VALUE};
+use crate::tt::{Flag, SharedTt, TtEntry};
 use crate::{rank_of, Color, Move, MoveFlag, Piece, Position};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::time::Instant;
 
 pub const MATE_SCORE: i32 = 1_000_000;
@@ -64,6 +67,10 @@ pub struct SearchOptions {
     /// Delta pruning (Patch 7, quiescence): skip captures that cannot lift
     /// stand-pat back to alpha even with a safety margin.
     pub delta_prune: bool,
+    /// Lazy SMP search threads (shared lock-free TT, per-thread killers/
+    /// history, shared stop flag). 1 = single-threaded, byte-identical to the
+    /// pre-SMP engine.
+    pub threads: usize,
 }
 
 impl Default for SearchOptions {
@@ -87,6 +94,7 @@ impl Default for SearchOptions {
             lmp: false,
             see_prune: false,
             delta_prune: false,
+            threads: 1,
         }
     }
 }
@@ -143,39 +151,9 @@ pub struct SearchResult {
     pub telemetry: Telemetry,
 }
 
-#[derive(Clone, Copy, PartialEq)]
-enum Flag {
-    Exact,
-    Lower,
-    Upper,
-}
-
-/// Fixed-size TT slot (audit: replace the dev-grade HashMap). `key == 0`
-/// means empty; generation aging lets stale entries lose replacement fights
-/// without a full clear, so the table survives across `search()` calls and
-/// feeds move-to-move reuse under UCI.
-#[derive(Clone, Copy)]
-struct TtSlot {
-    key: u64,
-    depth: i32,
-    score: i32,
-    flag: Flag,
-    mv: Option<Move>,
-    generation: u8,
-}
-
-const EMPTY_SLOT: TtSlot = TtSlot {
-    key: 0,
-    depth: 0,
-    score: 0,
-    flag: Flag::Exact,
-    mv: None,
-    generation: 0,
-};
-/// 2^21 slots ≈ 2M entries (~64 MB) — fixed, power of two for mask indexing.
+/// 2^21 slots ≈ 2M entries — fixed, power of two for mask indexing. The table
+/// itself lives in `crate::tt::SharedTt` (lock-free, shared across SMP threads).
 const TT_BITS: u32 = 21;
-const TT_SIZE: usize = 1 << TT_BITS;
-const TT_MASK: u64 = (TT_SIZE as u64) - 1;
 
 /// Cheap root-level king-danger classifier (RSI loop 1). 0 = normal, 1 = danger
 /// (+1 ply), 2 = critical (+2 plies). Fires only with an enemy queen on the
@@ -220,8 +198,14 @@ const HISTORY_CAP: i32 = 1 << 14;
 pub struct Searcher {
     weights: ValueWeights,
     rung2: Option<Rung2Weights>,
-    tt: Vec<TtSlot>,
+    tt: Arc<SharedTt>,
     tt_generation: u8,
+    /// SMP stop flag — helpers abort when the main thread finishes.
+    stop: Option<Arc<AtomicBool>>,
+    /// First iterative-deepening depth (1 for the main thread; helpers start
+    /// deeper so they run AHEAD and seed the shared TT instead of trailing in
+    /// lockstep — the classic lazy-SMP staggering fix).
+    id_start: u32,
     tel: Telemetry,
     deadline: Option<Instant>,
     aborted: bool,
@@ -242,8 +226,10 @@ impl Searcher {
         Searcher {
             weights,
             rung2,
-            tt: vec![EMPTY_SLOT; TT_SIZE],
+            tt: Arc::new(SharedTt::new(TT_BITS)),
             tt_generation: 0,
+            stop: None,
+            id_start: 1,
             tel: Telemetry::default(),
             deadline: None,
             aborted: false,
@@ -284,6 +270,55 @@ impl Searcher {
     }
 
     pub fn search(&mut self, pos: &mut Position, opts: SearchOptions) -> SearchResult {
+        if opts.threads > 1 {
+            return self.search_smp(pos, opts);
+        }
+        self.search_single(pos, opts)
+    }
+
+    /// Lazy SMP: helpers run the same iterative deepening on clones of the
+    /// position, sharing only the lock-free TT; their work surfaces as deeper
+    /// TT entries and better move ordering for the main thread. The main
+    /// thread's result is authoritative; helpers stop when it finishes.
+    fn search_smp(&mut self, pos: &mut Position, opts: SearchOptions) -> SearchResult {
+        let stop = Arc::new(AtomicBool::new(false));
+        let single = SearchOptions { threads: 1, ..opts };
+        let (mut result, helper_nodes) = std::thread::scope(|scope| {
+            let mut handles = Vec::new();
+            for t in 0..opts.threads - 1 {
+                let tt = Arc::clone(&self.tt);
+                let stop = Arc::clone(&stop);
+                let weights = self.weights;
+                let rung2 = self.rung2;
+                let nnue = self.nnue.clone();
+                let mut hpos = pos.clone();
+                // Odd helpers aim one ply deeper — cheap diversity so threads
+                // don't lockstep on identical trees.
+                let hopts = SearchOptions {
+                    depth: single.depth + (t as u32 & 1),
+                    ..single
+                };
+                let lead = 2 + (t as u32 % 6);
+                handles.push(scope.spawn(move || {
+                    let mut helper = Searcher::new(weights, rung2);
+                    helper.tt = tt;
+                    helper.nnue = nnue;
+                    helper.stop = Some(stop);
+                    helper.id_start = lead;
+                    let r = helper.search_single(&mut hpos, hopts);
+                    r.telemetry.nodes
+                }));
+            }
+            let r = self.search_single(pos, single);
+            stop.store(true, Ordering::Relaxed);
+            let nodes: u64 = handles.into_iter().map(|h| h.join().unwrap_or(0)).sum();
+            (r, nodes)
+        });
+        result.telemetry.nodes += helper_nodes;
+        result
+    }
+
+    fn search_single(&mut self, pos: &mut Position, opts: SearchOptions) -> SearchResult {
         let mut max_depth = opts.depth.max(1);
         // Danger-triggered root extension (gated): king danger buys 1–2 extra plies.
         let danger_plies = if opts.danger_extension {
@@ -294,7 +329,7 @@ impl Searcher {
         max_depth += danger_plies;
         self.opts = opts;
         // Persistent TT: age the generation instead of clearing (audit fix).
-        self.tt_generation = self.tt_generation.wrapping_add(1);
+        self.tt_generation = self.tt.new_generation();
         // Killers/history reset per search call (kept across the iterative-
         // deepening iterations within it) — searches stay deterministic.
         self.killers.iter_mut().for_each(|k| *k = [None; 2]);
@@ -317,7 +352,7 @@ impl Searcher {
         };
 
         let mut prev_score: Option<i32> = None;
-        for depth in 1..=max_depth {
+        for depth in self.id_start.min(max_depth)..=max_depth {
             // Aspiration windows (Patch 5): start from a tight window around
             // the previous iteration's score; on any fail, re-search at full
             // width (one-step widen — simple and safe).
@@ -429,6 +464,11 @@ impl Searcher {
     }
 
     fn time_up(&mut self) -> bool {
+        if let Some(stop) = &self.stop {
+            if (self.tel.nodes & 1023) == 0 && stop.load(Ordering::Relaxed) {
+                return true;
+            }
+        }
         if let Some(deadline) = self.deadline {
             if (self.tel.nodes & 1023) == 0 && Instant::now() >= deadline {
                 return true;
@@ -910,34 +950,13 @@ impl Searcher {
     }
 
     #[inline]
-    fn tt_probe(&self, key: u64) -> Option<TtSlot> {
-        let slot = &self.tt[(key & TT_MASK) as usize];
-        if slot.key == key {
-            Some(*slot)
-        } else {
-            None
-        }
+    fn tt_probe(&self, key: u64) -> Option<TtEntry> {
+        self.tt.probe(key)
     }
 
     fn store(&mut self, key: u64, depth: i32, score: i32, flag: Flag, mv: Option<Move>) {
-        // Replacement: same position keeps the deeper entry; entries from an
-        // older generation always lose; otherwise depth decides.
-        let idx = (key & TT_MASK) as usize;
-        let slot = &self.tt[idx];
-        let replace = slot.key == 0
-            || slot.key == key && depth >= slot.depth
-            || slot.key != key && (slot.generation != self.tt_generation || depth >= slot.depth);
-        if !replace {
-            return;
-        }
-        self.tt[idx] = TtSlot {
-            key,
-            depth,
-            score,
-            flag,
-            mv,
-            generation: self.tt_generation,
-        };
+        self.tt
+            .store(key, depth, score, flag, mv, self.tt_generation);
     }
 
     /// Walk the TT from the root following stored moves (the TS PV extraction).

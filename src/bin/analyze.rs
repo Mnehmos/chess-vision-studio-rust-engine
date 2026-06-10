@@ -57,6 +57,7 @@ fn main() {
         lmp: args.iter().any(|a| a == "--lmp"),
         see_prune: args.iter().any(|a| a == "--seeprune"),
         delta_prune: args.iter().any(|a| a == "--delta"),
+        threads: get("--threads").and_then(|s| s.parse().ok()).unwrap_or(1),
     };
 
     // --features: emit the eval + Rung-2 feature vector per FEN instead of

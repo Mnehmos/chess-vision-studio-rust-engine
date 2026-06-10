@@ -134,6 +134,7 @@ fn main() {
                     lmp: args.iter().any(|a| a == "--lmp"),
                     see_prune: args.iter().any(|a| a == "--seeprune"),
                     delta_prune: args.iter().any(|a| a == "--delta"),
+                    threads: get("--threads").and_then(|s| s.parse().ok()).unwrap_or(1),
                     ..Default::default()
                 };
                 let r = searcher.search(&mut pos, opts);
