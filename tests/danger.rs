@@ -40,3 +40,32 @@ fn danger_extension_is_off_by_default_and_bounded_when_on() {
     assert_eq!(on.telemetry.danger_extension_plies, 2);
     assert!(on.depth <= 4, "extension is capped at +2");
 }
+
+// --- 2B v3: nonlinear king-danger feature shape ---
+use cvs_bitboard_core::eval::extract_rung2;
+
+#[test]
+fn king_danger_zero_on_quiet_positions() {
+    let f = extract_rung2(&pos("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"));
+    assert_eq!(f.king_danger, 0.0, "start position has no king attack");
+    // Lone rook near the king: one attacker is a nuisance, not an attack.
+    let f = extract_rung2(&pos("8/2k5/8/8/3K4/8/5r2/8 w - - 0 1"));
+    assert_eq!(f.king_danger, 0.0, "single attacker must not register danger");
+}
+
+#[test]
+fn king_danger_fires_on_the_g14_loss_positions() {
+    // White king under a queen+rook (and worse) attack: feature must be
+    // NEGATIVE (white-POV signed; danger at the white king favors Black).
+    let f40 = extract_rung2(&pos(G14_PLY40));
+    assert!(f40.king_danger < 0.0, "g14 ply-40 mate net must register white-king danger, got {}", f40.king_danger);
+    // The quadratic must make the ply-40 mate net clearly worse than a mild
+    // two-attacker poke.
+    let f24 = extract_rung2(&pos(G14_PLY24));
+    assert!(
+        f40.king_danger <= f24.king_danger,
+        "mate-net danger ({}) must be at least as severe as ply-24 ({})",
+        f40.king_danger,
+        f24.king_danger
+    );
+}

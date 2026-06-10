@@ -74,6 +74,9 @@ pub struct Rung2Weights {
     pub open_center_king_penalty: f64,
     #[serde(default)]
     pub king_escape_deficit: f64,
+    /// 2B v3: nonlinear king-danger index (quadratic attack units).
+    #[serde(default)]
+    pub king_danger: f64,
 }
 
 impl Rung2Weights {
@@ -102,5 +105,6 @@ impl Rung2Weights {
             && w.enemy_queen_near_king == 0.0
             && w.open_center_king_penalty == 0.0
             && w.king_escape_deficit == 0.0
+            && w.king_danger == 0.0
     }
 }

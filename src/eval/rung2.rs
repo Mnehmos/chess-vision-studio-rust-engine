@@ -43,6 +43,10 @@ pub struct Rung2Features {
     /// Flight-square shortage with enemy queen on: max(0, 3 − safe king moves).
     /// black − white (the side with fewer escapes is worse off).
     pub king_escape_deficit: f64,
+    /// Nonlinear king-danger index (2B v3): quadratic over weighted attack
+    /// units (N/B=2, R=3, Q=5, + missing shield pawns) on the king zone, ≥2
+    /// attackers required, mg-tapered, capped at 40. black-king − white-king.
+    pub king_danger: f64,
 }
 
 #[inline]
@@ -323,6 +327,76 @@ pub fn extract_rung2(pos: &Position) -> Rung2Features {
         f.king_escape_deficit = bd - wd;
     }
 
+    // --- Nonlinear king-danger index (2B v3). The 4 linear exposure scalars
+    // above failed both training gates: too sparse to rank moves. Danger is
+    // not additive — three attackers are ~9x one, not 3x — so this feature is
+    // weighted attack units over the king zone fed through a quadratic, gated
+    // on at least two attackers (one piece is a nuisance, not an attack).
+    {
+        let zone_danger = |ksq: u8, color: Color, own_pawns: u64| -> f64 {
+            let zone = king_attacks(ksq) | (1u64 << ksq);
+            let e = color.flip().index();
+            let mut units = 0i32;
+            let mut attackers = 0i32;
+            let mut t = pos.pieces[e][Piece::Knight.index()];
+            while t != 0 {
+                let s = pop_lsb(&mut t);
+                if knight_attacks(s) & zone != 0 {
+                    units += 2;
+                    attackers += 1;
+                }
+            }
+            let mut t = pos.pieces[e][Piece::Bishop.index()];
+            while t != 0 {
+                let s = pop_lsb(&mut t);
+                if bishop_attacks(s, pos.all) & zone != 0 {
+                    units += 2;
+                    attackers += 1;
+                }
+            }
+            let mut t = pos.pieces[e][Piece::Rook.index()];
+            while t != 0 {
+                let s = pop_lsb(&mut t);
+                if rook_attacks(s, pos.all) & zone != 0 {
+                    units += 3;
+                    attackers += 1;
+                }
+            }
+            let mut t = pos.pieces[e][Piece::Queen.index()];
+            while t != 0 {
+                let s = pop_lsb(&mut t);
+                if queen_attacks(s, pos.all) & zone != 0 {
+                    units += 5;
+                    attackers += 1;
+                }
+            }
+            // Heavy-piece alignment: a rook/queen on the king's file presses
+            // through blockers (the g14/g04 x-ray pattern direct attacks miss),
+            // unless the attacker's own pawn closes the file.
+            let kf = file_of(ksq);
+            let file_mask = 0x0101010101010101u64 << kf;
+            let enemy_pawns = pos.pieces[e][Piece::Pawn.index()];
+            if enemy_pawns & file_mask == 0 {
+                let mut heavy =
+                    (pos.pieces[e][Piece::Rook.index()] | pos.pieces[e][Piece::Queen.index()]) & file_mask;
+                while heavy != 0 {
+                    let s = pop_lsb(&mut heavy);
+                    // Direct zone attackers were already counted above.
+                    if rook_attacks(s, pos.all) & zone == 0 {
+                        units += 2;
+                        attackers += 1;
+                    }
+                }
+            }
+            if attackers < 2 {
+                return 0.0;
+            }
+            units += (3 - shield_pawns(own_pawns, ksq, color)).max(0);
+            ((units * units) as f64 / 16.0).min(40.0)
+        };
+        f.king_danger = (zone_danger(bk, Color::Black, bp) - zone_danger(wk, Color::White, wp)) * mg_w;
+    }
+
     // --- Hanging material (attacked-and-undefended non-king pieces, in pawns) ---
     let mut white_hanging = 0i32;
     let mut black_hanging = 0i32;
@@ -379,4 +453,5 @@ pub fn rung2_contribution(pos: &Position, w: &super::weights::Rung2Weights) -> f
         + w.enemy_queen_near_king * f.enemy_queen_near_king
         + w.open_center_king_penalty * f.open_center_king_penalty
         + w.king_escape_deficit * f.king_escape_deficit
+        + w.king_danger * f.king_danger
 }

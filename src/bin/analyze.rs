@@ -61,6 +61,7 @@ fn main() {
                         "kingZonePressure": f.king_zone_pressure,
                         "kingShield": f.king_shield,
                         "kingOpenFile": f.king_open_file,
+                        "kingDanger": f.king_danger,
                     },
                 })
                 .to_string()
