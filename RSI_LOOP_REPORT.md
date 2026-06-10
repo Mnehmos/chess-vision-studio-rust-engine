@@ -183,3 +183,45 @@ game-losing row `e7d6`→`c8d7` (SF's best) and `f8f7`-row→`b5c4` (SF's best)*
 self-eval honest (−304 vs −155 pre-mate). Remaining 3 BAD are earlier subtle
 drift moves. Next: SPRT ks-strong vs gen6 (same binary pair as evalconv gate,
 so attribution is clean). Promote only on SPRT pass.
+
+## 2026-06-10 afternoon: nine gates, the wall, and the NNUE pivot
+
+Gate ledger for the day (all 10+0.1, conc 12, vs/on frozen gen6 unless noted):
+
+| # | Candidate | Result | Verdict |
+|---|---|---|---|
+| 1 | eval-conversion code | −13.0 ±28.5, 400 games | REJECTED |
+| 2 | Rung-3 MLP (SF labels) | top-1 34.8%→34.3% | REJECTED pre-gate |
+| 3 | ks-strong hand weights (bundle) | +6.1 ±31.0 | inconclusive |
+| 4 | ks-strong pure A/B (same binary) | +6.1 ±30.3 | inconclusive |
+| 5 | Patch 7 pruning, all five | **−188 ±56** | REJECTED hard |
+| 6 | Patch 7 minus RFP | −247 fast-fail @36 | RFP exonerated |
+| 7 | qsearch-only (delta+SEE) | 50.0% @133 | neutral, stopped |
+| 8 | Texel rung2 weights, danger-suite | **50.0% exactly** @300 | no conditional effect |
+| 9 | PST/material Texel (56k rows) | holdout flat | data-starved |
+
+Supporting findings: sparse-situation dilution confirmed (only 10.5% of
+positions carry live king-danger signal — conditional suite at
+`f:/tools/danger-suite.epd`); Texel-on-outcomes independently raises ONLY the
+king-safety weights (kingDanger 0→5.1, zone 4.9→6.2, openFile 4.3→5.7) yet
+moves no games; search speed is NOT the gap — sustained 1.02M nps vs
+Stockfish's measured 911k on the same box (rung2 extraction ≈30% of time).
+
+**Conclusion, proven three independent ways: the 23-scalar hand-crafted eval
+is the ceiling.** Learning on it fails (labels), tuning it is invisible
+(effect size), and search cannot prune on it (trust). Pivot: **NNUE gen-1**.
+
+## NNUE gen-1 (in flight)
+
+- `selfplay` bin: threaded fixed-depth self-play → JSONL (fen, white-POV cp,
+  result); 120k games @ d5 generating into `f:/tools/nnue-data-gen1.jsonl`.
+- Trainer `arena/train-nnue.py` (app repo): 768→128 cReLU→1, stm-perspective
+  (mirror+colorswap for black), target = 0.6·σ(cp/256) + 0.4·result, CUDA.
+- Rust `eval/nnue.rs`: f32 full-recompute forward, **bit-exact parity** with
+  the trainer on fixtures; `Searcher::with_nnue` swaps every static/leaf
+  eval site; `--nnue <json>` on analyze/uci.
+- **Node-speed gate PASSES pre-emptively: 530 knps NNUE vs 426 classical
+  (+24%)** — the net is cheaper than rung2 extraction; no incremental
+  accumulator needed for gen-1.
+- Next: train on the full gen-1 set, SPRT vs gen6; on pass, regenerate data
+  with the NNUE engine at deeper labels (gen-2 bootstrap).
