@@ -45,6 +45,8 @@ pub struct SearchOptions {
     pub danger_extension: bool,
     /// Null-move pruning (Search Patch 2). Default on; gate for A/B tests.
     pub null_move: bool,
+    /// Late-move reductions (Search Patch 3). Default on; gate for A/B tests.
+    pub lmr: bool,
 }
 
 impl Default for SearchOptions {
@@ -56,6 +58,7 @@ impl Default for SearchOptions {
             use_tt: true,
             danger_extension: false,
             null_move: true,
+            lmr: true,
         }
     }
 }
@@ -80,6 +83,10 @@ pub struct Telemetry {
     pub history_cutoffs: u64,
     /// Nodes pruned by the null-move heuristic (Patch 2).
     pub null_cutoffs: u64,
+    /// Moves searched at reduced depth by LMR (Patch 3).
+    pub lmr_reductions: u64,
+    /// LMR re-searches at full depth after a reduced search raised alpha.
+    pub lmr_researches: u64,
 }
 
 #[derive(Clone, Debug)]
@@ -423,9 +430,35 @@ impl Searcher {
         let side = pos.stm.index();
         let mut best = -INF;
         let mut best_move: Option<Move> = None;
-        for mv in legal {
+        let killer_pair = self.killers.get(ply as usize).copied().unwrap_or([None; 2]);
+        for (move_index, mv) in legal.into_iter().enumerate() {
+            // Late-move reductions (Search Patch 3, conservative tier): with
+            // good ordering, late quiet non-checking moves rarely matter —
+            // search them shallower first, and re-search at full depth only
+            // if the reduced probe beats alpha. Never reduce: captures,
+            // promotions, checks (given or escaped), the TT move, killers,
+            // or the first three moves.
+            let reduce = self.opts.lmr
+                && depth >= 3
+                && move_index >= 3
+                && !checked
+                && !mv.flag.is_capture()
+                && mv.flag.promo_piece().is_none()
+                && Some(mv) != tt_move
+                && !killer_pair.contains(&Some(mv))
+                && !gives_check(pos, mv);
             pos.make(mv);
-            let score = -self.negamax(pos, depth - 1, -beta, -alpha, ply + 1, true);
+            let mut score;
+            if reduce {
+                self.tel.lmr_reductions += 1;
+                score = -self.negamax(pos, depth - 2, -alpha - 1, -alpha, ply + 1, true);
+                if score > alpha && !self.aborted {
+                    self.tel.lmr_researches += 1;
+                    score = -self.negamax(pos, depth - 1, -beta, -alpha, ply + 1, true);
+                }
+            } else {
+                score = -self.negamax(pos, depth - 1, -beta, -alpha, ply + 1, true);
+            }
             pos.unmake();
             if self.aborted {
                 return if best > -INF { best } else { score };

@@ -118,6 +118,7 @@ fn main() {
                     use_tt: true,
                     danger_extension: false,
                     null_move: true,
+                    lmr: true,
                 };
                 let r = searcher.search(&mut pos, opts);
                 let score = match r.mate {
