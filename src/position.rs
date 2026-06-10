@@ -158,6 +158,21 @@ impl Position {
         }
         pos.hash ^= zobrist().castling[pos.castling as usize];
         pos.hash ^= ep_key(pos.ep);
+        // Reject structurally illegal positions instead of letting search
+        // capture a king later (pseudo movegen panics on an empty king board).
+        for color in [Color::White, Color::Black] {
+            if pos.pieces[color.index()][Piece::King.index()].count_ones() != 1 {
+                return Err(format!("illegal FEN: {color:?} must have exactly one king"));
+            }
+        }
+        let idle = pos.stm.flip();
+        let idle_king = pos.pieces[idle.index()][Piece::King.index()].trailing_zeros() as u8;
+        if crate::attacks::attackers_of(&pos.pieces, idle_king, pos.stm, pos.all) != 0 {
+            return Err(format!(
+                "illegal FEN: {idle:?} is in check but {:?} is to move",
+                pos.stm
+            ));
+        }
         Ok(pos)
     }
 
