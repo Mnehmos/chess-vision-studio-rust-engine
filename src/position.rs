@@ -223,6 +223,22 @@ impl Position {
         }
     }
 
+    /// True when the current position already occurred earlier in the
+    /// make/unmake history (same Zobrist hash, which includes side-to-move,
+    /// castling and ep-file). Only the reversible window matters: nothing
+    /// before the last pawn move/capture (halfmove reset) can repeat. One
+    /// prior occurrence is enough for the search to treat the node as a draw
+    /// — the IUBKTvjF lesson: an engine with no repetition knowledge checked
+    /// forever in a two-piece-up position and drew by threefold.
+    pub fn is_repetition(&self) -> bool {
+        let window = self.halfmove as usize;
+        self.history
+            .iter()
+            .rev()
+            .take(window)
+            .any(|u| u.prev_hash == self.hash)
+    }
+
     pub fn make(&mut self, mv: Move) {
         let us = self.stm;
         let them = us.flip();

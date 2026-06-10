@@ -204,3 +204,45 @@ fn zobrist_hash_is_make_unmake_stable() {
         assert_eq!(p.hash, h0, "hash drift after make/unmake of {}", mv.to_uci());
     }
 }
+
+// ---- Draw-rule knowledge: repetition (the IUBKTvjF lesson) ----
+// CVS (two pieces up) drew its first clean Lichess game by checking forever:
+// 30.Re7+ Kc8 31.Re8+ Kb7 32.Re7+ ... 1/2-1/2. The search had no repetition
+// concept, so the shuffle looked as good as converting.
+
+#[test]
+fn repetition_is_detected_in_position_history() {
+    let mut p = pos("1r6/3k1pp1/p6n/2B1R3/1NP5/8/PP3PPP/6K1 w - - 3 30");
+    assert!(!p.is_repetition());
+    // Shuffle: Re7+ Kc8 Re8+ Kd7 returns to the e5-rook position... use the
+    // actual game shuffle which returns to an earlier hash:
+    for uci in ["e5e7", "d7c8", "e7e8", "c8b7", "e8e7", "b7c8"] {
+        let legal = generate_legal(&mut p);
+        let mv = *legal.iter().find(|m| m.to_uci() == uci).unwrap();
+        p.make(mv);
+    }
+    // Position after ...Kc8 with the rook on e7 occurred two plies earlier.
+    assert!(p.is_repetition(), "the check shuffle must register as a repetition");
+}
+
+#[test]
+fn search_converts_instead_of_repeating_when_winning() {
+    // After 31...Kb7 (game history attached via make), White must NOT keep
+    // checking: any non-repeating continuation keeps a two-piece advantage.
+    let mut p = pos("1r6/3k1pp1/p6n/2B1R3/1NP5/8/PP3PPP/6K1 w - - 3 30");
+    for uci in ["e5e7", "d7c8", "e7e8", "c8b7"] {
+        let legal = generate_legal(&mut p);
+        let mv = *legal.iter().find(|m| m.to_uci() == uci).unwrap();
+        p.make(mv);
+    }
+    let mut s = Searcher::new(ValueWeights::default(), None);
+    let r = s.search(&mut p, opts(5, true, true));
+    let best = r.best_move.unwrap().to_uci();
+    assert_ne!(best, "e8e7", "must not re-enter the drawing check shuffle");
+    assert!(
+        r.score_cp > 300,
+        "two pieces up must read as winning, got {}cp with {}",
+        r.score_cp,
+        best
+    );
+}

@@ -286,6 +286,13 @@ impl Searcher {
         if pos.halfmove >= 100 || insufficient_material(pos) {
             return 0;
         }
+        // Draw by repetition: one prior occurrence in the path (or the game
+        // history the position was built with) scores 0. Checked BEFORE the
+        // TT probe and returned WITHOUT storing — repetition scores are
+        // path-dependent and must not leak into other lines via the table.
+        if ply > 0 && pos.is_repetition() {
+            return 0;
+        }
         if depth <= 0 {
             return self.quiesce_with(pos, legal, checked, alpha_in, beta_in, ply, 0);
         }
