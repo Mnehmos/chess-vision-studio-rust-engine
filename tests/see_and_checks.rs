@@ -33,7 +33,10 @@ fn see_equal_trade_is_zero() {
 #[test]
 fn see_queen_grabs_defended_pawn_is_negative() {
     // Queen wins a pawn (100) then is taken by the c6 pawn (loses 900).
-    assert_eq!(see_at("4k3/8/2p5/3p4/8/8/3Q4/4K3 w - - 0 1", "d2", "d5"), 100 - 900);
+    assert_eq!(
+        see_at("4k3/8/2p5/3p4/8/8/3Q4/4K3 w - - 0 1", "d2", "d5"),
+        100 - 900
+    );
 }
 
 #[test]
@@ -44,7 +47,10 @@ fn see_quiet_move_to_safe_square_is_zero() {
 #[test]
 fn see_into_undefended_attacked_square_is_negative() {
     // Knight steps onto d5, attacked by the e6 pawn, undefended.
-    assert_eq!(see_at("4k3/8/4p3/8/8/4N3/8/4K3 w - - 0 1", "e3", "d5"), -320);
+    assert_eq!(
+        see_at("4k3/8/4p3/8/8/4N3/8/4K3 w - - 0 1", "e3", "d5"),
+        -320
+    );
 }
 
 #[test]
@@ -75,11 +81,17 @@ fn gives_check_rook_to_back_rank() {
     // Ra1-a8 delivers check along the 8th rank to the black king on e8.
     let mut pos = Position::from_fen("4k3/8/8/8/8/8/8/R3K3 w - - 0 1").unwrap();
     let legal = generate_legal(&mut pos);
-    let ra8 = legal.iter().find(|m| m.from == sq("a1") && m.to == sq("a8")).copied();
+    let ra8 = legal
+        .iter()
+        .find(|m| m.from == sq("a1") && m.to == sq("a8"))
+        .copied();
     assert!(ra8.is_some(), "Ra8 should be legal");
     assert!(gives_check(&mut pos, ra8.unwrap()));
     // A quiet king step does not give check.
-    let kf2 = legal.iter().find(|m| m.from == sq("e1") && m.flag == MoveFlag::Quiet).copied();
+    let kf2 = legal
+        .iter()
+        .find(|m| m.from == sq("e1") && m.flag == MoveFlag::Quiet)
+        .copied();
     if let Some(m) = kf2 {
         assert!(!gives_check(&mut pos, m));
     }

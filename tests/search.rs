@@ -3,8 +3,8 @@
 //!   R3.2 capture quiescence — no horizon garbage on defended pawns
 //!   R3.3 forcing quiet checks — the d4 forensic regression (mixed weights)
 //!   R3.5 TT — on/off gives the same move + score on a fixed battery
-use cvs_bitboard_core::eval::{Rung2Weights, ValueWeights};
 use cvs_bitboard_core::eval::weights::MaterialWeights;
+use cvs_bitboard_core::eval::{Rung2Weights, ValueWeights};
 use cvs_bitboard_core::movegen::generate_legal;
 use cvs_bitboard_core::search::{SearchOptions, Searcher, MATE_SCORE};
 use cvs_bitboard_core::Position;
@@ -14,7 +14,16 @@ fn pos(fen: &str) -> Position {
 }
 
 fn opts(depth: u32, quiet_checks: bool, use_tt: bool) -> SearchOptions {
-    SearchOptions { depth, max_time_ms: None, quiet_checks, use_tt, danger_extension: false, null_move: true, lmr: true, pvs: true }
+    SearchOptions {
+        depth,
+        max_time_ms: None,
+        quiet_checks,
+        use_tt,
+        danger_extension: false,
+        null_move: true,
+        lmr: true,
+        pvs: true,
+    }
 }
 
 /// The trained Rung-2 mixed weights — same fixture as the TS search-boundary suite.
@@ -107,7 +116,10 @@ fn r31_best_move_is_always_legal() {
         let mut s = Searcher::new(ValueWeights::default(), None);
         let r = s.search(&mut p, opts(3, true, true));
         let best = r.best_move.expect("search must return a move");
-        assert!(generate_legal(&mut p).contains(&best), "illegal best move on {fen}");
+        assert!(
+            generate_legal(&mut p).contains(&best),
+            "illegal best move on {fen}"
+        );
     }
 }
 
@@ -144,8 +156,15 @@ fn r33_d4_forensic_avoids_the_quiet_refuted_bf7() {
     let mut p = pos("5r2/pp5R/1kp3p1/6b1/4P1b1/1BNP2P1/PPP4P/1K6 w - - 1 22");
     let mut s = Searcher::new(base, Some(rung2));
     let r = s.search(&mut p, opts(4, true, true));
-    assert_ne!(r.best_move.unwrap().to_uci(), "b3f7", "quiet-refuted blunder must be avoided");
-    assert!(r.telemetry.quiet_check_extensions > 0, "quiet-check extension should fire here");
+    assert_ne!(
+        r.best_move.unwrap().to_uci(),
+        "b3f7",
+        "quiet-refuted blunder must be avoided"
+    );
+    assert!(
+        r.telemetry.quiet_check_extensions > 0,
+        "quiet-check extension should fire here"
+    );
 }
 
 // ---- R3.5: transposition table ----
@@ -154,10 +173,19 @@ fn r33_d4_forensic_avoids_the_quiet_refuted_bf7() {
 fn r35_tt_preserves_move_and_score() {
     // The TT is a cache, not a behavior change: same best move + score on a battery.
     let battery = [
-        ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 3),
-        ("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 2),
+        (
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+            3,
+        ),
+        (
+            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+            2,
+        ),
         ("5r2/pp5R/1kp3p1/6b1/4P1b1/1BNP2P1/PPP4P/1K6 w - - 1 22", 3),
-        ("4r1k1/1p3pp1/p1p3rp/P1Qnq3/1PB5/4P3/5PPP/3R1RK1 b - - 5 27", 2),
+        (
+            "4r1k1/1p3pp1/p1p3rp/P1Qnq3/1PB5/4P3/5PPP/3R1RK1 b - - 5 27",
+            2,
+        ),
     ];
     for (fen, depth) in battery {
         let mut p1 = pos(fen);
@@ -171,7 +199,10 @@ fn r35_tt_preserves_move_and_score() {
             without_tt.best_move.map(|m| m.to_uci()),
             "TT changed the best move on {fen}"
         );
-        assert_eq!(with_tt.score_cp, without_tt.score_cp, "TT changed the score on {fen}");
+        assert_eq!(
+            with_tt.score_cp, without_tt.score_cp,
+            "TT changed the score on {fen}"
+        );
     }
 }
 
@@ -184,7 +215,11 @@ fn r35_pv_is_a_legal_line() {
     // Replay the PV: every move must be legal in sequence.
     let mut replay = pos("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
     for mv in &r.pv {
-        assert!(generate_legal(&mut replay).contains(mv), "PV move {} not legal", mv.to_uci());
+        assert!(
+            generate_legal(&mut replay).contains(mv),
+            "PV move {} not legal",
+            mv.to_uci()
+        );
         replay.make(*mv);
     }
 }
@@ -201,7 +236,12 @@ fn zobrist_hash_is_make_unmake_stable() {
             p.unmake();
         }
         p.unmake();
-        assert_eq!(p.hash, h0, "hash drift after make/unmake of {}", mv.to_uci());
+        assert_eq!(
+            p.hash,
+            h0,
+            "hash drift after make/unmake of {}",
+            mv.to_uci()
+        );
     }
 }
 
@@ -222,7 +262,27 @@ fn repetition_is_detected_in_position_history() {
         p.make(mv);
     }
     // Position after ...Kc8 with the rook on e7 occurred two plies earlier.
-    assert!(p.is_repetition(), "the check shuffle must register as a repetition");
+    assert!(
+        p.is_repetition(),
+        "the check shuffle must register as a repetition"
+    );
+}
+
+#[test]
+fn repetition_history_can_be_replayed_from_uci_moves() {
+    let moves = ["e5e7", "d7c8", "e7e8", "c8b7", "e8e7", "b7c8"]
+        .iter()
+        .map(|m| (*m).to_string())
+        .collect::<Vec<_>>();
+    let p = Position::from_fen_with_uci_history(
+        "1r6/3k1pp1/p6n/2B1R3/1NP5/8/PP3PPP/6K1 w - - 3 30",
+        &moves,
+    )
+    .unwrap();
+    assert!(
+        p.is_repetition(),
+        "serve-protocol history replay must preserve pre-root repetition state"
+    );
 }
 
 #[test]
@@ -256,7 +316,10 @@ fn null_move_never_fires_in_pawn_only_endings() {
     let mut p = pos("8/8/1p6/1P6/8/5k2/8/5K2 w - - 0 1");
     let mut s = Searcher::new(ValueWeights::default(), None);
     let r = s.search(&mut p, opts(5, true, true));
-    assert_eq!(r.telemetry.null_cutoffs, 0, "null must be disabled without pieces");
+    assert_eq!(
+        r.telemetry.null_cutoffs, 0,
+        "null must be disabled without pieces"
+    );
 }
 
 #[test]
@@ -266,7 +329,10 @@ fn null_move_fires_and_prunes_when_clearly_better() {
     let mut p = pos("r3k2r/p1pp1pb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
     let mut s = Searcher::new(ValueWeights::default(), None);
     let r = s.search(&mut p, opts(5, true, true));
-    assert!(r.telemetry.null_cutoffs > 0, "null-move should prune when ahead");
+    assert!(
+        r.telemetry.null_cutoffs > 0,
+        "null-move should prune when ahead"
+    );
 }
 
 #[test]

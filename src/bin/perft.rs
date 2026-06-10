@@ -53,7 +53,10 @@ fn main() {
             println!("{}: {}", mv.to_uci(), n);
         }
         let secs = t.elapsed().as_secs_f64();
-        println!("\nnodes {total}  time {secs:.3}s  nps {:.0}", total as f64 / secs.max(1e-9));
+        println!(
+            "\nnodes {total}  time {secs:.3}s  nps {:.0}",
+            total as f64 / secs.max(1e-9)
+        );
         return;
     }
 
@@ -90,7 +93,14 @@ fn main() {
         );
     }
 
-    println!("\n{}", if all_ok { "ALL PERFT CHECKS PASSED" } else { "PERFT MISMATCH — see ✗ rows" });
+    println!(
+        "\n{}",
+        if all_ok {
+            "ALL PERFT CHECKS PASSED"
+        } else {
+            "PERFT MISMATCH — see ✗ rows"
+        }
+    );
     if !all_ok {
         std::process::exit(1);
     }

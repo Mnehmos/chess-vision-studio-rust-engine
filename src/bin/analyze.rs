@@ -5,30 +5,59 @@
 //!                   (one process serves a whole gauntlet run)
 //!
 //!   analyze (--fens <file> | --serve) --depth N [--base w.json --rung2 r.json]
-//!           [--no-quiet-checks] [--no-tt]
-use cvs_bitboard_core::eval::{evaluate_white, Rung2Weights, ValueWeights};
+//!           [--net net.json] [--no-quiet-checks] [--no-tt]
+use cvs_bitboard_core::eval::{
+    evaluate_white_with_net, feature_vector, Rung2Weights, ValueNet, ValueWeights,
+    RUNG3_FEATURE_KEYS,
+};
+use cvs_bitboard_core::position::STARTPOS_FEN;
 use cvs_bitboard_core::search::{SearchOptions, Searcher};
 use cvs_bitboard_core::Position;
 use std::io::{BufRead, Write};
 
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ServeJsonRequest {
+    cmd: Option<String>,
+    fen: Option<String>,
+    initial_fen: Option<String>,
+    moves: Option<Vec<String>>,
+    budget_ms: Option<u64>,
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let get = |flag: &str| -> Option<String> {
-        args.iter().position(|a| a == flag).and_then(|i| args.get(i + 1).cloned())
+        args.iter()
+            .position(|a| a == flag)
+            .and_then(|i| args.get(i + 1).cloned())
     };
     let serve = args.iter().any(|a| a == "--serve");
     let fens_path = get("--fens");
     if !serve && fens_path.is_none() {
-        eprintln!("usage: analyze (--fens <file> | --serve) --depth N [--base w.json --rung2 r.json]");
+        eprintln!(
+            "usage: analyze (--fens <file> | --serve) --depth N [--base w.json --rung2 r.json]"
+        );
         std::process::exit(2);
     }
-    let depth: u32 = get("--depth").expect("--depth required").parse().expect("depth");
+    let depth: u32 = get("--depth")
+        .expect("--depth required")
+        .parse()
+        .expect("depth");
     let base: ValueWeights = match get("--base") {
-        Some(p) => serde_json::from_str(&std::fs::read_to_string(p).expect("base weights")).expect("parse base"),
+        Some(p) => serde_json::from_str(&std::fs::read_to_string(p).expect("base weights"))
+            .expect("parse base"),
         None => ValueWeights::default(),
     };
     let rung2: Option<Rung2Weights> = get("--rung2").map(|p| {
-        serde_json::from_str(&std::fs::read_to_string(p).expect("rung2 weights")).expect("parse rung2")
+        serde_json::from_str(&std::fs::read_to_string(p).expect("rung2 weights"))
+            .expect("parse rung2")
+    });
+    let net: Option<ValueNet> = get("--net").map(|p| {
+        let net: ValueNet = serde_json::from_str(&std::fs::read_to_string(p).expect("net weights"))
+            .expect("parse net");
+        net.validate().expect("validate net");
+        net
     });
     let opts = SearchOptions {
         depth,
@@ -50,22 +79,20 @@ fn main() {
     let features_one = |fen: &str| -> String {
         match Position::from_fen(fen) {
             Ok(mut pos) => {
-                let f = cvs_bitboard_core::eval::extract_rung2(&pos);
-                let eval_cp = evaluate_white(&mut pos, &base, rung2.as_ref());
+                let x = feature_vector(&pos);
+                let eval_cp =
+                    evaluate_white_with_net(&mut pos, &base, rung2.as_ref(), net.as_ref());
+                let features = RUNG3_FEATURE_KEYS
+                    .iter()
+                    .zip(x.iter())
+                    .map(|(k, v)| ((*k).to_string(), serde_json::json!(v)))
+                    .collect::<serde_json::Map<String, serde_json::Value>>();
                 serde_json::json!({
                     "fen": fen,
                     "evalWhiteCp": eval_cp,
-                    "features": {
-                        "kingCentralExposure": f.king_central_exposure,
-                        "enemyQueenNearKing": f.enemy_queen_near_king,
-                        "openCenterKingPenalty": f.open_center_king_penalty,
-                        "kingEscapeDeficit": f.king_escape_deficit,
-                        "hangingPiece": f.hanging_piece,
-                        "kingZonePressure": f.king_zone_pressure,
-                        "kingShield": f.king_shield,
-                        "kingOpenFile": f.king_open_file,
-                        "kingDanger": f.king_danger,
-                    },
+                    "featureNames": RUNG3_FEATURE_KEYS,
+                    "featureVector": x,
+                    "features": features,
                 })
                 .to_string()
             }
@@ -73,15 +100,33 @@ fn main() {
         }
     };
 
-    let analyze_one = |fen: &str| -> String {
-        let mut pos = match Position::from_fen(fen) {
-            Ok(p) => p,
-            Err(e) => {
-                return serde_json::json!({ "fen": fen, "error": e }).to_string();
-            }
+    let request_position = |req: &ServeJsonRequest| -> Result<(Position, String), String> {
+        if let Some(moves) = req.moves.as_ref() {
+            let initial = req.initial_fen.as_deref().unwrap_or(STARTPOS_FEN);
+            let initial = if initial == "startpos" {
+                STARTPOS_FEN
+            } else {
+                initial
+            };
+            let echo = req.fen.as_deref().unwrap_or(initial).to_string();
+            Ok((Position::from_fen_with_uci_history(initial, moves)?, echo))
+        } else {
+            let fen = req.fen.as_deref().unwrap_or(STARTPOS_FEN);
+            let fen = if fen == "startpos" { STARTPOS_FEN } else { fen };
+            Ok((Position::from_fen(fen)?, fen.to_string()))
+        }
+    };
+
+    let analyze_pos = |mut pos: Position, fen: &str, timed_ms: Option<u64>| -> String {
+        let mut searcher = Searcher::new_with_net(base, rung2, net.clone());
+        let search_opts = match timed_ms {
+            Some(ms) => SearchOptions {
+                max_time_ms: Some(ms),
+                ..opts
+            },
+            None => opts,
         };
-        let mut searcher = Searcher::new(base, rung2);
-        let r = searcher.search(&mut pos, opts);
+        let r = searcher.search(&mut pos, search_opts);
         let t = r.telemetry;
         let uci = r.best_move.map(|m| m.to_uci());
         let pv: Vec<String> = r.pv.iter().map(|m| m.to_uci()).collect();
@@ -106,6 +151,24 @@ fn main() {
         .to_string()
     };
 
+    let eval_pos = |mut pos: Position, fen: &str| -> String {
+        serde_json::json!({
+            "fen": fen,
+            "evalWhiteCp": evaluate_white_with_net(&mut pos, &base, rung2.as_ref(), net.as_ref()),
+        })
+        .to_string()
+    };
+
+    let analyze_one = |fen: &str| -> String {
+        let pos = match Position::from_fen(fen) {
+            Ok(p) => p,
+            Err(e) => {
+                return serde_json::json!({ "fen": fen, "error": e }).to_string();
+            }
+        };
+        analyze_pos(pos, fen, None)
+    };
+
     if serve {
         // Loop mode: one process serves a whole gauntlet run. Flush per line so
         // the orchestrator's request/response cycle never stalls on buffering.
@@ -123,41 +186,42 @@ fn main() {
                 }
                 continue;
             }
+            // JSON requests carry game history for repetition detection:
+            // {"cmd":"go","budgetMs":500,"fen":"...","initialFen":"...","moves":[...]}
+            let out = if fen.starts_with('{') {
+                match serde_json::from_str::<ServeJsonRequest>(fen) {
+                    Ok(req) => {
+                        let cmd = req.cmd.as_deref().unwrap_or("analyze");
+                        match request_position(&req) {
+                            Ok((pos, echo_fen)) => match cmd {
+                                "eval" => eval_pos(pos, &echo_fen),
+                                "go" => {
+                                    analyze_pos(pos, &echo_fen, Some(req.budget_ms.unwrap_or(500)))
+                                }
+                                _ => analyze_pos(pos, &echo_fen, None),
+                            },
+                            Err(e) => serde_json::json!({
+                                "fen": req.fen.as_deref().unwrap_or(""),
+                                "error": e
+                            })
+                            .to_string(),
+                        }
+                    }
+                    Err(e) => serde_json::json!({ "fen": fen, "error": e.to_string() }).to_string(),
+                }
             // `go <ms> <fen>` → search with a per-request wall-clock budget (the
             // Lichess bot's clock-budgeted picks; depth acts as the cap).
-            let out = if let Some(rest) = fen.strip_prefix("go ") {
+            } else if let Some(rest) = fen.strip_prefix("go ") {
                 let mut it = rest.splitn(2, ' ');
                 let ms: u64 = it.next().and_then(|s| s.parse().ok()).unwrap_or(500);
                 let gfen = it.next().unwrap_or("").trim();
                 match Position::from_fen(gfen) {
-                    Ok(mut pos) => {
-                        let mut searcher = Searcher::new(base, rung2);
-                        let timed = SearchOptions { max_time_ms: Some(ms), ..opts };
-                        let r = searcher.search(&mut pos, timed);
-                        let t = r.telemetry;
-                        serde_json::json!({
-                            "fen": gfen,
-                            "uci": r.best_move.map(|m| m.to_uci()),
-                            "scoreCp": r.score_cp,
-                            "mate": r.mate,
-                            "pv": r.pv.iter().map(|m| m.to_uci()).collect::<Vec<_>>(),
-                            "depth": r.depth,
-                            "nodes": t.nodes,
-                            "qNodes": t.q_nodes,
-                            "ttHits": t.tt_hits,
-                            "timeMs": t.elapsed_ms,
-                        })
-                        .to_string()
-                    }
+                    Ok(pos) => analyze_pos(pos, gfen, Some(ms)),
                     Err(e) => serde_json::json!({ "fen": gfen, "error": e }).to_string(),
                 }
             } else if let Some(efen) = fen.strip_prefix("eval ") {
                 match Position::from_fen(efen.trim()) {
-                    Ok(mut pos) => serde_json::json!({
-                        "fen": efen.trim(),
-                        "evalWhiteCp": evaluate_white(&mut pos, &base, rung2.as_ref()),
-                    })
-                    .to_string(),
+                    Ok(pos) => eval_pos(pos, efen.trim()),
                     Err(e) => serde_json::json!({ "fen": efen.trim(), "error": e }).to_string(),
                 }
             } else {

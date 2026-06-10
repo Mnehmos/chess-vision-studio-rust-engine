@@ -107,12 +107,79 @@ feature itself is kept (inert) — it is a useful INPUT for a higher-capacity
 head. Bug lesson recorded: weight JSONs are camelCase (`kingDanger`);
 snake_case fields are silently ignored by serde and the head stays inert.
 
-## Next experiment — Rung 3: small nonlinear value head
-A 2-layer MLP over the full 23-feature Rung-2 vector (23→8→1, ~200 params,
-~30 multiplies per eval — negligible in Rust), trained with the proven mixed
-objective on the multipv dataset (10/10 shards once labeling completes).
-Capacity is the demonstrated blocker; this is the smallest capacity jump that
-can represent attacker-count × exposure interactions. Gate stack unchanged:
-regression rows + delusion FENs, eval-r4 non-regression, experimental
-mini-gauntlet, SF d20 confirm — promote only if green, then re-measure the
-time-odds curve.
+## Lichess halcyonbot loss added to regressions (2026-06-10)
+
+Game: halcyonbot (2249) 1-0 ChessVisionStudioEng (2209), Lichess `4fxkLVBb`,
+300+3. CVS as Black left the king uncastled, walked e8/f8/f7/f6/g5/h6/h5,
+and was mated by `Qg5#`.
+
+New rows in `arena/rsi/regressions.jsonl`: `Na7`, `Ng8`, `Nc6`, `f5`, `Kf7`,
+and `Bd6`. Current candidate `go 500` repeats four of the six bad decisions
+(`Na7`, `Nc6`, `f5`, `Bd6`) and avoids two (`Ng8`, `Kf7`). The pre-`Bd6`
+position is the important gate row: `danger_level=2`, `kingDanger=5.0625`,
+`kingCentralExposure=2`, `kingEscapeDeficit=-1`, yet candidate still plays
+`e7d6` into `Qe8+`. Verdict: the signal exists; the value head underprices it.
+This is now a first-class Rung-3 king-danger regression.
+
+## Lichess halcyonbot endgame loss added to regressions (2026-06-10)
+
+Game: ChessVisionStudioEng (2209) 0-1 halcyonbot (2240), Lichess `RWvWpJZ1`,
+300+3. CVS as White reached a long queen/bishop/pawn endgame and was mated by
+`Qb3#` on move 62.
+
+New rows in `arena/rsi/regressions.jsonl`: `Kb2`, `Kc3`, `Bf3`, and `Ka3`.
+Current candidate `go 500` repeats all four live moves. This is not the same
+Rung-3 center-king family: the endgame FENs do not fire current `kingDanger`
+(`0.0` on the key `Ka3` row). Treat it as a queen-endgame/mate-defense track:
+passed-pawn race valuation, check-chain survival, and short-mate avoidance.
+The critical row is `61.Ka3`, where candidate still chooses `b2a3` with a mate
+score (`scoreCp=-999996`, `mate=-4`) into the `Qc2/Qb3#` net.
+
+## Rung 3 MLP head: trained, REJECTED pre-gate (2026-06-10)
+
+28→6→1 MLP (`arena/train-rung3-net.ts`), mixed objective, 9,304 parents /
+81,916 FENs, 150 epochs. Regression MAE improved (147→134 holdout) but
+**move-ranking did not**: holdout top-1 34.78% → 34.34%, train top-1 fell.
+The net predicts SF's eval better without changing which move wins — the
+only thing that affects play. Fourth consecutive eval-head failure (Rung-1,
+2B v1–v3, Phase-B ranking, Rung-3 MLP). Revised lesson: **the blocker is not
+capacity, it is the label source** — generic gauntlet multipv labels do not
+teach king-safety move discrimination. `arena/out/rung3-net.json` UNPROMOTED.
+
+## Eval-conversion patch (fifty-move pressure + simplify-when-ahead): gate result
+
+SPRT vs gen6, 10+0.1, conc 12, 400 games (`f:/tools/sprt-evalconv.pgn`):
+**REJECTED — −13.0 ±28.5 Elo, LOS 18.5%** (early 54.9% @61 was noise). Code
+kept in tree (family-A draw hygiene), but it earns no Elo claim and ships
+only inside a bundle that wins its own gate.
+
+## FEN-validation hardening (2026-06-10)
+
+While testing, a hand-written "quiet endgame" FEN crashed BOTH the candidate
+and the frozen gen6 (`attacks.rs` index 64 panic via `in_check` on an empty
+king bitboard). Root cause: the FEN was itself illegal — the side NOT to move
+was already in check, so pseudo movegen legally "captured the king". Search
+is sound on legal positions; the gap was input validation. Fix:
+`Position::from_fen` now rejects positions with missing/duplicate kings or
+the idle side in check (`tests/fen_validation.rs`, 3 tests). All analysis
+entry points (serve, uci, faucet, RSI rescoring) inherit the guard.
+
+## Hand-tuned king-safety weights (CPW-guided) — current experiment
+
+Research (chessprogramming.org King Safety): attack-units → nonlinear
+S-curve, suppress lone attackers, gate on enemy queen, scale by phase —
+**our Rust 2B features already implement all of this**; they were inert only
+because trained fits kept collapsing the weights to ~0. So the patch is
+hand-set weights, no code change:
+
+| weights file | kingDanger | centralExp | openCenter | escDef | qNear |
+|---|---:|---:|---:|---:|---:|
+| `rung2-weights-kingsafety.json` | 9 | 12 | 25 | 8 | 4 |
+| `rung2-weights-ks-strong.json` | 15 | 20 | 45 | 12 | 6 |
+
+Targeted A/B on the six 4fxkLVBb loss rows (`go 500`, candidate binary):
+mixed = 4/6 BAD with delusion (+47cp while losing). ks-strong = **flips the
+game-losing row `e7d6`→`c8d7` (SF's best) and `f8f7`-row→`b5c4` (SF's best)**;
+self-eval honest (−304 vs −155 pre-mate). Remaining 3 BAD are earlier subtle
+drift moves. Next: SPRT ks-strong vs gen6 (same binary pair as evalconv gate,
+so attribution is clean). Promote only on SPRT pass.

@@ -44,7 +44,12 @@ fn zobrist() -> &'static Zobrist {
         for v in ep_file.iter_mut() {
             *v = next();
         }
-        Zobrist { piece_sq, stm_black, castling, ep_file }
+        Zobrist {
+            piece_sq,
+            stm_black,
+            castling,
+            ep_file,
+        }
     })
 }
 
@@ -158,6 +163,37 @@ impl Position {
         }
         pos.hash ^= zobrist().castling[pos.castling as usize];
         pos.hash ^= ep_key(pos.ep);
+        // Reject structurally illegal positions instead of letting search
+        // capture a king later (pseudo movegen panics on an empty king board).
+        for color in [Color::White, Color::Black] {
+            if pos.pieces[color.index()][Piece::King.index()].count_ones() != 1 {
+                return Err(format!("illegal FEN: {color:?} must have exactly one king"));
+            }
+        }
+        let idle = pos.stm.flip();
+        let idle_king = pos.pieces[idle.index()][Piece::King.index()].trailing_zeros() as u8;
+        if crate::attacks::attackers_of(&pos.pieces, idle_king, pos.stm, pos.all) != 0 {
+            return Err(format!(
+                "illegal FEN: {idle:?} is in check but {:?} is to move",
+                pos.stm
+            ));
+        }
+        Ok(pos)
+    }
+
+    /// Build a position by replaying UCI moves from an initial FEN, preserving
+    /// the make-history needed for repetition detection at the search root.
+    pub fn from_fen_with_uci_history(fen: &str, moves: &[String]) -> Result<Position, String> {
+        let mut pos = Position::from_fen(fen)?;
+        for (i, uci) in moves.iter().enumerate() {
+            let legal = crate::movegen::generate_legal(&mut pos);
+            let mv = legal
+                .iter()
+                .copied()
+                .find(|mv| mv.to_uci() == *uci)
+                .ok_or_else(|| format!("illegal history move {uci} at ply {}", i + 1))?;
+            pos.make(mv);
+        }
         Ok(pos)
     }
 
@@ -203,9 +239,11 @@ impl Position {
     pub fn piece_at(&self, sq: u8) -> Option<(Color, Piece)> {
         let b = 1u64 << sq;
         if self.occ[Color::White.index()] & b != 0 {
-            self.piece_at_color(Color::White, sq).map(|p| (Color::White, p))
+            self.piece_at_color(Color::White, sq)
+                .map(|p| (Color::White, p))
         } else if self.occ[Color::Black.index()] & b != 0 {
-            self.piece_at_color(Color::Black, sq).map(|p| (Color::Black, p))
+            self.piece_at_color(Color::Black, sq)
+                .map(|p| (Color::Black, p))
         } else {
             None
         }
@@ -244,7 +282,9 @@ impl Position {
         let them = us.flip();
         let from = mv.from;
         let to = mv.to;
-        let moving = self.piece_at_color(us, from).expect("make: no piece on from");
+        let moving = self
+            .piece_at_color(us, from)
+            .expect("make: no piece on from");
         let mut captured: Option<Piece> = None;
         let prev_castling = self.castling;
         let prev_ep = self.ep;
@@ -259,7 +299,9 @@ impl Position {
                 self.ep = Some(if us == Color::White { to - 8 } else { to + 8 });
             }
             MoveFlag::Capture => {
-                let cap = self.piece_at_color(them, to).expect("make: capture on empty");
+                let cap = self
+                    .piece_at_color(them, to)
+                    .expect("make: capture on empty");
                 self.clear_piece(them, cap, to);
                 captured = Some(cap);
                 self.move_piece(us, moving, from, to);
@@ -284,7 +326,9 @@ impl Position {
                 // Promotion (with or without capture).
                 self.clear_piece(us, Piece::Pawn, from);
                 if mv.flag.is_capture() {
-                    let cap = self.piece_at_color(them, to).expect("make: promo-cap on empty");
+                    let cap = self
+                        .piece_at_color(them, to)
+                        .expect("make: promo-cap on empty");
                     self.clear_piece(them, cap, to);
                     captured = Some(cap);
                 }
@@ -294,17 +338,22 @@ impl Position {
 
         // Castling rights.
         if moving == Piece::King {
-            let mask = if us == Color::White { castle::WK | castle::WQ } else { castle::BK | castle::BQ };
+            let mask = if us == Color::White {
+                castle::WK | castle::WQ
+            } else {
+                castle::BK | castle::BQ
+            };
             self.castling &= !mask;
         }
         self.clear_castle_for_square(from);
         self.clear_castle_for_square(to);
 
-        self.halfmove = if moving == Piece::Pawn || captured.is_some() || mv.flag.promo_piece().is_some() {
-            0
-        } else {
-            self.halfmove + 1
-        };
+        self.halfmove =
+            if moving == Piece::Pawn || captured.is_some() || mv.flag.promo_piece().is_some() {
+                0
+            } else {
+                self.halfmove + 1
+            };
         if us == Color::Black {
             self.fullmove += 1;
         }
@@ -315,7 +364,14 @@ impl Position {
         self.hash ^= z.stm_black;
         self.hash ^= z.castling[prev_castling as usize] ^ z.castling[self.castling as usize];
         self.hash ^= ep_key(prev_ep) ^ ep_key(self.ep);
-        self.history.push(Undo { mv, captured, prev_castling, prev_ep, prev_halfmove, prev_hash });
+        self.history.push(Undo {
+            mv,
+            captured,
+            prev_castling,
+            prev_ep,
+            prev_halfmove,
+            prev_hash,
+        });
     }
 
     /// Null move (Search Patch 2): pass the turn without moving a piece. Only
@@ -397,7 +453,11 @@ impl Position {
 }
 
 fn parse_piece(ch: char) -> Option<(Color, Piece)> {
-    let color = if ch.is_ascii_uppercase() { Color::White } else { Color::Black };
+    let color = if ch.is_ascii_uppercase() {
+        Color::White
+    } else {
+        Color::Black
+    };
     let piece = match ch.to_ascii_lowercase() {
         'p' => Piece::Pawn,
         'n' => Piece::Knight,

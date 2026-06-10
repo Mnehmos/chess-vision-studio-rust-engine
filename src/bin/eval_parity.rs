@@ -34,7 +34,11 @@ fn main() {
     let fx: Fixture = serde_json::from_str(&raw).expect("parse fixtures");
     let defaults = ValueWeights::default();
 
-    println!("eval parity: {} positions from {}\n", fx.positions.len(), path);
+    println!(
+        "eval parity: {} positions from {}\n",
+        fx.positions.len(),
+        path
+    );
     let mut max_def = 0.0f64;
     let mut max_mix = 0.0f64;
     let mut worst_def = String::new();
@@ -57,18 +61,39 @@ fn main() {
         if dd > 1.0 || dm > 1.0 {
             over_1cp += 1;
             if over_1cp <= 5 {
-                println!("MISMATCH {} | default rust {d:.4} ts {:.4} | mixed rust {m:.4} ts {:.4}", c.fen, c.default, c.mixed);
+                println!(
+                    "MISMATCH {} | default rust {d:.4} ts {:.4} | mixed rust {m:.4} ts {:.4}",
+                    c.fen, c.default, c.mixed
+                );
             }
         }
     }
     println!("| Weights | Max |Rust−TS| (cp) | Worst FEN |");
     println!("|---|---:|---|");
-    println!("| default | {max_def:.6} | {} |", if max_def > 0.0 { worst_def.as_str() } else { "—" });
-    println!("| mixed   | {max_mix:.6} | {} |", if max_mix > 0.0 { worst_mix.as_str() } else { "—" });
+    println!(
+        "| default | {max_def:.6} | {} |",
+        if max_def > 0.0 {
+            worst_def.as_str()
+        } else {
+            "—"
+        }
+    );
+    println!(
+        "| mixed   | {max_mix:.6} | {} |",
+        if max_mix > 0.0 {
+            worst_mix.as_str()
+        } else {
+            "—"
+        }
+    );
     println!("\npositions over 1cp tolerance: {over_1cp}");
 
     // Speed: pre-parse positions, then time evals (mixed = the expensive path).
-    let mut parsed: Vec<Position> = fx.positions.iter().map(|c| Position::from_fen(&c.fen).unwrap()).collect();
+    let mut parsed: Vec<Position> = fx
+        .positions
+        .iter()
+        .map(|c| Position::from_fen(&c.fen).unwrap())
+        .collect();
     for (label, base, r2) in [
         ("default", &defaults, None::<&Rung2Weights>),
         ("mixed+rung2", &fx.base_weights, Some(&fx.rung2_weights)),
@@ -83,11 +108,17 @@ fn main() {
         }
         let secs = t.elapsed().as_secs_f64();
         let n = (iters * parsed.len()) as f64;
-        println!("speed [{label}]: {:.0} evals/sec ({n:.0} evals in {secs:.3}s, sink {sink:.1})", n / secs);
+        println!(
+            "speed [{label}]: {:.0} evals/sec ({n:.0} evals in {secs:.3}s, sink {sink:.1})",
+            n / secs
+        );
     }
 
     if over_1cp == 0 {
-        println!("\nEVAL PARITY OK (within 1cp everywhere; max diff {:.6}cp)", max_def.max(max_mix));
+        println!(
+            "\nEVAL PARITY OK (within 1cp everywhere; max diff {:.6}cp)",
+            max_def.max(max_mix)
+        );
     } else {
         println!("\nEVAL PARITY FAILED — debug RUST (never patch the TS reference)");
         std::process::exit(1);
