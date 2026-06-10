@@ -23,13 +23,21 @@ sides share the load); absolute anchors run at concurrency 1 on a silent box.
 - **Native SF-2400 anchor:** queued for the next quiet-box window.
 - **Verdict:** new working baseline. All later patches gate against `76e36a1`.
 
-## Patch 2 — Null-Move Pruning (in progress)
+## Patch 2b — Hardened Null-Move Pruning ✅ PROMOTED
 
-Planned per the mission brief: `make_null`/`unmake_null` in position.rs;
-enabled only when not in check, depth ≥ 3, side to move has non-pawn material,
-and no consecutive nulls; R=2 first; null results never stored unsafely over
-repetition-dependent scores. Gates: full battery + explicit zugzwang
-regression positions + SPRT vs `76e36a1`.
+- **Commit:** `354fe01` · binary `uci-patch2b-nullhard.exe` (sha256 `F4583149…`)
+- **Baseline:** `76e36a1` (patch1-killers)
+- **Change:** make_null/unmake_null (exact hash/ep/halfmove restore); guards:
+  never in check, no consecutive nulls, depth ≥ 3, mate-window exclusion,
+  static-eval ≥ beta, strong zugzwang filter (major piece or two minors);
+  depth-scaled R (2, 3 at depth ≥ 6); fail-hard beta cutoff never stored in
+  the TT. `--no-null` kill switch; null_cutoffs telemetry.
+- **Tests:** 47/47 incl. zugzwang guard, mate preservation, d4-forensic,
+  exact null make/unmake.
+- **SPRT** (tc 10+0.1, conc 5): **+142 −85 =66 over 293 games — 59.7%,
+  ≈ +68 Elo.** Manually stopped on overwhelming evidence (the sequential
+  stop failed to engage; the margin left no ambiguity).
+- **Verdict:** new working baseline.
 
 ## Patch 3 — Late-Move Reductions (queued)
 
