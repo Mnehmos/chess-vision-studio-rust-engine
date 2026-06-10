@@ -47,6 +47,8 @@ pub struct SearchOptions {
     pub null_move: bool,
     /// Late-move reductions (Search Patch 3). Default on; gate for A/B tests.
     pub lmr: bool,
+    /// PVS null-window searches + root aspiration windows (Search Patch 5).
+    pub pvs: bool,
 }
 
 impl Default for SearchOptions {
@@ -59,6 +61,7 @@ impl Default for SearchOptions {
             danger_extension: false,
             null_move: true,
             lmr: true,
+            pvs: true,
         }
     }
 }
@@ -87,6 +90,10 @@ pub struct Telemetry {
     pub lmr_reductions: u64,
     /// LMR re-searches at full depth after a reduced search raised alpha.
     pub lmr_researches: u64,
+    /// PVS null-window probes that required a full-window re-search.
+    pub pvs_researches: u64,
+    /// Aspiration windows that failed and re-searched at full width.
+    pub aspiration_researches: u64,
 }
 
 #[derive(Clone, Debug)]
@@ -250,11 +257,39 @@ impl Searcher {
             telemetry: self.tel,
         };
 
+        let mut prev_score: Option<i32> = None;
         for depth in 1..=max_depth {
-            let (score, best) = self.root(pos, depth as i32);
+            // Aspiration windows (Patch 5): start from a tight window around
+            // the previous iteration's score; on any fail, re-search at full
+            // width (one-step widen — simple and safe).
+            const ASPIRATION_CP: i32 = 50;
+            let (mut a, mut b) = match prev_score {
+                Some(p) if self.opts.pvs && depth >= 3 && p.abs() < MATE_THRESHOLD => {
+                    (p - ASPIRATION_CP, p + ASPIRATION_CP)
+                }
+                _ => (-INF, INF),
+            };
+            let (score, best) = loop {
+                let (sc, bm) = self.root(pos, depth as i32, a, b);
+                if self.aborted {
+                    break (sc, bm);
+                }
+                if sc <= a && a > -INF {
+                    self.tel.aspiration_researches += 1;
+                    (a, b) = (-INF, INF);
+                    continue;
+                }
+                if sc >= b && b < INF {
+                    self.tel.aspiration_researches += 1;
+                    (a, b) = (-INF, INF);
+                    continue;
+                }
+                break (sc, bm);
+            };
             if self.aborted {
                 break;
             }
+            prev_score = Some(score);
             let mate = if score.abs() > MATE_THRESHOLD {
                 let plies = MATE_SCORE - score.abs();
                 Some(if score > 0 { plies } else { -plies })
@@ -282,7 +317,7 @@ impl Searcher {
 
     /// Root: an explicit negamax move loop so the best move is tracked directly
     /// (the TS reference reads it back from the root TT entry — equivalent).
-    fn root(&mut self, pos: &mut Position, depth: i32) -> (i32, Option<Move>) {
+    fn root(&mut self, pos: &mut Position, depth: i32, alpha0: i32, beta: i32) -> (i32, Option<Move>) {
         let mut legal = generate_legal(pos);
         if legal.is_empty() {
             return (if in_check(pos) { -MATE_SCORE } else { 0 }, None);
@@ -290,13 +325,22 @@ impl Searcher {
         let tt_move = if self.opts.use_tt { self.tt_probe(pos.hash).and_then(|e| e.mv) } else { None };
         self.order_moves(pos, &mut legal, tt_move, 0);
 
-        let mut alpha = -INF;
-        let beta = INF;
+        let mut alpha = alpha0;
         let mut best = -INF;
         let mut best_move: Option<Move> = None;
-        for mv in legal {
+        for (move_index, mv) in legal.into_iter().enumerate() {
             pos.make(mv);
-            let score = -self.negamax(pos, depth - 1, -beta, -alpha, 1, true);
+            let mut score;
+            if !self.opts.pvs || move_index == 0 || alpha <= alpha0 {
+                score = -self.negamax(pos, depth - 1, -beta, -alpha, 1, true);
+            } else {
+                // PVS: probe with a null window; re-search on a raise.
+                score = -self.negamax(pos, depth - 1, -alpha - 1, -alpha, 1, true);
+                if score > alpha && score < beta && !self.aborted {
+                    self.tel.pvs_researches += 1;
+                    score = -self.negamax(pos, depth - 1, -beta, -alpha, 1, true);
+                }
+            }
             pos.unmake();
             if self.aborted {
                 return (best, best_move);
@@ -454,6 +498,14 @@ impl Searcher {
                 score = -self.negamax(pos, depth - 2, -alpha - 1, -alpha, ply + 1, true);
                 if score > alpha && !self.aborted {
                     self.tel.lmr_researches += 1;
+                    score = -self.negamax(pos, depth - 1, -beta, -alpha, ply + 1, true);
+                }
+            } else if self.opts.pvs && move_index > 0 && best > alpha_in {
+                // PVS (Patch 5): once a PV move raised alpha, probe the rest
+                // with a null window and re-search only on a raise.
+                score = -self.negamax(pos, depth - 1, -alpha - 1, -alpha, ply + 1, true);
+                if score > alpha && score < beta && !self.aborted {
+                    self.tel.pvs_researches += 1;
                     score = -self.negamax(pos, depth - 1, -beta, -alpha, ply + 1, true);
                 }
             } else {

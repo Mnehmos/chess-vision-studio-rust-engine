@@ -40,6 +40,7 @@ fn main() {
         danger_extension: args.iter().any(|a| a == "--danger"),
         null_move: !args.iter().any(|a| a == "--no-null"),
         lmr: !args.iter().any(|a| a == "--no-lmr"),
+        pvs: !args.iter().any(|a| a == "--no-pvs"),
     };
 
     // --features: emit the eval + Rung-2 feature vector per FEN instead of
