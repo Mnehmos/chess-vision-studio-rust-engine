@@ -73,8 +73,32 @@ stick, and future promotions are benchmarked against it.
 - Losses (5 total incl. unlimited probes): king-exposure/initiative family —
   slow slides, not single blunders (see RSI_LOOP_REPORT.md).
 
+## Native Stockfish anchor (cutechess, 2026-06-10)
+
+First properly-calibrated external benchmark: cutechess-cli, **native
+Stockfish (official latest, AVX2)** with UCI_LimitStrength, tc 10+0.1,
+paired balanced openings, 20 games per rung, CVS via its new UCI mode.
+
+| Opponent (native SF UCI_Elo) | W–D–L | Score | Elo diff |
+|---|---|---:|---|
+| 2000 | 14–1–5 | 72.5% | +168 ±193 |
+| 2400 | 6–4–10 | 40% | −70 ±147 |
+| 2800 | 0–1–19 | 2.5% | clearly outmatched |
+
+**Claim: CVS scored 72.5% vs native SF UCI_Elo-2000 and 40% vs UCI_Elo-2400
+at tc 10+0.1 → CVS ≈ 2250–2350 in native Stockfish's UCI_Elo terms at fast
+blitz.** The 2400 rung sits squarely in the 35–65% resistance band — the
+native-calibrated successor to the WASM time-odds curve. The WASM ladder's
+labels (90% at "3000") were inflated by the WASM build's speed handicap; this
+anchor is the honest one going forward.
+
+Caveat: these games ran on the pre-repetition-fix binary — 6 of the 80 games
+ended in 3-fold repetition, several plausibly in winning positions (the
+known conversion failure). Re-measure after the fix is in the match binary;
+the 2400 score should improve.
+
 ## Next
 
-Climbing is paused at the instrument boundary (full SF). The ladder resumes
-when an RSI promotion moves the time-odds curve; the next checkpoints are
-SF@10/5/1ms extensions only if the band shifts upward.
+The native-SF 2400 rung (40%) is the new official resistance point. RSI
+promotions are benchmarked against it via cutechess; the WASM ladder is
+retired as an instrument. Climbing resumes when a promotion moves the band.
