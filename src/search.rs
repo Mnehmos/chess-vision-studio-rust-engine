@@ -72,6 +72,10 @@ pub struct Telemetry {
     pub elapsed_ms: u64,
     /// Extra root plies granted by the danger trigger this search (0–2).
     pub danger_extension_plies: u32,
+    /// Quiet beta cutoffs where the cutting move was a stored killer.
+    pub killer_cutoffs: u64,
+    /// Quiet beta cutoffs ordered up purely by the history table.
+    pub history_cutoffs: u64,
 }
 
 #[derive(Clone, Debug)]
@@ -135,6 +139,12 @@ pub fn danger_level(pos: &Position) -> u32 {
     danger.min(2)
 }
 
+/// Killer slots per ply — two is the classical sweet spot.
+const MAX_KILLER_PLY: usize = 128;
+/// History scores are halved when any cell reaches this, keeping recent
+/// experience dominant without ever overflowing into capture territory.
+const HISTORY_CAP: i32 = 1 << 14;
+
 pub struct Searcher {
     weights: ValueWeights,
     rung2: Option<Rung2Weights>,
@@ -143,6 +153,12 @@ pub struct Searcher {
     deadline: Option<Instant>,
     aborted: bool,
     opts: SearchOptions,
+    /// Two killer moves per ply: quiet moves that caused a beta cutoff at this
+    /// ply elsewhere in the tree — cheap, position-independent ordering signal.
+    killers: Vec<[Option<Move>; 2]>,
+    /// History heuristic: [side][from][to] — quiet cutoff counts weighted by
+    /// depth², so deep cutoffs teach more than leaf noise.
+    history: Vec<i32>, // 2*64*64, flat for cache friendliness
 }
 
 impl Searcher {
@@ -155,6 +171,29 @@ impl Searcher {
             deadline: None,
             aborted: false,
             opts: SearchOptions::default(),
+            killers: vec![[None; 2]; MAX_KILLER_PLY],
+            history: vec![0; 2 * 64 * 64],
+        }
+    }
+
+    #[inline]
+    fn history_idx(side: usize, mv: Move) -> usize {
+        side * 4096 + mv.from as usize * 64 + mv.to as usize
+    }
+
+    /// Record a QUIET move that produced a beta cutoff (the only teacher).
+    fn record_quiet_cutoff(&mut self, side: usize, mv: Move, depth: i32, ply: u32) {
+        let p = ply as usize;
+        if p < MAX_KILLER_PLY && self.killers[p][0] != Some(mv) {
+            self.killers[p][1] = self.killers[p][0];
+            self.killers[p][0] = Some(mv);
+        }
+        let idx = Self::history_idx(side, mv);
+        self.history[idx] += depth * depth;
+        if self.history[idx] >= HISTORY_CAP {
+            for h in self.history.iter_mut() {
+                *h /= 2;
+            }
         }
     }
 
@@ -165,6 +204,10 @@ impl Searcher {
         max_depth += danger_plies;
         self.opts = opts;
         self.tt.clear();
+        // Killers/history reset per search call (kept across the iterative-
+        // deepening iterations within it) — searches stay deterministic.
+        self.killers.iter_mut().for_each(|k| *k = [None; 2]);
+        self.history.iter_mut().for_each(|h| *h = 0);
         self.tel = Telemetry::default();
         self.tel.danger_extension_plies = danger_plies;
         self.aborted = false;
@@ -218,7 +261,7 @@ impl Searcher {
             return (if in_check(pos) { -MATE_SCORE } else { 0 }, None);
         }
         let tt_move = if self.opts.use_tt { self.tt.get(&pos.hash).and_then(|e| e.mv) } else { None };
-        self.order_moves(pos, &mut legal, tt_move);
+        self.order_moves(pos, &mut legal, tt_move, 0);
 
         let mut alpha = -INF;
         let beta = INF;
@@ -325,8 +368,9 @@ impl Searcher {
             }
         }
 
-        self.order_moves(pos, &mut legal, tt_move);
+        self.order_moves(pos, &mut legal, tt_move, ply);
         let key = pos.hash;
+        let side = pos.stm.index();
         let mut best = -INF;
         let mut best_move: Option<Move> = None;
         for mv in legal {
@@ -345,6 +389,16 @@ impl Searcher {
             }
             if alpha >= beta {
                 self.tel.beta_cutoffs += 1;
+                // Quiet cutoffs teach the killers/history tables (Patch 1).
+                if !mv.flag.is_capture() && mv.flag.promo_piece().is_none() {
+                    let p = ply as usize;
+                    if p < MAX_KILLER_PLY && self.killers[p].contains(&Some(mv)) {
+                        self.tel.killer_cutoffs += 1;
+                    } else if self.history[Self::history_idx(side, mv)] > 0 {
+                        self.tel.history_cutoffs += 1;
+                    }
+                    self.record_quiet_cutoff(side, mv, depth, ply);
+                }
                 if self.opts.use_tt {
                     self.store(key, depth, best, Flag::Lower, best_move);
                 }
@@ -469,22 +523,37 @@ impl Searcher {
         victim_value * 16 - SEE_VALUE[attacker.index()]
     }
 
-    /// Main-search ordering: TT move ≫ captures (MVV-LVA) ≫ promotions ≫ quiets.
-    /// (The TS reference also bonuses checking moves via SAN; here that signal is
-    /// ordering-only and intentionally omitted — values are unaffected.)
-    fn order_moves(&self, pos: &Position, moves: &mut [Move], tt_move: Option<Move>) {
+    /// Main-search ordering (Search Patch 1):
+    ///   TT move ≫ winning captures/promotions ≫ killers ≫ history quiets ≫
+    ///   plain quiets ≫ losing captures.
+    /// Ordering-only — values are unaffected; sort is stable so equal scores
+    /// keep generation order and searches stay deterministic.
+    fn order_moves(&self, pos: &Position, moves: &mut [Move], tt_move: Option<Move>, ply: u32) {
+        let side = pos.stm.index();
+        let killers = self.killers.get(ply as usize).copied().unwrap_or([None; 2]);
         let score_of = |m: &Move| -> i32 {
             if Some(*m) == tt_move {
                 return 1_000_000_000;
             }
-            let mut s = 0;
-            if m.flag.is_capture() {
-                s += 100_000 + self.capture_order(pos, *m);
-            }
             if m.flag.promo_piece().is_some() {
-                s += 90_000;
+                return 900_000 + self.capture_order(pos, *m);
             }
-            s
+            if m.flag.is_capture() {
+                // En passant is always a pawn-takes-pawn — never losing.
+                let winning = m.flag == MoveFlag::EnPassant || see(pos, m.from, m.to) >= 0;
+                return if winning {
+                    800_000 + self.capture_order(pos, *m)
+                } else {
+                    -100_000 + self.capture_order(pos, *m)
+                };
+            }
+            if killers[0] == Some(*m) {
+                return 700_000;
+            }
+            if killers[1] == Some(*m) {
+                return 699_999;
+            }
+            self.history[Self::history_idx(side, *m)]
         };
         moves.sort_by_key(|m| -score_of(m));
     }
