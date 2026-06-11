@@ -14,7 +14,10 @@ use crate::eval::{
     evaluate, evaluate_white_float_nonterminal, insufficient_material, js_round, phase_units, Nnue,
     Rung2Weights, ValueWeights,
 };
-use crate::movegen::{generate_legal, generate_legal_noisy, gives_check, has_legal_move, in_check};
+use crate::movegen::{
+    generate_legal_list, generate_legal_noisy_list, gives_check, has_legal_move, in_check,
+    MoveList, MAX_MOVES,
+};
 use crate::see::{see, SEE_VALUE};
 use crate::tt::{Flag, SharedTt, TtEntry};
 use crate::{rank_of, Color, Move, MoveFlag, Piece, Position};
@@ -593,7 +596,7 @@ impl Searcher {
         alpha0: i32,
         beta: i32,
     ) -> (i32, Option<Move>) {
-        let mut legal = generate_legal(pos);
+        let mut legal = generate_legal_list(pos);
         if legal.is_empty() {
             return (if in_check(pos) { -MATE_SCORE } else { 0 }, None);
         }
@@ -602,12 +605,13 @@ impl Searcher {
         } else {
             None
         };
-        self.order_moves(pos, &mut legal, tt_move, 0);
+        self.order_moves(pos, legal.as_mut_slice(), tt_move, 0);
 
         let mut alpha = alpha0;
         let mut best = -INF;
         let mut best_move: Option<Move> = None;
-        for (move_index, mv) in legal.into_iter().enumerate() {
+        for move_index in 0..legal.len() {
+            let mv = legal.get(move_index);
             self.acc_make(pos, mv);
             pos.make(mv);
             let mut score;
@@ -746,7 +750,8 @@ impl Searcher {
         // probe, quiescence dispatch. Full legal movegen is the expensive step
         // and now only runs for nodes that truly expand.
         let checked = in_check(pos);
-        if !checked && (pos.halfmove >= 100 || insufficient_material(pos)) {
+        let rule_draw = pos.halfmove >= 100 || insufficient_material(pos);
+        if !checked && rule_draw {
             return 0;
         }
         // Draw by repetition: one prior occurrence in the path (or the game
@@ -759,19 +764,11 @@ impl Searcher {
         if depth <= 0 {
             return self.quiesce(pos, alpha_in, beta_in, ply, 0);
         }
-        let mut legal = generate_legal(pos);
-        if legal.is_empty() {
-            return if checked { -MATE_SCORE + ply as i32 } else { 0 };
-        }
-        if checked && (pos.halfmove >= 100 || insufficient_material(pos)) {
-            return 0; // evasions exist so it is not mate; the draw rule wins
-        }
-
         let mut alpha = alpha_in;
         let mut beta = beta_in;
         let mut tt_move: Option<Move> = None;
         let mut tt_move_lane: u8 = 0;
-        if self.opts.use_tt {
+        if self.opts.use_tt && !(checked && rule_draw) {
             if let Some(e) = self.tt_probe(pos.hash) {
                 tt_move = e.mv;
                 tt_move_lane = e.lane;
@@ -800,6 +797,14 @@ impl Searcher {
                     }
                 }
             }
+        }
+
+        let mut legal = generate_legal_list(pos);
+        if legal.is_empty() {
+            return if checked { -MATE_SCORE + ply as i32 } else { 0 };
+        }
+        if checked && (pos.halfmove >= 100 || insufficient_material(pos)) {
+            return 0; // evasions exist so it is not mate; the draw rule wins
         }
 
         // Lazy per-node static eval, shared by null-move / RFP / futility so
@@ -860,7 +865,7 @@ impl Searcher {
             }
         }
 
-        self.order_moves(pos, &mut legal, tt_move, ply);
+        self.order_moves(pos, legal.as_mut_slice(), tt_move, ply);
         let key = pos.hash;
         let side = pos.stm.index();
         let mut best = -INF;
@@ -878,7 +883,8 @@ impl Searcher {
         // TT move, killers, and history leaders, the quiet tail at shallow
         // depth is almost never the refutation.
         let lmp_budget = (4 + depth * depth) as usize;
-        for (move_index, mv) in legal.into_iter().enumerate() {
+        for move_index in 0..legal.len() {
+            let mv = legal.get(move_index);
             // Patch 7 skips. All require one searched move already (best is
             // real, so a pruned node still returns a legal score), never fire
             // in check, and exempt the TT move and killers.
@@ -1010,14 +1016,14 @@ impl Searcher {
         }
 
         if checked {
-            let legal = generate_legal(pos);
+            let legal = generate_legal_list(pos);
             if legal.is_empty() {
                 return -MATE_SCORE + ply as i32;
             }
             return self.quiesce_moves(pos, legal, true, alpha_in, beta, ply, q_depth);
         }
 
-        let mut noisy = generate_legal_noisy(pos);
+        let mut noisy = generate_legal_noisy_list(pos);
         let mut alpha = alpha_in;
         if noisy.is_empty() && !has_legal_move(pos) {
             return 0; // stalemate (rare path; early-exit probe keeps it cheap)
@@ -1055,22 +1061,26 @@ impl Searcher {
         if self.opts.quiet_checks && q_depth < QUIET_CHECK_MAX_PLY {
             // The forcing quiet-check window is the ONLY non-evasion path that
             // still pays full legal generation - by design, it is tiny.
-            let legal = generate_legal(pos);
-            let candidates: Vec<Move> = legal
-                .into_iter()
-                .filter(|m| !m.flag.is_capture() && m.flag.promo_piece().is_none())
-                .filter(|m| see(pos, m.from, m.to) >= 0)
-                .collect();
-            let mut quiet_checks: Vec<Move> = candidates
-                .into_iter()
-                .filter(|m| gives_check(pos, *m))
-                .collect();
-            quiet_checks.sort_by_key(|m| -self.capture_order(pos, *m));
-            quiet_checks.truncate(MAX_QUIET_CHECKS_PER_NODE);
-            if !quiet_checks.is_empty() {
-                self.tel.quiet_check_extensions += quiet_checks.len() as u64;
+            let legal = generate_legal_list(pos);
+            let mut quiet_checks = MoveList::new();
+            for i in 0..legal.len() {
+                let m = legal.get(i);
+                if !m.flag.is_capture()
+                    && m.flag.promo_piece().is_none()
+                    && see(pos, m.from, m.to) >= 0
+                    && gives_check(pos, m)
+                {
+                    quiet_checks.push(m);
+                }
             }
-            noisy.extend(quiet_checks);
+            Self::sort_by_key_desc(quiet_checks.as_mut_slice(), |m| self.capture_order(pos, *m));
+            let quiet_len = quiet_checks.len().min(MAX_QUIET_CHECKS_PER_NODE);
+            if quiet_len > 0 {
+                self.tel.quiet_check_extensions += quiet_len as u64;
+            }
+            for i in 0..quiet_len {
+                noisy.push(quiet_checks.get(i));
+            }
         }
         self.quiesce_moves(pos, noisy, false, alpha, beta, ply, q_depth)
     }
@@ -1079,7 +1089,7 @@ impl Searcher {
     fn quiesce_moves(
         &mut self,
         pos: &mut Position,
-        mut moves: Vec<Move>,
+        mut moves: MoveList,
         checked: bool,
         alpha_in: i32,
         beta: i32,
@@ -1087,10 +1097,11 @@ impl Searcher {
         q_depth: u32,
     ) -> i32 {
         let mut alpha = alpha_in;
-        moves.sort_by_key(|m| -self.capture_order(pos, *m));
+        Self::sort_by_key_desc(moves.as_mut_slice(), |m| self.capture_order(pos, *m));
 
         let mut best = if checked { -INF } else { alpha };
-        for mv in moves {
+        for i in 0..moves.len() {
+            let mv = moves.get(i);
             if mv.flag.is_capture() {
                 self.tel.q_capture_nodes += 1;
             }
@@ -1145,6 +1156,29 @@ impl Searcher {
         victim_value * 16 - SEE_VALUE[attacker.index()]
     }
 
+    fn sort_by_key_desc<F>(moves: &mut [Move], mut key_of: F)
+    where
+        F: FnMut(&Move) -> i32,
+    {
+        debug_assert!(moves.len() <= MAX_MOVES);
+        let mut keys = [0i32; MAX_MOVES];
+        for i in 0..moves.len() {
+            keys[i] = key_of(&moves[i]);
+        }
+        for i in 1..moves.len() {
+            let mv = moves[i];
+            let key = keys[i];
+            let mut j = i;
+            while j > 0 && keys[j - 1] < key {
+                moves[j] = moves[j - 1];
+                keys[j] = keys[j - 1];
+                j -= 1;
+            }
+            moves[j] = mv;
+            keys[j] = key;
+        }
+    }
+
     /// Main-search ordering (Search Patch 1):
     ///   TT move ≫ winning captures/promotions ≫ killers ≫ history quiets ≫
     ///   plain quiets ≫ losing captures.
@@ -1177,7 +1211,7 @@ impl Searcher {
             }
             self.history[Self::history_idx(side, *m)] + self.lane_bonus(pos, *m, ply)
         };
-        moves.sort_by_key(|m| -score_of(m));
+        Self::sort_by_key_desc(moves, score_of);
     }
 
     /// Lane ordering bonus (Level-1 specialist lanes). Applied to quiet/killer
@@ -1326,9 +1360,9 @@ impl Searcher {
     /// Test/inspection: the lane-ordered root moves for a position.
     pub fn debug_ordered_root_moves(&mut self, pos: &mut Position, lane: Lane) -> Vec<Move> {
         self.opts.lane = lane;
-        let mut moves = generate_legal(pos);
-        self.order_moves(pos, &mut moves, None, 0);
-        moves
+        let mut moves = generate_legal_list(pos);
+        self.order_moves(pos, moves.as_mut_slice(), None, 0);
+        moves.into_vec()
     }
 
     #[inline]
@@ -1352,15 +1386,24 @@ impl Searcher {
     /// Falls back to just the root best move when the TT is off.
     fn extract_pv(&self, pos: &mut Position, root_best: Option<Move>, max_len: usize) -> Vec<Move> {
         let mut pv = Vec::new();
-        if !self.opts.use_tt {
-            if let Some(m) = root_best {
-                pv.push(m);
+        let mut seen = std::collections::HashSet::new();
+        let mut undo = 0usize;
+        if let Some(mv) = root_best {
+            let legal = generate_legal_list(pos);
+            if legal.as_slice().contains(&mv) {
+                pv.push(mv);
+                seen.insert(pos.hash);
+                pos.make(mv);
+                undo += 1;
+            }
+        }
+        if !self.opts.use_tt || pv.len() >= max_len {
+            for _ in 0..undo {
+                pos.unmake();
             }
             return pv;
         }
-        let mut seen = std::collections::HashSet::new();
-        let mut undo = 0usize;
-        for _ in 0..max_len {
+        while pv.len() < max_len {
             if !seen.insert(pos.hash) {
                 break;
             }
@@ -1369,7 +1412,8 @@ impl Searcher {
             };
             let Some(mv) = entry.mv else { break };
             // Only follow strictly legal continuations.
-            if !generate_legal(pos).contains(&mv) {
+            let legal = generate_legal_list(pos);
+            if !legal.as_slice().contains(&mv) {
                 break;
             }
             pv.push(mv);
