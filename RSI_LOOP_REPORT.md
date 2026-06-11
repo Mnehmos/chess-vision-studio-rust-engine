@@ -379,3 +379,12 @@ Lens teaching) — not a runtime play improver when extra clock can simply buy
 depth. Possible future regime where it could still pay: depth-saturated
 settings (TT-full long thinks) or as candidate generator INSIDE search
 (root-move ordering hints) — untested, not claimed.
+
+## 2026-06-11 — gen6 100-game re-anchor: anchors cannot resolve the gen6/gen7 gap
+
+gen6 vs native SF-2400, 100 games: +40 -47 =13, 46.5%, -24.4 +/-64.3 — the
+IDENTICAL point estimate to gen7's -24.4 +/-63.5. A 100-game anchor (+/-64)
+cannot resolve a +102 head-to-head gap; both gens read ~2375+/-65 absolute.
+The 305-game SPRT bound-cross remains the promotion-grade relative evidence.
+Confirms the standing lesson: external fixed-strength anchors compress
+learned-eval gaps; use anchors as floors, not deltas, below ~400 games.
