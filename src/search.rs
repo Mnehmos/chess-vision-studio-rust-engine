@@ -29,6 +29,7 @@ pub const MATE_SCORE: i32 = 1_000_000;
 pub const MATE_THRESHOLD: i32 = MATE_SCORE - 1000;
 const INF: i32 = MATE_SCORE * 2;
 const MAX_QUIESCENCE_PLY: u32 = 64;
+pub const TELEMETRY_PLY_BUCKETS: usize = 32;
 // Forcing quiet-check quiescence extensions (the d4 lesson: chess danger is not
 // only captures). Same caps as the TS searcher.
 const QUIET_CHECK_MAX_PLY: u32 = 2;
@@ -124,6 +125,11 @@ pub struct SearchOptions {
     pub depth: u32,
     /// Optional wall-clock budget; the last completed depth is returned.
     pub max_time_ms: Option<u64>,
+    /// Smart time management (None = legacy fixed budget). Soft target checked
+    /// at iteration boundaries: stable best move releases early (~55% of
+    /// soft), root instability/score drops extend (~140%), and `max_time_ms`
+    /// stays the hard mid-search abort ceiling.
+    pub soft_time_ms: Option<u64>,
     /// Forcing quiet-check quiescence extensions (R3.3). Default on.
     pub quiet_checks: bool,
     /// Transposition table (R3.5). Default on.
@@ -178,6 +184,7 @@ impl Default for SearchOptions {
         SearchOptions {
             depth: 4,
             max_time_ms: None,
+            soft_time_ms: None,
             quiet_checks: true,
             use_tt: true,
             danger_extension: false,
@@ -205,14 +212,27 @@ impl Default for SearchOptions {
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Telemetry {
     pub nodes: u64,
+    pub main_nodes: u64,
     pub q_nodes: u64,
     pub q_capture_nodes: u64,
+    pub q_see_skips: u64,
     pub quiet_check_extensions: u64,
     pub mate_threat_extensions: u64, // scaffolded (not yet implemented)
     pub hanging_major_extensions: u64, // scaffolded (not yet implemented)
     pub max_q_depth: u32,
+    pub tt_probes: u64,
+    pub tt_entries: u64,
     pub tt_hits: u64,
+    pub tt_cutoffs: u64,
     pub beta_cutoffs: u64,
+    pub hash_move_cutoffs: u64,
+    pub first_move_cutoffs: u64,
+    pub cutoff_move_index_sum: u64,
+    pub cutoff_move_index_count: u64,
+    pub legal_move_nodes: u64,
+    pub legal_move_sum: u64,
+    pub searched_moves: u64,
+    pub pruned_moves: u64,
     pub elapsed_ms: u64,
     /// Extra root plies granted by the danger trigger this search (0–2).
     pub danger_extension_plies: u32,
@@ -221,6 +241,7 @@ pub struct Telemetry {
     /// Quiet beta cutoffs ordered up purely by the history table.
     pub history_cutoffs: u64,
     /// Nodes pruned by the null-move heuristic (Patch 2).
+    pub null_attempts: u64,
     pub null_cutoffs: u64,
     /// Moves searched at reduced depth by LMR (Patch 3).
     pub lmr_reductions: u64,
@@ -231,14 +252,19 @@ pub struct Telemetry {
     /// Aspiration windows that failed and re-searched at full width.
     pub aspiration_researches: u64,
     /// Nodes cut by reverse futility pruning (Patch 7).
+    pub rfp_attempts: u64,
     pub rfp_cutoffs: u64,
     /// Quiet moves skipped by futility pruning (Patch 7).
+    pub futility_attempts: u64,
     pub futility_skips: u64,
     /// Quiet moves skipped by late-move pruning (Patch 7).
+    pub lmp_attempts: u64,
     pub lmp_skips: u64,
     /// Captures skipped by SEE pruning in the main search (Patch 7).
+    pub see_prune_attempts: u64,
     pub see_prune_skips: u64,
     /// Captures dropped by delta pruning in quiescence (Patch 7).
+    pub delta_attempts: u64,
     pub delta_skips: u64,
     /// Sum of active CVS feature IDs seen at leaves when cvs_trace is on.
     pub cvs_trace_features: u64,
@@ -247,6 +273,10 @@ pub struct Telemetry {
     pub foreign_tt_hints: [u64; 4],
     /// Foreign-lane TT moves that produced the beta cutoff at a node.
     pub foreign_tt_cutoffs: [u64; 4],
+    /// Main-search nodes by ply bucket (last bucket includes all deeper plies).
+    pub ply_nodes: [u64; TELEMETRY_PLY_BUCKETS],
+    /// Child searches launched by ply bucket; child/nodes approximates local EBF.
+    pub ply_child_searches: [u64; TELEMETRY_PLY_BUCKETS],
 }
 
 #[derive(Clone, Debug)]
@@ -331,6 +361,9 @@ pub struct Searcher {
     /// NNUE eval head — when loaded, replaces the classical eval at every
     /// static/leaf eval site (search shape unchanged).
     nnue: Option<Nnue>,
+    /// Optional NNUE used only by the first `cvs_helpers` SMP helpers. When
+    /// set, the main thread keeps `nnue` as the authoritative eval.
+    helper_nnue: Option<Nnue>,
     /// Incremental NNUE accumulator path-stack (top = current node). Non-empty
     /// only when the loaded net supports incremental updates; empty means
     /// eval falls back to the full recompute. Maintained in lockstep with
@@ -361,6 +394,7 @@ impl Searcher {
             killers: vec![[None; 2]; MAX_KILLER_PLY],
             history: vec![0; 2 * 64 * 64],
             nnue: None,
+            helper_nnue: None,
             acc_stack: Vec::new(),
             acc_top: usize::MAX,
             cvs_buf: Vec::with_capacity(32),
@@ -373,6 +407,11 @@ impl Searcher {
         let mut s = Searcher::new(weights, rung2);
         s.nnue = Some(nnue);
         s
+    }
+
+    /// Configure an alternate helper-only NNUE for heterogeneous SMP.
+    pub fn set_helper_nnue(&mut self, helper_nnue: Option<Nnue>) {
+        self.helper_nnue = helper_nnue;
     }
 
     /// External stop hook (UCI ponder / async control). The flag is polled
@@ -417,16 +456,23 @@ impl Searcher {
     fn search_smp(&mut self, pos: &mut Position, opts: SearchOptions) -> SearchResult {
         let stop = Arc::new(AtomicBool::new(false));
         let single = SearchOptions { threads: 1, ..opts };
-        // Heterogeneous CVS-SMP: when cvs_helpers>0, the main thread runs the
-        // fast classical eval (net detached for its own search) and only the
-        // first K helpers carry the net. K=0 keeps the homogeneous behavior
-        // (every thread inherits the main's eval).
-        let het = opts.cvs_helpers > 0 && self.nnue.is_some();
-        let helper_net = if het {
+        // Heterogeneous CVS-SMP has two modes:
+        // * With helper_nnue set, the main thread keeps `self.nnue`; first K
+        //   helpers use helper_nnue; remaining helpers use the main net.
+        // * Legacy mode, with no helper_nnue, detaches the main net so first K
+        //   helpers carry it while the main thread runs classical.
+        let helper_override = self.helper_nnue.clone();
+        let legacy_detach =
+            opts.cvs_helpers > 0 && helper_override.is_none() && self.nnue.is_some();
+        let detached_net = if legacy_detach {
             self.nnue.take()
         } else {
-            self.nnue.clone()
+            None
         };
+        let main_net_for_helpers = self.nnue.clone();
+        let lane_net = helper_override
+            .or_else(|| detached_net.clone())
+            .or_else(|| main_net_for_helpers.clone());
         let (mut result, helper_nodes) = std::thread::scope(|scope| {
             let mut handles = Vec::new();
             for t in 0..opts.threads - 1 {
@@ -434,11 +480,10 @@ impl Searcher {
                 let stop = Arc::clone(&stop);
                 let weights = self.weights;
                 let rung2 = self.rung2;
-                // Heterogeneous: first K helpers get the net, rest run classical.
-                let nnue = if !het || t < opts.cvs_helpers {
-                    helper_net.clone()
+                let nnue = if t < opts.cvs_helpers {
+                    lane_net.clone()
                 } else {
-                    None
+                    main_net_for_helpers.clone()
                 };
                 let mut hpos = pos.clone();
                 // Odd helpers aim one ply deeper — cheap diversity so threads
@@ -473,8 +518,8 @@ impl Searcher {
             (r, nodes)
         });
         result.telemetry.nodes += helper_nodes;
-        if het {
-            self.nnue = helper_net;
+        if legacy_detach {
+            self.nnue = detached_net;
         }
         result
     }
@@ -530,6 +575,11 @@ impl Searcher {
         };
 
         let mut prev_score: Option<i32> = None;
+        // Smart-time state: best-move stability and last score for the
+        // iteration-boundary stop/extend decision.
+        let mut tm_prev_best: Option<Move> = None;
+        let mut tm_stable: u32 = 0;
+        let mut tm_last_score: Option<i32> = None;
         for depth in self.id_start.min(max_depth)..=max_depth {
             // Aspiration windows (Patch 5): start from a tight window around
             // the previous iteration's score; on any fail, re-search at full
@@ -581,6 +631,28 @@ impl Searcher {
             if score.abs() > MATE_THRESHOLD {
                 break;
             }
+            // Smart time: decide continue/stop at the iteration boundary.
+            if let Some(soft) = self.opts.soft_time_ms {
+                let critical = (tm_prev_best.is_some() && best != tm_prev_best && depth >= 5)
+                    || tm_last_score.is_some_and(|p| score + 40 < p);
+                if best.is_some() && best == tm_prev_best {
+                    tm_stable += 1;
+                } else {
+                    tm_stable = 0;
+                }
+                tm_prev_best = best;
+                tm_last_score = Some(score);
+                let target = if critical {
+                    soft + soft * 2 / 5 // extend toward the hard cap
+                } else if tm_stable >= 3 {
+                    soft * 11 / 20 // easy move: bank the rest
+                } else {
+                    soft
+                };
+                if started.elapsed().as_millis() as u64 >= target {
+                    break;
+                }
+            }
         }
         self.tel.elapsed_ms = started.elapsed().as_millis() as u64;
         result.telemetry = self.tel;
@@ -600,8 +672,18 @@ impl Searcher {
         if legal.is_empty() {
             return (if in_check(pos) { -MATE_SCORE } else { 0 }, None);
         }
+        self.tel.main_nodes += 1;
+        self.tel.ply_nodes[0] += 1;
+        self.tel.legal_move_nodes += 1;
+        self.tel.legal_move_sum += legal.len() as u64;
         let tt_move = if self.opts.use_tt {
-            self.tt_probe(pos.hash).and_then(|e| e.mv)
+            self.tel.tt_probes += 1;
+            if let Some(e) = self.tt_probe(pos.hash) {
+                self.tel.tt_entries += 1;
+                e.mv
+            } else {
+                None
+            }
         } else {
             None
         };
@@ -612,6 +694,8 @@ impl Searcher {
         let mut best_move: Option<Move> = None;
         for move_index in 0..legal.len() {
             let mv = legal.get(move_index);
+            self.tel.searched_moves += 1;
+            self.tel.ply_child_searches[0] += 1;
             self.acc_make(pos, mv);
             pos.make(mv);
             let mut score;
@@ -744,6 +828,9 @@ impl Searcher {
             return self.static_eval(pos);
         }
         self.tel.nodes += 1;
+        self.tel.main_nodes += 1;
+        let ply_bucket = (ply as usize).min(TELEMETRY_PLY_BUCKETS - 1);
+        self.tel.ply_nodes[ply_bucket] += 1;
 
         // Node reorder (audit/Patch 6): everything that can cut this node off
         // WITHOUT generating moves runs first - draw rules, repetition, TT
@@ -769,7 +856,9 @@ impl Searcher {
         let mut tt_move: Option<Move> = None;
         let mut tt_move_lane: u8 = 0;
         if self.opts.use_tt && !(checked && rule_draw) {
+            self.tel.tt_probes += 1;
             if let Some(e) = self.tt_probe(pos.hash) {
+                self.tel.tt_entries += 1;
                 tt_move = e.mv;
                 tt_move_lane = e.lane;
                 // Transfer telemetry: this node consumed a move hint written by
@@ -780,7 +869,10 @@ impl Searcher {
                 if e.depth >= depth {
                     self.tel.tt_hits += 1;
                     match e.flag {
-                        Flag::Exact => return e.score,
+                        Flag::Exact => {
+                            self.tel.tt_cutoffs += 1;
+                            return e.score;
+                        }
                         Flag::Lower => {
                             if e.score > alpha {
                                 alpha = e.score;
@@ -793,6 +885,7 @@ impl Searcher {
                         }
                     }
                     if alpha >= beta {
+                        self.tel.tt_cutoffs += 1;
                         return e.score;
                     }
                 }
@@ -803,6 +896,8 @@ impl Searcher {
         if legal.is_empty() {
             return if checked { -MATE_SCORE + ply as i32 } else { 0 };
         }
+        self.tel.legal_move_nodes += 1;
+        self.tel.legal_move_sum += legal.len() as u64;
         if checked && (pos.halfmove >= 100 || insufficient_material(pos)) {
             return 0; // evasions exist so it is not mate; the draw rule wins
         }
@@ -824,15 +919,15 @@ impl Searcher {
         // whose static eval beats beta by a depth-scaled margin, a quiet
         // continuation is overwhelmingly likely to hold — cut without moving.
         // Guards mirror null: never in check, never around mate scores.
-        if self.opts.rfp
-            && !is_pv
-            && !checked
-            && depth <= 6
-            && beta.abs() < MATE_THRESHOLD
-            && static_eval!() - 90 * depth >= beta
-        {
-            self.tel.rfp_cutoffs += 1;
-            return beta;
+        // rfp-v2 (2026-06-11): depth cap 6->4 after hard-100 exposed a
+        // mate-scale miss at deeper cuts (pos 64, +9259cp) — forcing lines
+        // can hide below a d5/d6 static cut even with a calibrated eval.
+        if self.opts.rfp && !is_pv && !checked && depth <= 4 && beta.abs() < MATE_THRESHOLD {
+            self.tel.rfp_attempts += 1;
+            if static_eval!() - 90 * depth >= beta {
+                self.tel.rfp_cutoffs += 1;
+                return beta;
+            }
         }
 
         // Null-move pruning (Search Patch 2, hardened per audit): if passing
@@ -852,6 +947,7 @@ impl Searcher {
             && Self::null_material_ok(pos)
             && static_eval!() >= beta
         {
+            self.tel.null_attempts += 1;
             let null_r = if depth >= 6 { 3 } else { 2 };
             let undo = pos.make_null();
             let score = -self.negamax(pos, depth - 1 - null_r, -beta, -beta + 1, ply + 1, false);
@@ -892,22 +988,31 @@ impl Searcher {
                 let quiet = !mv.flag.is_capture() && mv.flag.promo_piece().is_none();
                 let exempt = Some(mv) == tt_move || killer_pair.contains(&Some(mv));
                 if quiet && !exempt {
-                    if self.opts.lmp && depth <= 4 && move_index >= lmp_budget {
-                        self.tel.lmp_skips += 1;
-                        continue;
+                    if self.opts.lmp && depth <= 4 {
+                        self.tel.lmp_attempts += 1;
+                        if move_index >= lmp_budget {
+                            self.tel.lmp_skips += 1;
+                            self.tel.pruned_moves += 1;
+                            continue;
+                        }
                     }
                     if futile && !gives_check(pos, mv) {
+                        self.tel.futility_attempts += 1;
                         self.tel.futility_skips += 1;
+                        self.tel.pruned_moves += 1;
                         continue;
                     }
                 } else if self.opts.see_prune
                     && mv.flag.is_capture()
                     && mv.flag.promo_piece().is_none()
                     && depth <= 5
-                    && see(pos, mv.from, mv.to) < -50 * depth
                 {
-                    self.tel.see_prune_skips += 1;
-                    continue;
+                    self.tel.see_prune_attempts += 1;
+                    if see(pos, mv.from, mv.to) < -50 * depth {
+                        self.tel.see_prune_skips += 1;
+                        self.tel.pruned_moves += 1;
+                        continue;
+                    }
                 }
             }
             // Late-move reductions (Search Patch 3, conservative tier): with
@@ -926,6 +1031,8 @@ impl Searcher {
                 && !killer_pair.contains(&Some(mv))
                 && !gives_check(pos, mv);
             self.acc_make(pos, mv);
+            self.tel.searched_moves += 1;
+            self.tel.ply_child_searches[ply_bucket] += 1;
             pos.make(mv);
             let mut score;
             if reduce {
@@ -960,6 +1067,14 @@ impl Searcher {
             }
             if alpha >= beta {
                 self.tel.beta_cutoffs += 1;
+                if move_index == 0 {
+                    self.tel.first_move_cutoffs += 1;
+                }
+                if Some(mv) == tt_move {
+                    self.tel.hash_move_cutoffs += 1;
+                }
+                self.tel.cutoff_move_index_sum += (move_index as u64) + 1;
+                self.tel.cutoff_move_index_count += 1;
                 if Some(mv) == tt_move && tt_move_lane != self.opts.lane.id() {
                     self.tel.foreign_tt_cutoffs[(tt_move_lane & 3) as usize] += 1;
                 }
@@ -1039,13 +1154,16 @@ impl Searcher {
             return stand;
         }
 
+        let before_see = noisy.len();
         noisy.retain(|m| see(pos, m.from, m.to) >= 0);
+        self.tel.q_see_skips += (before_see - noisy.len()) as u64;
         // Delta pruning (Patch 7): a capture whose victim value plus a safety
         // margin cannot lift stand-pat back to alpha is hopeless. Promotions
         // are exempt, and the whole filter switches off in low-material
         // endgames where insufficient-material/zugzwang effects dominate.
         if self.opts.delta_prune && phase_units(pos) > 6 {
             let before = noisy.len();
+            self.tel.delta_attempts += before as u64;
             noisy.retain(|m| {
                 if m.flag.promo_piece().is_some() {
                     return true;

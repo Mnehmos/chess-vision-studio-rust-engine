@@ -80,9 +80,17 @@ fn main() {
     });
 
     let nnue: Option<Nnue> = get("--nnue").map(|p| Nnue::load(&p).expect("load nnue"));
-    let mk = |base: ValueWeights, rung2: Option<Rung2Weights>| match &nnue {
-        Some(n) => Searcher::with_nnue(base, rung2, n.clone()),
-        None => Searcher::new(base, rung2),
+    let helper_nnue: Option<Nnue> =
+        get("--helper-nnue").map(|p| Nnue::load(&p).expect("load helper nnue"));
+    let mk = |base: ValueWeights, rung2: Option<Rung2Weights>| {
+        let mut searcher = match &nnue {
+            Some(n) => Searcher::with_nnue(base, rung2, n.clone()),
+            None => Searcher::new(base, rung2),
+        };
+        if let Some(n) = &helper_nnue {
+            searcher.set_helper_nnue(Some(n.clone()));
+        }
+        searcher
     };
     let stdin = std::io::stdin();
     let mut out = std::io::stdout();
@@ -193,13 +201,26 @@ fn main() {
                 };
                 let budget: Option<u64> = movetime
                     .or_else(|| my_time.map(|t| ((t / 30 + my_inc * 4 / 5).clamp(50, 10_000))));
+                // --smarttime: soft/hard split instead of the flat budget. Soft
+                // is the iteration-boundary target; hard caps runaway thinks
+                // and is enforced by the existing mid-search deadline.
+                let smart = args.iter().any(|a| a == "--smarttime") && movetime.is_none();
+                let (soft, hard) = if smart {
+                    let t = my_time.unwrap_or(1_000);
+                    let soft = (t / 25 + my_inc * 3 / 4).clamp(30, 8_000);
+                    let hard = (soft * 4).min(t / 6).max(soft).min(12_000);
+                    (Some(soft), Some(hard))
+                } else {
+                    (None, budget)
+                };
                 let opts = SearchOptions {
                     depth: depth.unwrap_or(DEPTH_CAP),
                     max_time_ms: if depth.is_some() || pondering {
                         None
                     } else {
-                        budget
+                        hard
                     },
+                    soft_time_ms: if depth.is_some() || pondering { None } else { soft },
                     // Patch 7 kill switches, mirrored from analyze for A/B gates.
                     rfp: args.iter().any(|a| a == "--rfp"),
                     futility: args.iter().any(|a| a == "--futility"),
