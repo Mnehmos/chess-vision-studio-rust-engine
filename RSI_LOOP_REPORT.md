@@ -459,3 +459,21 @@ value: ~+150-160 Elo measured against Stockfish in one day.
 Caveats: 20-game rungs (each ~±150), but two consistent rungs tighten the
 estimate; 10+0.1 is blitz — slow-TC confirmation still recommended before
 citing as durable absolute strength. PGNs: gate6-sf2400.pgn / gate6-sf2500.pgn.
+
+## 2026-06-11 — RFP-v2 FORMAL SPRT PASS (third formal acceptance)
+
+rfp-v2 (depth<=4 cap) vs snapshot (gen7+acc+futility), 10+0.1, elo0=0 elo1=20:
+**+101 -58 =61 (220 games), 59.8%, Elo +68.8 +/-39.6, LOS 100%,
+llr 2.97 > 2.94 — H1 ACCEPTED.**
+
+Pipeline story: rfp-v1 (depth<=6) PASSED fresh-100 but FAILED hard-100 on a
+single mate-scale outlier (+9259cp deep-cut miss) — the mined hard suite
+caught what the standard suite couldn't. v2 tightened the depth cap 6->4,
+kept +0.7-0.8 ply at equal movetime, passed Gates 1-3, screened neutral
+(50%, =10/20 minimum), then formally crossed the SPRT bound.
+
+NEW CHAMPION STACK: gen7 + accumulator + futility + RFP (+ ponder for
+opponent-clock settings). Frozen: uci-gen7-acc-fut-rfp.exe (452c12cc),
+analyze-gen7-acc-fut-rfp.exe (a9cf216e). Rollback: snapshot f07caae binaries.
+Selectivity tally on gen7: futility +34 (fixed-N), RFP +69 (formal).
+Next per roadmap: external rung screen -> smarttime gate -> telemetry -> LMP.
