@@ -181,6 +181,22 @@ impl Position {
         Ok(pos)
     }
 
+    /// Build a position by replaying UCI moves from an initial FEN, preserving
+    /// the make-history needed for repetition detection at the search root.
+    pub fn from_fen_with_uci_history(fen: &str, moves: &[String]) -> Result<Position, String> {
+        let mut pos = Position::from_fen(fen)?;
+        for (i, uci) in moves.iter().enumerate() {
+            let legal = crate::movegen::generate_legal(&mut pos);
+            let mv = legal
+                .iter()
+                .copied()
+                .find(|mv| mv.to_uci() == *uci)
+                .ok_or_else(|| format!("illegal history move {uci} at ply {}", i + 1))?;
+            pos.make(mv);
+        }
+        Ok(pos)
+    }
+
     /// Serialize to a FEN string (inverse of `from_fen`).
     pub fn to_fen(&self) -> String {
         let mut board = String::with_capacity(80);

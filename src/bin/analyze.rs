@@ -11,6 +11,19 @@ use cvs_bitboard_core::search::{SearchOptions, Searcher};
 use cvs_bitboard_core::Position;
 use std::io::{BufRead, Write};
 
+/// Serve-mode JSON request — carries game history so the search root knows
+/// about repetitions (the Lichess bot's wire format; see rust-engine.ts):
+/// {"cmd":"go","budgetMs":500,"fen":"...","initialFen":"...","moves":[...]}
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ServeJsonRequest {
+    cmd: Option<String>,
+    fen: Option<String>,
+    initial_fen: Option<String>,
+    moves: Option<Vec<String>>,
+    budget_ms: Option<u64>,
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let get = |flag: &str| -> Option<String> {
@@ -172,6 +185,55 @@ fn main() {
         // the orchestrator's request/response cycle never stalls on buffering.
         let stdin = std::io::stdin();
         let mut stdout = std::io::stdout();
+        // Shared search-and-emit for prebuilt positions (JSON requests carry
+        // move history so the root sees repetitions).
+        let search_pos = |mut pos: Position, echo: &str, timed_ms: Option<u64>| -> String {
+            let mut searcher = match &nnue {
+                Some(n) => Searcher::with_nnue(base, rung2, n.clone()),
+                None => Searcher::new(base, rung2),
+            };
+            let search_opts = match timed_ms {
+                Some(ms) => SearchOptions {
+                    max_time_ms: Some(ms),
+                    ..opts
+                },
+                None => opts,
+            };
+            let r = searcher.search(&mut pos, search_opts);
+            let t = r.telemetry;
+            serde_json::json!({
+                "fen": echo,
+                "uci": r.best_move.map(|m| m.to_uci()),
+                "scoreCp": r.score_cp,
+                "mate": r.mate,
+                "pv": r.pv.iter().map(|m| m.to_uci()).collect::<Vec<_>>(),
+                "depth": r.depth,
+                "nodes": t.nodes,
+                "qNodes": t.q_nodes,
+                "ttHits": t.tt_hits,
+                "timeMs": t.elapsed_ms,
+                "foreignHints": t.foreign_tt_hints,
+                "foreignCutoffs": t.foreign_tt_cutoffs,
+            })
+            .to_string()
+        };
+        let request_position = |req: &ServeJsonRequest| -> Result<(Position, String), String> {
+            const STARTPOS: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+            if let Some(moves) = req.moves.as_ref() {
+                let initial = match req.initial_fen.as_deref() {
+                    Some("startpos") | None => STARTPOS,
+                    Some(f) => f,
+                };
+                let echo = req.fen.as_deref().unwrap_or(initial).to_string();
+                Ok((Position::from_fen_with_uci_history(initial, moves)?, echo))
+            } else {
+                let fen = match req.fen.as_deref() {
+                    Some("startpos") | None => STARTPOS,
+                    Some(f) => f,
+                };
+                Ok((Position::from_fen(fen)?, fen.to_string()))
+            }
+        };
         for line in stdin.lock().lines() {
             let line = match line {
                 Ok(l) => l,
@@ -184,9 +246,36 @@ fn main() {
                 }
                 continue;
             }
+            // JSON requests (the bot's wire format) carry game history:
+            // {"cmd":"go","budgetMs":500,"fen":"...","initialFen":"...","moves":[...]}
+            let out = if fen.starts_with('{') {
+                match serde_json::from_str::<ServeJsonRequest>(fen) {
+                    Ok(req) => match request_position(&req) {
+                        Ok((mut pos, echo)) => match req.cmd.as_deref().unwrap_or("analyze") {
+                            "eval" => {
+                                let mut j = serde_json::json!({
+                                    "fen": echo,
+                                    "evalWhiteCp": evaluate_white(&mut pos, &base, rung2.as_ref()),
+                                });
+                                if let Some(n) = &nnue {
+                                    j["nnueStmCp"] = n.eval_stm(&pos).into();
+                                }
+                                j.to_string()
+                            }
+                            "go" => search_pos(pos, &echo, Some(req.budget_ms.unwrap_or(500))),
+                            _ => search_pos(pos, &echo, None),
+                        },
+                        Err(e) => serde_json::json!({
+                            "fen": req.fen.as_deref().unwrap_or(""),
+                            "error": e
+                        })
+                        .to_string(),
+                    },
+                    Err(e) => serde_json::json!({ "fen": fen, "error": e.to_string() }).to_string(),
+                }
             // `go <ms> <fen>` → search with a per-request wall-clock budget (the
             // Lichess bot's clock-budgeted picks; depth acts as the cap).
-            let out = if let Some(rest) = fen.strip_prefix("go ") {
+            } else if let Some(rest) = fen.strip_prefix("go ") {
                 let mut it = rest.splitn(2, ' ');
                 let ms: u64 = it.next().and_then(|s| s.parse().ok()).unwrap_or(500);
                 let gfen = it.next().unwrap_or("").trim();
