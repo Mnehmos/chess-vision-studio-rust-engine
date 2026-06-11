@@ -8,7 +8,8 @@
 //! re-search, never correctness.
 //!
 //! Packed layout (low → high): score 32 bits (i32) · move 16 bits (0 = none) ·
-//! depth 6 bits (clamped 0..63) · flag 2 bits · generation 6 bits (mod 64).
+//! depth 6 bits (clamped 0..63) · flag 2 bits · generation 6 bits (mod 64) ·
+//! lane 2 bits (specialist-lane provenance: Fast/King/See/Tactics).
 use crate::{Move, MoveFlag};
 use std::sync::atomic::{AtomicU64, AtomicU8, Ordering};
 
@@ -26,6 +27,9 @@ pub struct TtEntry {
     pub flag: Flag,
     pub mv: Option<Move>,
     pub generation: u8,
+    /// Specialist-lane provenance (0=Fast 1=King 2=See 3=Tactics) — lets the
+    /// main thread measure which lane's discoveries it consumed.
+    pub lane: u8,
 }
 
 const FLAGS: [MoveFlag; 14] = [
@@ -77,6 +81,7 @@ fn pack(e: &TtEntry) -> u64 {
         | ((e.depth.clamp(0, 63) as u64) << 48)
         | ((e.flag as u64) << 54)
         | (((e.generation & 63) as u64) << 56)
+        | (((e.lane & 3) as u64) << 62)
 }
 
 #[inline]
@@ -91,6 +96,7 @@ fn unpack(d: u64) -> TtEntry {
             _ => Flag::Upper,
         },
         generation: ((d >> 56) & 63) as u8,
+        lane: ((d >> 62) & 3) as u8,
     }
 }
 
@@ -135,6 +141,7 @@ impl SharedTt {
     /// Same replacement policy as the single-threaded table: same position
     /// keeps the deeper entry; older generations always lose; otherwise depth
     /// decides.
+    #[allow(clippy::too_many_arguments)]
     pub fn store(
         &self,
         hash: u64,
@@ -143,6 +150,7 @@ impl SharedTt {
         flag: Flag,
         mv: Option<Move>,
         generation: u8,
+        lane: u8,
     ) {
         let s = &self.slots[(hash & self.mask) as usize];
         let cur_key = s[0].load(Ordering::Relaxed);
@@ -164,6 +172,7 @@ impl SharedTt {
             flag,
             mv,
             generation,
+            lane,
         });
         s[1].store(data, Ordering::Relaxed);
         s[0].store(hash ^ data, Ordering::Relaxed);
@@ -207,12 +216,14 @@ mod tests {
                     flag: MoveFlag::PromoQCap,
                 }),
                 generation: 63,
+                lane: 3,
             };
             let u = unpack(pack(&e));
             assert_eq!(u.score, score);
             assert_eq!(u.depth, 63);
             assert_eq!(u.mv, e.mv);
             assert_eq!(u.generation, 63);
+            assert_eq!(u.lane, 3);
         }
     }
 
@@ -220,7 +231,8 @@ mod tests {
     fn probe_store_xor_check() {
         let tt = SharedTt::new(4);
         let h = 0xDEAD_BEEF_1234_5678u64;
-        tt.store(h, 8, 42, Flag::Exact, None, 1);
+        tt.store(h, 8, 42, Flag::Exact, None, 1, 2);
+        assert_eq!(tt.probe(h).unwrap().lane, 2);
         let e = tt.probe(h).unwrap();
         assert_eq!((e.depth, e.score), (8, 42));
         // A different hash mapping to the same slot must miss.

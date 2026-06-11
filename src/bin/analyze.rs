@@ -177,6 +177,8 @@ fn main() {
                             "qNodes": t.q_nodes,
                             "ttHits": t.tt_hits,
                             "timeMs": t.elapsed_ms,
+                            "foreignHints": t.foreign_tt_hints,
+                            "foreignCutoffs": t.foreign_tt_cutoffs,
                         })
                         .to_string()
                     }

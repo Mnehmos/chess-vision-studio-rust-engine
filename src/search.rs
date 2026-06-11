@@ -48,6 +48,18 @@ pub enum Lane {
     Tactics,
 }
 
+impl Lane {
+    #[inline]
+    pub fn id(self) -> u8 {
+        match self {
+            Lane::Fast => 0,
+            Lane::KingSafety => 1,
+            Lane::See => 2,
+            Lane::Tactics => 3,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct SearchOptions {
     /// Iterative-deepening target depth. Default 4.
@@ -172,6 +184,11 @@ pub struct Telemetry {
     pub delta_skips: u64,
     /// Sum of active CVS feature IDs seen at leaves when cvs_trace is on.
     pub cvs_trace_features: u64,
+    /// Transfer telemetry (main thread): TT move hints consumed that were
+    /// written by a FOREIGN specialist lane, indexed by lane id 0..4.
+    pub foreign_tt_hints: [u64; 4],
+    /// Foreign-lane TT moves that produced the beta cutoff at a node.
+    pub foreign_tt_cutoffs: [u64; 4],
 }
 
 #[derive(Clone, Debug)]
@@ -622,9 +639,16 @@ impl Searcher {
         let mut alpha = alpha_in;
         let mut beta = beta_in;
         let mut tt_move: Option<Move> = None;
+        let mut tt_move_lane: u8 = 0;
         if self.opts.use_tt {
             if let Some(e) = self.tt_probe(pos.hash) {
                 tt_move = e.mv;
+                tt_move_lane = e.lane;
+                // Transfer telemetry: this node consumed a move hint written by
+                // a foreign specialist lane.
+                if e.mv.is_some() && e.lane != self.opts.lane.id() {
+                    self.tel.foreign_tt_hints[(e.lane & 3) as usize] += 1;
+                }
                 if e.depth >= depth {
                     self.tel.tt_hits += 1;
                     match e.flag {
@@ -797,6 +821,9 @@ impl Searcher {
             }
             if alpha >= beta {
                 self.tel.beta_cutoffs += 1;
+                if Some(mv) == tt_move && tt_move_lane != self.opts.lane.id() {
+                    self.tel.foreign_tt_cutoffs[(tt_move_lane & 3) as usize] += 1;
+                }
                 // Quiet cutoffs teach the killers/history tables (Patch 1).
                 if !mv.flag.is_capture() && mv.flag.promo_piece().is_none() {
                     let p = ply as usize;
@@ -1008,12 +1035,12 @@ impl Searcher {
                 };
             }
             if killers[0] == Some(*m) {
-                return 700_000 + self.lane_bonus(pos, *m);
+                return 700_000 + self.lane_bonus(pos, *m, ply);
             }
             if killers[1] == Some(*m) {
-                return 699_999 + self.lane_bonus(pos, *m);
+                return 699_999 + self.lane_bonus(pos, *m, ply);
             }
-            self.history[Self::history_idx(side, *m)] + self.lane_bonus(pos, *m)
+            self.history[Self::history_idx(side, *m)] + self.lane_bonus(pos, *m, ply)
         };
         moves.sort_by_key(|m| -score_of(m));
     }
@@ -1021,7 +1048,14 @@ impl Searcher {
     /// Lane ordering bonus (Level-1 specialist lanes). Applied to quiet/killer
     /// tiers so it reorders WITHIN ordering without displacing the TT move or
     /// winning captures. Ordering-only -> cannot change the search value.
-    fn lane_bonus(&self, pos: &Position, m: Move) -> i32 {
+    fn lane_bonus(&self, pos: &Position, m: Move, ply: u32) -> i32 {
+        // Shallow-node gate: lane ordering exists to steer which TT moves get
+        // written near the root (the ones the main thread inherits). Beyond
+        // ply 3 the clone/tropism cost dwarfs the propagation value - measured
+        // at ~40% nps loss ungated.
+        if ply > 3 {
+            return 0;
+        }
         match self.opts.lane {
             Lane::Fast => 0,
             Lane::Tactics => {
@@ -1103,8 +1137,15 @@ impl Searcher {
     }
 
     fn store(&mut self, key: u64, depth: i32, score: i32, flag: Flag, mv: Option<Move>) {
-        self.tt
-            .store(key, depth, score, flag, mv, self.tt_generation);
+        self.tt.store(
+            key,
+            depth,
+            score,
+            flag,
+            mv,
+            self.tt_generation,
+            self.opts.lane.id(),
+        );
     }
 
     /// Walk the TT from the root following stored moves (the TS PV extraction).

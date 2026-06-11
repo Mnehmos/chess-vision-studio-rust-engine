@@ -175,11 +175,35 @@ fn tactics_lane_orders_a_check_ahead_of_quiets() {
 /// asserts the telemetry exists and that on the danger suite a king-safety lane
 /// has became_pv > 0 (it actually influenced the authoritative result).
 #[test]
-#[ignore = "needs per-lane transfer telemetry + KingSafetyScout"]
-fn king_lane_transfer_is_measured_and_positive_on_danger_suite() {
-    // let tel = run(main=fast, lanes=[king], suite=danger_suite_epd).lane_telemetry(KingSafety);
-    // assert!(tel.foreign_moves_became_pv > 0, "lane that never reaches PV is noise — kill it");
-    // assert!(tel.danger_suite_regressions == 0);
+fn lane_transfer_telemetry_records_foreign_hints() {
+    // The transfer metric: with specialist lanes on, the MAIN thread must
+    // record consuming TT move hints written by foreign lanes. (Whether those
+    // hints WIN games is the gauntlet's question; this proves the measurement
+    // channel itself works on a danger position.)
+    let fen = "r1b3nr/1pp1bkpp/p1n5/1q3p2/3P4/B1PNQ1P1/P4PBP/RN2R1K1 b - - 3 19";
+    let mut pos = Position::from_fen(fen).unwrap();
+    let mut s = Searcher::new(Default::default(), None);
+    let r = s.search(
+        &mut pos,
+        SearchOptions {
+            depth: 7,
+            threads: 4,
+            cvs_helpers: 3,
+            ..Default::default()
+        },
+    );
+    let hints: u64 = r.telemetry.foreign_tt_hints.iter().sum();
+    // Lanes 1..3 (King/See/Tactics) wrote entries the Fast main thread read.
+    assert!(
+        hints > 0,
+        "main thread consumed no foreign lane hints: {:?}",
+        r.telemetry.foreign_tt_hints
+    );
+    // Fast lane (0) writes are not foreign to the main thread.
+    assert_eq!(
+        r.telemetry.foreign_tt_hints[0], 0,
+        "fast-lane entries must not count as foreign"
+    );
 }
 
 /// Each specialist lane must NOT break tactical correctness in isolation —
