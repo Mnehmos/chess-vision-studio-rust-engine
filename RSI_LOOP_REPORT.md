@@ -415,3 +415,30 @@ an opponent clock exists (cutechess `ponder` flag; bot already has its richer
 top-3 cache layer). Box freed -> futility-pruning SPRT launches next
 (gen7+accumulator baseline, revival hypothesis: calibrated eval un-breaks
 pruning).
+
+## 2026-06-11 — Futility-v1 ACCEPTED WITH NOTE (fixed-N positive, NOT a formal SPRT pass)
+
+Test: futility-v1 on gen7+acc vs gen7+acc base. 10+0.1, conc 1, elo0=0 elo1=20.
+Stopped by user decision at +68 -51 =55 / 174 games, 54.9%, ~+34 Elo observed.
+LLR ~1.0/2.94 — POSITIVE THROUGHOUT but did NOT cross the formal H1 accept bound.
+
+**Do NOT cite as "SPRT accepted." Cite as "fixed-N positive / accepted with note."**
+
+Hypothesis under test: is futility pruning still toxic after the gen7 NNUE eval
+replacement? Prior result on gen6/classical was -188 Elo. Answer: NO — the sign
+flipped from strongly negative (king-blind eval) to directionally positive
+(+25 to +40 likely, not the early +50-60 spike). Confirms the doctrine:
+pruning validity is conditional on eval calibration, not inherent.
+
+Fixed-depth sanity (fresh-100, 82 danger, d9, SF-d12 cp-loss), futility ON vs OFF:
+  OFF: avgCP 10.2  danger 11.6  bl100 1%  bl200 0%  match 61%
+  ON : avgCP 10.3  danger 11.6  bl100 1%  bl200 0%  match 60%
+IDENTICAL decision quality; gen7 blunder collapse (bl200 0%) preserved. Gain is
+pure depth, not judgment loss — the correct signature for sound pruning.
+
+Promotion: futility-v1 ACCEPTED PROVISIONALLY into the gen7+acc search stack.
+Frozen artifact: f:/tools/cvs-baselines/uci-gen7-acc-futility.exe (d5233c07).
+Rollback retained (uci-gen7-ponder cb28a544, gen6 59ead1ff). Default-flip in
+SearchOptions deferred until the parallel --helper-nnue source work settles, to
+avoid colliding edits; futility stays the documented accepted run flag meanwhile.
+Future pruning changes added ONE AT A TIME, gated separately (next: RFP).
