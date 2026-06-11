@@ -3,7 +3,15 @@
 //! Supports the subset every match harness needs:
 //!   uci / isready / ucinewgame / quit
 //!   position (startpos | fen <fen>) [moves m1 m2 ...]
-//!   go [movetime N] [depth D] [wtime N btime N winc N binc N] [infinite]
+//!   go [movetime N] [depth D] [wtime N btime N winc N binc N] [infinite] [ponder]
+//!   ponderhit / stop
+//!
+//! Pondering (the promoted bot-layer design, single-prediction UCI form):
+//! every bestmove carries `ponder <pv2>`; on `go ponder` the search runs on a
+//! worker thread with no time limit while the main loop keeps reading stdin.
+//! `ponderhit` arms the normal clock budget from that moment and the result
+//! prints when the search lands; `stop` (ponder miss) aborts immediately.
+//! The TT persists across searches, so even a missed ponder warms the next go.
 //!
 //! Weights load exactly like `analyze`: --base w.json --rung2 r.json
 //! (paths resolve from the cwd cutechess launches us in, so pass absolute
@@ -11,12 +19,48 @@
 //! spend ~1/30 of remaining time + most of the increment, floor 50ms.
 use cvs_bitboard_core::eval::{Nnue, Rung2Weights, ValueWeights};
 use cvs_bitboard_core::movegen::generate_legal;
-use cvs_bitboard_core::search::{SearchOptions, Searcher};
+use cvs_bitboard_core::search::{SearchOptions, SearchResult, Searcher};
 use cvs_bitboard_core::Position;
 use std::io::{BufRead, Write};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 const START_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const DEPTH_CAP: u32 = 30;
+
+/// In-flight ponder search: worker owns the Searcher and hands it back.
+struct Ponder {
+    handle: std::thread::JoinHandle<(SearchResult, Searcher)>,
+    stop: Arc<AtomicBool>,
+    /// Clock budget (ms) to grant after ponderhit, from the go-ponder clocks.
+    budget: u64,
+}
+
+fn print_result(out: &mut impl Write, r: &SearchResult) {
+    let score = match r.mate {
+        Some(m) => format!("mate {m}"),
+        None => format!("cp {}", r.score_cp),
+    };
+    let pv: Vec<String> = r.pv.iter().map(|m| m.to_uci()).collect();
+    let _ = writeln!(
+        out,
+        "info depth {} score {} nodes {} time {} pv {}",
+        r.depth,
+        score,
+        r.telemetry.nodes,
+        r.telemetry.elapsed_ms,
+        pv.join(" ")
+    );
+    match r.best_move {
+        Some(m) => {
+            let hint = r.pv.get(1).map(|p| format!(" ponder {}", p.to_uci()));
+            let _ = writeln!(out, "bestmove {}{}", m.to_uci(), hint.unwrap_or_default());
+        }
+        None => {
+            let _ = writeln!(out, "bestmove 0000");
+        }
+    }
+}
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -43,7 +87,21 @@ fn main() {
     let stdin = std::io::stdin();
     let mut out = std::io::stdout();
     let mut pos = Position::from_fen(START_FEN).unwrap();
-    let mut searcher = mk(base, rung2);
+    let mut searcher: Option<Searcher> = Some(mk(base, rung2));
+    let mut ponder: Option<Ponder> = None;
+
+    // Abort an in-flight ponder without printing (position/newgame/quit while
+    // pondering — shouldn't happen with a conforming GUI, but never wedge).
+    macro_rules! abort_ponder {
+        () => {
+            if let Some(p) = ponder.take() {
+                p.stop.store(true, Ordering::Relaxed);
+                if let Ok((_, s)) = p.handle.join() {
+                    searcher = Some(s);
+                }
+            }
+        };
+    }
 
     for line in stdin.lock().lines() {
         let line = match line {
@@ -55,16 +113,20 @@ fn main() {
             Some("uci") => {
                 let _ = writeln!(out, "id name CVS Bitboard Core");
                 let _ = writeln!(out, "id author Chess Vision Studio (MIT)");
+                let _ = writeln!(out, "option name Ponder type check default false");
                 let _ = writeln!(out, "uciok");
             }
             Some("isready") => {
                 let _ = writeln!(out, "readyok");
             }
+            Some("setoption") => { /* Ponder on/off is driven by go/ponderhit */ }
             Some("ucinewgame") => {
-                searcher = mk(base, rung2.clone());
+                abort_ponder!();
+                searcher = Some(mk(base, rung2.clone()));
                 pos = Position::from_fen(START_FEN).unwrap();
             }
             Some("position") => {
+                abort_ponder!();
                 let rest: Vec<&str> = tok.collect();
                 let (fen, moves_at) = match rest.first() {
                     Some(&"startpos") => (START_FEN.to_string(), 1),
@@ -99,6 +161,7 @@ fn main() {
                 let mut btime: Option<u64> = None;
                 let mut winc: u64 = 0;
                 let mut binc: u64 = 0;
+                let mut pondering = false;
                 let rest: Vec<&str> = tok.collect();
                 let mut i = 0;
                 while i < rest.len() {
@@ -110,6 +173,11 @@ fn main() {
                         "btime" => btime = val(i),
                         "winc" => winc = val(i).unwrap_or(0),
                         "binc" => binc = val(i).unwrap_or(0),
+                        "ponder" => {
+                            pondering = true;
+                            i += 1;
+                            continue;
+                        }
                         _ => {
                             i += 1;
                             continue;
@@ -127,7 +195,11 @@ fn main() {
                     .or_else(|| my_time.map(|t| ((t / 30 + my_inc * 4 / 5).clamp(50, 10_000))));
                 let opts = SearchOptions {
                     depth: depth.unwrap_or(DEPTH_CAP),
-                    max_time_ms: if depth.is_some() { None } else { budget },
+                    max_time_ms: if depth.is_some() || pondering {
+                        None
+                    } else {
+                        budget
+                    },
                     // Patch 7 kill switches, mirrored from analyze for A/B gates.
                     rfp: args.iter().any(|a| a == "--rfp"),
                     futility: args.iter().any(|a| a == "--futility"),
@@ -137,32 +209,61 @@ fn main() {
                     threads: get("--threads").and_then(|s| s.parse().ok()).unwrap_or(1),
                     ..Default::default()
                 };
-                let r = searcher.search(&mut pos, opts);
-                let score = match r.mate {
-                    Some(m) => format!("mate {m}"),
-                    None => format!("cp {}", r.score_cp),
-                };
-                let pv: Vec<String> = r.pv.iter().map(|m| m.to_uci()).collect();
-                let _ = writeln!(
-                    out,
-                    "info depth {} score {} nodes {} time {} pv {}",
-                    r.depth,
-                    score,
-                    r.telemetry.nodes,
-                    r.telemetry.elapsed_ms,
-                    pv.join(" ")
-                );
-                match r.best_move {
-                    Some(m) => {
-                        let _ = writeln!(out, "bestmove {}", m.to_uci());
-                    }
-                    None => {
-                        let _ = writeln!(out, "bestmove 0000");
+                if pondering {
+                    // Opponent-clock search: free depth, no bestmove until
+                    // ponderhit (clock arms) or stop (miss; result discarded
+                    // by the GUI, TT keeps the work).
+                    let stop = Arc::new(AtomicBool::new(false));
+                    let mut s = searcher.take().expect("searcher");
+                    let mut p = pos.clone();
+                    let st = Arc::clone(&stop);
+                    let handle = std::thread::spawn(move || {
+                        s.set_stop(Some(st));
+                        let r = s.search(&mut p, opts);
+                        s.set_stop(None);
+                        (r, s)
+                    });
+                    ponder = Some(Ponder {
+                        handle,
+                        stop,
+                        budget: budget.unwrap_or(1_000),
+                    });
+                } else {
+                    let s = searcher.as_mut().expect("searcher");
+                    let r = s.search(&mut pos, opts);
+                    print_result(&mut out, &r);
+                }
+            }
+            Some("ponderhit") => {
+                if let Some(p) = ponder.take() {
+                    // Prediction confirmed: grant the normal budget from now.
+                    let stop = Arc::clone(&p.stop);
+                    let ms = p.budget;
+                    std::thread::spawn(move || {
+                        std::thread::sleep(std::time::Duration::from_millis(ms));
+                        stop.store(true, Ordering::Relaxed);
+                    });
+                    if let Ok((r, s)) = p.handle.join() {
+                        searcher = Some(s);
+                        print_result(&mut out, &r);
                     }
                 }
             }
-            Some("quit") => break,
-            Some("stop") => { /* searches are synchronous and bounded; nothing to stop */ }
+            Some("stop") => {
+                if let Some(p) = ponder.take() {
+                    p.stop.store(true, Ordering::Relaxed);
+                    if let Ok((r, s)) = p.handle.join() {
+                        searcher = Some(s);
+                        // Protocol requires a bestmove even on ponder miss.
+                        print_result(&mut out, &r);
+                    }
+                }
+                // Non-ponder searches are synchronous and bounded; nothing to stop.
+            }
+            Some("quit") => {
+                abort_ponder!();
+                break;
+            }
             _ => {}
         }
         let _ = out.flush();

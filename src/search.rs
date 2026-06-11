@@ -361,6 +361,13 @@ impl Searcher {
         s
     }
 
+    /// External stop hook (UCI ponder / async control). The flag is polled
+    /// every 1024 nodes in `time_up`; setting it aborts the current iteration
+    /// and the search returns the last completed depth's result.
+    pub fn set_stop(&mut self, stop: Option<Arc<AtomicBool>>) {
+        self.stop = stop;
+    }
+
     #[inline]
     fn history_idx(side: usize, mv: Move) -> usize {
         side * 4096 + mv.from as usize * 64 + mv.to as usize
