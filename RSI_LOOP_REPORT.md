@@ -357,3 +357,25 @@ Hypothesis under test now (same seed, 4th config): DANGER-GATED HYBRID — CVS
 geometry decides WHEN to convene the lane panel (danger child -> arbiter,
 quiet child -> plain d7). This is the doctrine's "CVS = attention/search-
 control layer" made literal.
+
+## 2026-06-11 — Bot-layer gate FINAL: hybrid also fails; PLAIN PONDER is the design
+
+Danger-gated hybrid (CVS decides when to convene the panel): avgCP 29.2 /
+bl100 13.8% / bl200 1.2% — indistinguishable from always-on arbiter (29.0).
+Cause: the CVS danger detector fires on most real middlegame positions
+(hanging facts are ubiquitous), so the gate barely gated.
+
+FINAL bot-layer verdict (80 real transitions, 88.8% hit rate):
+  PROMOTE: gen7 + plain ponder d7 (24.9 vs 28.2 avgCP, bl200 1.2%->0%,
+           verify-reject 1/71). Cheaper than the lane fan-out AND better.
+  REJECT:  arbiter cache (29.0) and danger-gated hybrid (29.2) at the bot
+           layer. The arbiter's suite wins were real but only vs a d5
+           baseline; given the same extra budget, full-width depth beats
+           candidate-verify on the real game distribution.
+
+Role correction to the doctrine: specialist lanes + arbiter are a fixed-depth
+ANALYSIS instrument (decision quality at capped depth, explanation, Control
+Lens teaching) — not a runtime play improver when extra clock can simply buy
+depth. Possible future regime where it could still pay: depth-saturated
+settings (TT-full long thinks) or as candidate generator INSIDE search
+(root-move ordering hints) — untested, not claimed.
