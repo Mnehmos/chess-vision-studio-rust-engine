@@ -312,3 +312,18 @@ see/defender harvested under verification without their 146cp blunders leaking.
 Caveats: same suite-100 the lanes were developed on (fresh-suite validation
 queued); benchmark-level decision quality, in-engine arbiter mode not yet built.
 SF-d12 rescore variance: gen7-alone reads 22.7/2% this run vs 23.2/1% prior.
+
+## 2026-06-11 — Arbiter v3 FRESH-SUITE VALIDATION: PASSED
+
+100 never-before-used positions (build-fresh-suite.py, seed 20260611, 82/18
+danger/quiet via CVS detector, original suite excluded). Margins frozen before
+results, no tuning after. gen7-alone replicates almost exactly (avg 22.9 vs
+22.7, bl200 2%) — and the arbiter generalizes BETTER than on the dev suite:
+
+arb 5/15:  avg 8.9 (−61%), p90 36, bl200 0%, danger 9.6, harvest 70%, giveback 11%
+arb 10/25: avg 9.5,        p90 36, bl200 0%, danger 10.4, harvest 63%, giveback 8%
+
+All five pass criteria met at every margin. Suite-overfit hypothesis REJECTED.
+Freeze manifest updated (frozen-evals/arbiter-v3-gen7-suite100-cploss-pass).
+Next: in-engine/bot-layer arbiter mode on opponent clock (ponder-cache shape);
+margin recommendation 5/15 or 10/25.
