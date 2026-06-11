@@ -258,3 +258,37 @@ ids: 4.78M rows.
 Lessons banked: gates catch what holdout cannot (v1 had the best holdout and
 the worst play); verify label POV conventions at the boundary; quiet-filter
 training corpora; stm-mirror ALL input families together.
+
+## 2026-06-11 — GEN-7 promoted; oracle CP-LOSS standing benchmark added
+
+**Anchor (final):** gen7 vs native SF-2400, 100 games, quiet box: **−24.4 ±63.5
+(LOS 22.4%)** ⇒ ≈2375 absolute. gen6 100-game re-anchor running for honest delta.
+
+**Promotion:** gen7 (uci-gen7-rawnnue.exe 780995d1 + raw-nnue-h256-sf-d12-v3
+4cc9765c) promoted to champion per gate rule — SPRT vs gen6 formally passed
+(+101.9 ±36.5, bound crossed @305). Manifest updated, rollback = 59ead1ff.
+
+**New standing benchmark** `arena/bench-oracle-cploss.py` (replaces exact-match-only):
+engine move at d5, SF-d12 evals child of chosen vs child of oracle move; loss =
+max(0, best−chosen). Suite-100 results:
+
+| engine | match% | avgCP | p90 | bl≥100 | bl≥200 | dangerAvg | quietAvg |
+|---|---|---|---|---|---|---|---|
+| **gen7** | 51 | **23.2** | **87** | **8%** | **1%** | 23.9 | 20.2 |
+| gen6 fast | 52 | 29.6 | 105 | 10% | **5%** | 30.2 | 26.6 |
+| cvs-v3 | 43 | 24.6 | 105 | 11% | 0% | 23.6 | 29.1 |
+| see / defender | 50/51 | ~124 | ~116 | ~11% | 6% | **~146** | ~24 |
+| pawn | **55** | 26.6 | 112 | 11% | 3% | 25.9 | 29.8 |
+
+Verdict: gen7 wins on **calibration** (lowest avg loss, p90, and 5× fewer
+≥200cp blunders than gen6) at equal exact-match — exactly why move-match alone
+was blind to the +102. see/defender lanes are high-variance: worst authorities
+(146cp danger avg — their hanging×4 profiles blunder unsupervised) yet best
+candidate generators (24–25% unique-and-better-than-gen7). Arbiter fodder, not
+mains.
+
+**Lane table rebuilt around gen7 baseline:** ensemble oracle coverage 74% vs
+gen7 alone 51%; some lane beats gen7 on cp-loss in 28% of positions. The lane
+layer is NOT obsolete post-gen7 — next frontier: rebuild roster with gen7 as
+main/verifier (gen6 + cvs-v3 + scalar profiles as diversity lanes), keep only
+lanes that add unique low-loss candidates, re-gate arbiter v2/v3 by cp-loss.

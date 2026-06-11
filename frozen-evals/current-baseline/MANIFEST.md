@@ -1,10 +1,33 @@
-# Frozen baseline — current promoted engine (2026-06-10)
+# Frozen baseline — current promoted engine (updated 2026-06-11)
 
 Freeze created per the CVS Engine+NNUE architecture brief's non-negotiable
 preservation rule: **freeze before any new model training.** Nothing here is
 overwritten by later CVS-NNUE / gen-2 work; new models get new unique names.
 
-## Promoted champion (default engine)
+## Promoted champion — GEN-7 (raw NNUE, promoted 2026-06-11)
+
+| Artifact | File | sha256 (first 16) |
+|---|---|---|
+| UCI engine | `f:\tools\cvs-baselines\uci-gen7-rawnnue.exe` | `780995d1` |
+| Net | `f:\tools\cvs-baselines\raw-nnue-h256-sf-d12-v3.json` | `4cc9765c` |
+| Base/rung2 weights | same as gen6 (search scalars unchanged) | — |
+
+- **Eval mode:** raw NNUE 768×h256, trained on SF-d12 quiet-filtered
+  POV-corrected labels (7.43M → 4.78M rows). SF taught labels only; SF does
+  not power runtime eval.
+- **Promotion gate (the rule below, satisfied):** SPRT vs gen6 champion,
+  10+0.1, F:\tools\openings.epd — **+101.9 ±36.5 Elo, LOS 100%, bound
+  crossed at 305 games (+168 −81 =56). Formal pass.**
+- **Absolute anchor:** −24.4 ±63.5 vs native SF-2400 (UCI_Elo), 100 games,
+  quiet box, conc 1 ⇒ ≈2375. (gen6's old 65%@40 anchor was small-sample;
+  100-game gen6 re-anchor pending for the honest delta.)
+- **Oracle cp-loss (d5 suite-100, SF-d12 child evals):** avg 23.2cp vs gen6
+  29.6cp; blunder≥200cp 1% vs gen6 5%; exact oracle-match parity (51% vs
+  52%) — gen7 wins on calibration, not imitation.
+- **Rollback path:** repoint default to `uci-gen6-full.exe` (`59ead1ff`),
+  section below — binary untouched on disk.
+
+## Previous champion — gen6 classical (rollback target)
 
 | Artifact | File | sha256 (first 16) |
 |---|---|---|
