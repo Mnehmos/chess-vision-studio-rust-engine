@@ -442,3 +442,20 @@ Rollback retained (uci-gen7-ponder cb28a544, gen6 59ead1ff). Default-flip in
 SearchOptions deferred until the parallel --helper-nnue source work settles, to
 avoid colliding edits; futility stays the documented accepted run flag meanwhile.
 Future pruning changes added ONE AT A TIME, gated separately (next: RFP).
+
+## 2026-06-11 — Gate 6 SF escalation ladder: full snapshot stack ~2530 blitz
+
+Full deployed stack (gen7 + accumulator + futility + PONDER — first anchor with
+the complete stack), 10+0.1, 20 games per rung, escalate at >=60%:
+
+  rung 1 vs SF-2400: +13 -6 =1  67.5%  (~+127 => ~2527)   ESCALATED
+  rung 2 vs SF-2500: +10 -8 =2  55.0%  (~+35  => ~2535)   STOP (<60%)
+
+Two independent rungs cross-validate at ~2525-2535 blitz vs native SF. Bare
+gen7 on the same SF-2400, same TC, same book: 44.9% (~2375). The day's stack
+work (+91 ponder, +34 futility, +22% nps) converted EXTERNALLY at near-full
+value: ~+150-160 Elo measured against Stockfish in one day.
+
+Caveats: 20-game rungs (each ~±150), but two consistent rungs tighten the
+estimate; 10+0.1 is blitz — slow-TC confirmation still recommended before
+citing as durable absolute strength. PGNs: gate6-sf2400.pgn / gate6-sf2500.pgn.
