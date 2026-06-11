@@ -76,6 +76,11 @@ pub struct SearchOptions {
     /// only - does not alter move choice. Default OFF; benchmark-mode upper
     /// bound on the per-node geometry cost.
     pub cvs_trace: bool,
+    /// Heterogeneous CVS-SMP: of the N-1 helpers, the first K run the loaded
+    /// NNUE (the geometry-aware stand-in) while the MAIN thread runs the fast
+    /// classical eval. K=0 = homogeneous. Only meaningful with threads>1 and a
+    /// loaded net. See CVS_HETEROGENEOUS_SMP.md.
+    pub cvs_helpers: usize,
 }
 
 impl Default for SearchOptions {
@@ -101,6 +106,7 @@ impl Default for SearchOptions {
             delta_prune: false,
             threads: 1,
             cvs_trace: false,
+            cvs_helpers: 0,
         }
     }
 }
@@ -294,6 +300,16 @@ impl Searcher {
     fn search_smp(&mut self, pos: &mut Position, opts: SearchOptions) -> SearchResult {
         let stop = Arc::new(AtomicBool::new(false));
         let single = SearchOptions { threads: 1, ..opts };
+        // Heterogeneous CVS-SMP: when cvs_helpers>0, the main thread runs the
+        // fast classical eval (net detached for its own search) and only the
+        // first K helpers carry the net. K=0 keeps the homogeneous behavior
+        // (every thread inherits the main's eval).
+        let het = opts.cvs_helpers > 0 && self.nnue.is_some();
+        let helper_net = if het {
+            self.nnue.take()
+        } else {
+            self.nnue.clone()
+        };
         let (mut result, helper_nodes) = std::thread::scope(|scope| {
             let mut handles = Vec::new();
             for t in 0..opts.threads - 1 {
@@ -301,7 +317,12 @@ impl Searcher {
                 let stop = Arc::clone(&stop);
                 let weights = self.weights;
                 let rung2 = self.rung2;
-                let nnue = self.nnue.clone();
+                // Heterogeneous: first K helpers get the net, rest run classical.
+                let nnue = if !het || t < opts.cvs_helpers {
+                    helper_net.clone()
+                } else {
+                    None
+                };
                 let mut hpos = pos.clone();
                 // Odd helpers aim one ply deeper — cheap diversity so threads
                 // don't lockstep on identical trees.
@@ -326,6 +347,9 @@ impl Searcher {
             (r, nodes)
         });
         result.telemetry.nodes += helper_nodes;
+        if het {
+            self.nnue = helper_net;
+        }
         result
     }
 

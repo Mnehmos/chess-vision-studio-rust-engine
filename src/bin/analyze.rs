@@ -59,6 +59,9 @@ fn main() {
         delta_prune: args.iter().any(|a| a == "--delta"),
         threads: get("--threads").and_then(|s| s.parse().ok()).unwrap_or(1),
         cvs_trace: args.iter().any(|a| a == "--cvs-trace"),
+        cvs_helpers: get("--cvs-helpers")
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(0),
     };
 
     // --features: emit the eval + Rung-2 feature vector per FEN instead of
