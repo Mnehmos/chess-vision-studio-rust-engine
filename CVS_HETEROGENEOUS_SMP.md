@@ -126,3 +126,77 @@ and the propagation has a provably-safe first version (TT move hints). It is
 **downstream of the CVS-NNUE build** — worth prototyping the moment we have a
 CVS net that wins its own gate. Ship order: CVS-NNUE → Channel-A heterogeneous
 SMP → measure on king-safety suite → cautiously open Channel B.
+
+---
+
+# Evolution: Specialist Search Lanes (heterogeneous SMP by *job*, not just eval)
+
+The generic version diversifies helpers by *evaluator*. The stronger version
+diversifies them by **failure family** — because our losses aren't generic, they
+cluster (king-in-center, dropped material, defender removal, quiet collapse,
+botched endgames). Each helper becomes a specialist biased toward one family.
+Main thread is the judge; helpers are experts; the TT is the shared case file.
+
+## Lane roster
+
+```
+Lane 0  MainFast            fast eval, authoritative for the move
+Lane 1  CvsNNUEGeneral      learned geometry eval (the general scout)
+Lane 2  KingSafetyScout     king-zone pressure, escapes, shield, decentralize, anti-matenet
+Lane 3  SEE/HangingScout    SEE-winning caps, rescue hanging, punish loose, dodge poisoned
+Lane 4  DefenderRemovalScout only-defender-moved, overload, remove-the-guard, x-ray onto guard
+Lane 5  TacticsScout        checks/captures/threats/forks/skewers/back-rank; widen forcing
+Lane 6  QuietDefenseScout   the ugly human move: add defender, luft, cover escape, block file
+Lane 7  PawnEndgameScout    passers, king activity, rook-behind-passer, races (low-material)
+```
+
+4-thread topology: `MainFast | KingSafety | SEE/Hanging | Tactics`.
+8-thread: add CvsNNUEGeneral + QuietDefense + PawnEndgame + one FastDepth control.
+
+## Three implementation levels (ship in this order)
+
+- **Level 1 — move-ordering specialization (SAFE, Channel-A, build first).** Same
+  eval; the lane just orders its family's moves first (king-saving / clean
+  captures+rescues / checks+captures+threats). Writes TT *moves*; main reads
+  foreign entries as ordering hints only. Zero correctness risk — alpha-beta is
+  order-independent. This is the first prototype.
+- **Level 2 — eval-weight specialization.** Same evaluator, exaggerated weights
+  (king-safety lane inflates king_danger; SEE lane inflates hanging; pawn lane
+  inflates passers). Surfaces moves the main eval underrates — but TT scores now
+  need eval-kind tagging.
+- **Level 3 — search-policy specialization.** Lane-specific extensions/pruning
+  (king lane extends on rising danger; tactics lane extends checks/captures;
+  quiet-defense lane reduces pruning on defensive resources). Powerful, gated.
+
+## TT provenance (the prerequisite for Levels 2-3 and Channel A safety)
+
+Each TT entry carries its source so the main thread knows how much to trust it:
+
+```
+source_lane: u8     // which specialist wrote it
+eval_family: u8     // Fast | RawNNUE | CvsNNUE | KingSafety | SEE | Tactics | Pawn
+trust:              // same family -> move+score+bound; foreign -> move (ordering) only
+```
+
+We have 2 spare bits in the packed TtEntry today; full lane tagging needs a
+small entry-width bump or a side array. This is the concrete next TT change,
+but it lands with Level 2, not before.
+
+## Anti-vibes metric (per lane — the soul of it)
+
+A lane earns its core only if its suggestions improve the main thread's *final*
+move. Track per lane: `tt_entries_written`, `foreign_moves_tried_by_main`,
+`foreign_moves_became_pv`, `foreign_moves_caused_cutoff`, `teacher_cp_delta`,
+`danger_suite_fixes`, `danger_suite_regressions`. The question is never "do we
+like the king lane" — it's "did the king lane's move make the fast search pick
+a better move at equal clock." A lane that only adds noise is killed.
+
+## Where this sits in the build order
+
+Unchanged from the locked order: **CVS-NNUE first** (prove the geometry
+vocabulary has value), then Level-1 ordering lanes (king-safety + SEE +
+tactics) behind `--cvs-helper-profile {balanced|danger|tactics}`, measure
+transfer on the danger/hanging/defender-removal suites, then Levels 2-3 with TT
+provenance. The heterogeneous mechanic + zero-speed-cost transfer are already
+validated (commit 7101071); specialist lanes are the high-value content that
+flows through that validated bridge.
