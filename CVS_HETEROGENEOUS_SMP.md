@@ -200,3 +200,30 @@ transfer on the danger/hanging/defender-removal suites, then Levels 2-3 with TT
 provenance. The heterogeneous mechanic + zero-speed-cost transfer are already
 validated (commit 7101071); specialist lanes are the high-value content that
 flows through that validated bridge.
+
+---
+
+# Measured: 8-lane diversity vs Stockfish-d14 oracle (100 gen-2 positions, d5 solo voices)
+
+| lane | match-oracle | agree-fast | unique-AND-right |
+|---|---:|---:|---:|
+| fast | 52% | 100% | — |
+| net (h256) | 45% | 46% | **11%** |
+| king | 51% | 69% | **9%** (11% on danger) |
+| quietdef | 53% | 77% | 6% |
+| pawn | 55% | 83% | 4% |
+| see / defender / tactics | 50–51% | 77–80% | 4–5% |
+
+**Ensemble coverage: ≥1 lane matches the oracle on 71% of positions vs fast
+alone 52% → +19% harvestable.** Danger split: king lane unique-and-right 11%
+in its specialty domain — the targeted-expert behavior working as designed.
+
+Implications:
+1. No lane individually beats fast — the value is ensemble coverage.
+2. The gap (ensemble knows 71%, judge harvests 52%) is pure AGGREGATION loss.
+   Passive TT-hint diffusion under-harvests; the next mechanism is **root
+   candidate harvesting**: collect each lane's top move (~7 candidates), main
+   thread verifies each with a deeper targeted search, picks the best
+   verified. Judge reads the case file directly.
+3. Level-2 eval profiles created the diversity (Level-1 ordering alone was
+   mute: 94-100% agreement, 0-3% unique voice).
