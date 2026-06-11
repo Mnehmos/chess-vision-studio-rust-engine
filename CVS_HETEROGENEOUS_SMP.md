@@ -227,3 +227,33 @@ Implications:
    verified. Judge reads the case file directly.
 3. Level-2 eval profiles created the diversity (Level-1 ordering alone was
    mute: 94-100% agreement, 0-3% unique voice).
+
+---
+
+# Next layer: Speculative Opponent-Turn Search (CVS Ponder Cache)
+
+> "Searching the current board" → "continuously preparing the next board."
+
+While the opponent thinks, predict their likely replies (PV reply + forcing
+replies + fast-eval top replies + CVS-danger replies, deduped, cap ~6-10), run
+the EXPENSIVE loop (specialist lanes + arbiter) on those futures
+asynchronously, cache prepared responses, and on the actual move: cache hit →
+quick verification from the true position → play prepared move; miss → normal
+search. Opponent time becomes the budget for the disagreement/arbiter loop
+that is too expensive on our own clock.
+
+Cache entry (Zobrist-keyed): resulting_position_hash, best_response, score,
+depth, pv, eval_kind, registry_hash, lane_summary, arbiter decision.
+Invalidate on hash/model/registry mismatch. The ponder cache is intentional
+and explainable where the TT is broad and lossy.
+
+Rules:
+- **Cache suggests. Current search verifies.** Never play a cached move blind.
+- Stockfish may train/benchmark the predictor; it may NOT power runtime eval.
+
+Metrics: prediction top-1/3/5 hit, cache_hit_rate, cached_move_used,
+avg_depth_gain_on_hit, cp_gain_vs_no_ponder. Key question: when predicted,
+does the prepared response beat normal search at equal remaining time?
+
+Build order: predictor → cache → async lane dives on predicted futures →
+probe+verify on actual move → log hit quality. Dumb predictor first.
