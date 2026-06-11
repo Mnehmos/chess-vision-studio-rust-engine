@@ -62,7 +62,17 @@ fn main() {
         cvs_helpers: get("--cvs-helpers")
             .and_then(|s| s.parse().ok())
             .unwrap_or(0),
-        lane: cvs_bitboard_core::search::Lane::Fast,
+        // --lane king|see|tactics: run THIS searcher as a specialist lane
+        // (single-thread lane-voice measurement; SMP assigns its own roster).
+        lane: match get("--lane").as_deref() {
+            Some("king") => cvs_bitboard_core::search::Lane::KingSafety,
+            Some("see") => cvs_bitboard_core::search::Lane::See,
+            Some("tactics") => cvs_bitboard_core::search::Lane::Tactics,
+            Some("defender") => cvs_bitboard_core::search::Lane::DefenderRemoval,
+            Some("quietdef") => cvs_bitboard_core::search::Lane::QuietDefense,
+            Some("pawn") => cvs_bitboard_core::search::Lane::PawnEndgame,
+            _ => cvs_bitboard_core::search::Lane::Fast,
+        },
     };
 
     // --features: emit the eval + Rung-2 feature vector per FEN instead of

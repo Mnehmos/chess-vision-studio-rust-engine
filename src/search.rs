@@ -46,17 +46,72 @@ pub enum Lane {
     See,
     /// Bias forcing moves (checks, then captures) first.
     Tactics,
+    /// Bias captures of enemy pieces that DEFEND other enemy pieces
+    /// (remove-the-guard), plus attacks on loose pieces.
+    DefenderRemoval,
+    /// Bias quiet moves whose destination covers our own king zone — the ugly
+    /// human move that prevents collapse.
+    QuietDefense,
+    /// Bias pawn pushes toward promotion + king activity; phase-gated to low
+    /// material.
+    PawnEndgame,
 }
 
 impl Lane {
+    /// Provenance id — 2 TT bits, so specialist lanes share id 1-3 by family
+    /// group (King/Defense=1, See/DefenderRemoval=2, Tactics/Pawn=3).
     #[inline]
     pub fn id(self) -> u8 {
         match self {
             Lane::Fast => 0,
-            Lane::KingSafety => 1,
-            Lane::See => 2,
-            Lane::Tactics => 3,
+            Lane::KingSafety | Lane::QuietDefense => 1,
+            Lane::See | Lane::DefenderRemoval => 2,
+            Lane::Tactics | Lane::PawnEndgame => 3,
         }
+    }
+
+    /// Level-2 eval profile: the lane's own OPINION, expressed as a modified
+    /// rung2 weight set. Diversity lives in the evaluator (the 8-lane
+    /// benchmark showed ordering alone is mute: ~97% agreement, while an
+    /// eval-diverse lane spoke uniquely 51% of the time). The king family
+    /// values are the targeted ks-strong set that flipped the 4fxkLVBb loss
+    /// rows toward Stockfish's moves.
+    pub fn eval_profile(self, base: Option<Rung2Weights>) -> Option<Rung2Weights> {
+        let mut w = base.unwrap_or_default();
+        match self {
+            Lane::Fast => return base,
+            Lane::KingSafety => {
+                w.king_danger = 15.0;
+                w.king_central_exposure = 20.0;
+                w.open_center_king_penalty = 45.0;
+                w.king_escape_deficit = 12.0;
+                w.enemy_queen_near_king = 6.0;
+                w.king_zone_pressure *= 3.0;
+                w.king_open_file *= 3.0;
+                w.king_shield *= 3.0;
+            }
+            Lane::QuietDefense => {
+                w.king_shield *= 4.0;
+                w.king_escape_deficit = 10.0;
+                w.king_danger = 8.0;
+                w.hanging_piece *= 2.0;
+            }
+            Lane::See | Lane::DefenderRemoval => {
+                w.hanging_piece *= 4.0;
+            }
+            Lane::Tactics => {
+                w.mobility_knight *= 3.0;
+                w.mobility_bishop *= 3.0;
+                w.mobility_rook *= 2.0;
+                w.mobility_queen *= 3.0;
+            }
+            Lane::PawnEndgame => {
+                w.passed_pawn_mg *= 4.0;
+                w.passed_pawn_eg *= 4.0;
+                w.connected_passed_pawn *= 3.0;
+            }
+        }
+        Some(w)
     }
 }
 
@@ -250,6 +305,8 @@ const HISTORY_CAP: i32 = 1 << 14;
 pub struct Searcher {
     weights: ValueWeights,
     rung2: Option<Rung2Weights>,
+    /// Pristine rung2 weights (lane profiles derive from this, never compound).
+    rung2_base: Option<Rung2Weights>,
     tt: Arc<SharedTt>,
     tt_generation: u8,
     /// SMP stop flag — helpers abort when the main thread finishes.
@@ -279,6 +336,7 @@ impl Searcher {
     pub fn new(weights: ValueWeights, rung2: Option<Rung2Weights>) -> Searcher {
         Searcher {
             weights,
+            rung2_base: rung2,
             rung2,
             tt: Arc::new(SharedTt::new(TT_BITS)),
             tt_generation: 0,
@@ -401,6 +459,9 @@ impl Searcher {
     }
 
     fn search_single(&mut self, pos: &mut Position, opts: SearchOptions) -> SearchResult {
+        // Level-2 lane eval profile: derive this lane's evaluator opinion from
+        // the pristine base weights (never from a previously-profiled set).
+        self.rung2 = opts.lane.eval_profile(self.rung2_base);
         let mut max_depth = opts.depth.max(1);
         // Danger-triggered root extension (gated): king danger buys 1–2 extra plies.
         let danger_plies = if opts.danger_extension {
@@ -1072,6 +1133,71 @@ impl Searcher {
                 // this is mild, the lane's force is on captures (already tiered).
                 let s = see(pos, m.from, m.to);
                 s.clamp(-200, 200) * 50
+            }
+            Lane::DefenderRemoval => {
+                // Remove-the-guard: capturing a piece that itself defends other
+                // enemy material is worth more than its raw exchange value.
+                if !m.flag.is_capture() {
+                    return 0;
+                }
+                if let Some((vc, vp)) = pos.piece_at(m.to) {
+                    // How many enemy pieces does the victim defend from its square?
+                    let occ = pos.all;
+                    let att = match vp {
+                        Piece::Pawn => crate::attacks::pawn_attacks(vc, m.to),
+                        Piece::Knight => crate::attacks::knight_attacks(m.to),
+                        Piece::Bishop => crate::attacks::bishop_attacks(m.to, occ),
+                        Piece::Rook => crate::attacks::rook_attacks(m.to, occ),
+                        Piece::Queen => crate::attacks::queen_attacks(m.to, occ),
+                        Piece::King => king_attacks(m.to),
+                    };
+                    let guards = (att & pos.occ[vc.index()]).count_ones() as i32;
+                    guards * 20_000
+                } else {
+                    0
+                }
+            }
+            Lane::QuietDefense => {
+                // Quiet move whose destination covers our king zone.
+                if m.flag.is_capture() || m.flag.promo_piece().is_some() {
+                    return 0;
+                }
+                let Some((_, mp)) = pos.piece_at(m.from) else {
+                    return 0;
+                };
+                if mp == Piece::King {
+                    return 0;
+                }
+                let occ = pos.all;
+                let att = match mp {
+                    Piece::Pawn => crate::attacks::pawn_attacks(pos.stm, m.to),
+                    Piece::Knight => crate::attacks::knight_attacks(m.to),
+                    Piece::Bishop => crate::attacks::bishop_attacks(m.to, occ),
+                    Piece::Rook => crate::attacks::rook_attacks(m.to, occ),
+                    Piece::Queen => crate::attacks::queen_attacks(m.to, occ),
+                    Piece::King => 0,
+                };
+                let zone = king_attacks(pos.king_sq(pos.stm));
+                ((att & zone).count_ones() as i32) * 15_000
+            }
+            Lane::PawnEndgame => {
+                // Phase-gated: only speak in low material.
+                if phase_units(pos) > 10 {
+                    return 0;
+                }
+                let Some((_, mp)) = pos.piece_at(m.from) else {
+                    return 0;
+                };
+                match mp {
+                    Piece::Pawn => {
+                        // Push toward promotion: rank progress from mover POV.
+                        let r = crate::rank_of(m.to) as i32;
+                        let prog = if pos.stm == Color::White { r } else { 7 - r };
+                        prog * 8_000
+                    }
+                    Piece::King => 10_000, // king activity matters in endings
+                    _ => 0,
+                }
             }
             Lane::KingSafety => {
                 // Castling is the archetypal king-safety move.
