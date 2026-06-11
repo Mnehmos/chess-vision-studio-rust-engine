@@ -388,3 +388,18 @@ cannot resolve a +102 head-to-head gap; both gens read ~2375+/-65 absolute.
 The 305-game SPRT bound-cross remains the promotion-grade relative evidence.
 Confirms the standing lesson: external fixed-strength anchors compress
 learned-eval gaps; use anchors as floors, not deltas, below ~400 games.
+
+## 2026-06-11 — NNUE accumulator shipped; patch-7 pruning revival (gen7 changes the premise)
+
+**Accumulator (7208c04):** both-perspective incremental NNUE, slot-reuse stack.
+0.71 -> 0.87M nps (+22%), search-IDENTICAL at d8 (same nodes, same moves).
+Playout test: ±1cp f32 drift max, >=99% exact. cvs models keep full recompute.
+
+**Patch-7 revival hypothesis:** the -188 rejection ran futility/LMP against the
+CLASSICAL eval, which was king-danger-blind (-50 vs SF -480) — pruning trusted
+a delusional oracle and cut quiet defenses. gen7 is calibrated. d9 probe
+(gen7+accumulator): futility alone = 1.67x time-to-depth with IDENTICAL moves;
+full p7 stack = 8.5x with changed moves. Plan: SPRT futility solo vs gen7+acc
+baseline at 10+0.1 (then LMP, then SEE-prune, one at a time) once the ponder
+gate frees the box. Lesson candidate: prune validity is conditional on eval
+calibration — re-test pruning after every eval-generation change.
