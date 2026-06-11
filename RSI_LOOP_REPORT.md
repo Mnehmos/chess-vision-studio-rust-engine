@@ -403,3 +403,15 @@ full p7 stack = 8.5x with changed moves. Plan: SPRT futility solo vs gen7+acc
 baseline at 10+0.1 (then LMP, then SEE-prune, one at a time) once the ponder
 gate frees the box. Lesson candidate: prune validity is conditional on eval
 calibration — re-test pruning after every eval-generation change.
+
+## 2026-06-11 — PONDER FORMALLY PROMOTED (SPRT H1 accepted)
+
+gen7+ponder vs gen7, 10+0.1, identical binary (76ffb53), cutechess ponder flag:
+**+72 -33 =47 (152 games), 62.8%, llr 2.99 > 2.94 — H1 ACCEPTED. ~+91 Elo.**
+This with the known illegal-ponder-hint warnings still costing hits (pv[1]
+sometimes stale) — fix queued, upside still unclaimed. Frozen:
+f:/tools/cvs-baselines/uci-gen7-ponder.exe. Doctrine: enable ponder wherever
+an opponent clock exists (cutechess `ponder` flag; bot already has its richer
+top-3 cache layer). Box freed -> futility-pruning SPRT launches next
+(gen7+accumulator baseline, revival hypothesis: calibrated eval un-breaks
+pruning).
