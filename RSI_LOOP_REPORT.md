@@ -225,3 +225,36 @@ is the ceiling.** Learning on it fails (labels), tuning it is invisible
   accumulator needed for gen-1.
 - Next: train on the full gen-1 set, SPRT vs gen6; on pass, regenerate data
   with the NNUE engine at deeper labels (gen-2 bootstrap).
+
+## 2026-06-11 overnight: the SF-label saga and the first positive learned eval
+
+Two-track experiment (user-directed): raw NNUE vs CVS-NNUE, same SF-d12
+labels, same data/size/budget — isolating input representation.
+
+**Pipeline:** 7.53M unique positions (dedup of the d5 selfplay corpus)
+relabeled by 14 SF workers at d12 in ~3.5h, 0 failures, manifest at
+f:/tools/labels-sf-d12.manifest.json. Quiet filter via CVS hanging-material
+ids: 4.78M rows.
+
+**Three bugs found by gates, in order:**
+1. v1 collapse (cvs −527, raw 0.6% — all real mates, zero draws): nets played
+   with evals squashed to ±250 while losing by +10 pawns.
+2. v2 (quiet filter + stm-relative CVS ids) still collapsed → the fixes were
+   real but not root.
+3. ROOT CAUSE: **SF UCI scores are side-to-move POV; the relabel conversion
+   assumed white-POV** — half of 7.4M labels sign-inverted. The net averaged
+   contradictory targets into mush. (Old selfplay corpus had the explicit
+   white-POV conversion in selfplay.rs; the new pipeline missed it.)
+
+**v3 (corrected labels + quiet corpus + stm-relative geometry):**
+- holdout: raw 0.0239 / cvs 0.0232
+- statics: Q-up +1476; preBd6 −404 where classical says −50 and SF −480 —
+  the king-danger blindness priced correctly by a learned eval, first time.
+- **GATE: cvs-v3 vs gen6 = +9.6 ±30.8 Elo (+169 −158 =73, 400 games,
+  LOS 72.9%)** — the first learned eval to reach/exceed the handcrafted
+  champion. Not a formal pass; the wall is breached.
+- raw-v3 control vs gen6 running (the representation question).
+
+Lessons banked: gates catch what holdout cannot (v1 had the best holdout and
+the worst play); verify label POV conventions at the boundary; quiet-filter
+training corpora; stm-mirror ALL input families together.
