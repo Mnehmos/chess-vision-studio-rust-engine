@@ -6,14 +6,20 @@
 //! Perspective rule (must match the trainer): white to move → features are
 //! (piece, square) as-is; black to move → colors swapped and squares mirrored
 //! vertically (sq ^ 56), so the net always sees "my pieces are planes 0–5".
+use crate::eval::cvs_features;
 use crate::{Color, Piece, Position};
 
 pub const NNUE_INPUTS: usize = 768;
+/// cvs_nnue input width: piece-square (768) + CVS registry v1 ids (168).
+pub const CVS_NNUE_INPUTS: usize = NNUE_INPUTS + cvs_features::CVS_INPUT_DIM;
 
 #[derive(Clone)]
 pub struct Nnue {
     hidden: usize,
-    /// Flat (768 × hidden), row per feature.
+    inputs: usize,
+    /// True for cvs_nnue models (piece-square + CVS geometry ids).
+    cvs: bool,
+    /// Flat (inputs × hidden), row per feature.
     w1: Vec<f32>,
     b1: Vec<f32>,
     w2: Vec<f32>,
@@ -28,11 +34,30 @@ impl Nnue {
             serde_json::from_str(&text).map_err(|e| format!("parse {path}: {e}"))?;
         let hidden = v["hidden"].as_u64().ok_or("missing hidden")? as usize;
         let scale = v["outputScaleCp"].as_f64().ok_or("missing outputScaleCp")? as f32;
-        let w1_rows = v["w1"].as_array().ok_or("missing w1")?;
-        if w1_rows.len() != NNUE_INPUTS {
-            return Err(format!("w1 rows {} != {NNUE_INPUTS}", w1_rows.len()));
+        let cvs = v["modelKind"].as_str() == Some("cvs_nnue");
+        if cvs {
+            // Only the stm-relative geometry convention is valid: white-POV CVS
+            // ids beside stm-mirrored piece squares made the net side-blind
+            // (v1 post-mortem: -527 Elo). Refuse the broken convention.
+            if v["cvsStmRelative"].as_bool() != Some(true) {
+                return Err("cvs_nnue model lacks cvsStmRelative=true (v1 convention is broken) — refusing to load".into());
+            }
+            // Registry compatibility is non-negotiable: a silent mismatch would
+            // mis-map every geometry feature. Fail loudly.
+            let want = format!("{:016x}", cvs_features::registry_hash());
+            let got = v["registryHash"].as_str().unwrap_or("(missing)");
+            if got != want {
+                return Err(format!(
+                    "cvs_nnue registry hash mismatch: model {got} vs engine {want} — refusing to load"
+                ));
+            }
         }
-        let mut w1 = Vec::with_capacity(NNUE_INPUTS * hidden);
+        let expect_inputs = if cvs { CVS_NNUE_INPUTS } else { NNUE_INPUTS };
+        let w1_rows = v["w1"].as_array().ok_or("missing w1")?;
+        if w1_rows.len() != expect_inputs {
+            return Err(format!("w1 rows {} != {expect_inputs}", w1_rows.len()));
+        }
+        let mut w1 = Vec::with_capacity(expect_inputs * hidden);
         for row in w1_rows {
             let row = row.as_array().ok_or("w1 row not array")?;
             if row.len() != hidden {
@@ -58,6 +83,8 @@ impl Nnue {
         let b2 = v["b2"].as_f64().ok_or("missing b2")? as f32;
         Ok(Nnue {
             hidden,
+            inputs: expect_inputs,
+            cvs,
             w1,
             b1,
             w2,
@@ -88,6 +115,29 @@ impl Nnue {
                     for j in 0..h {
                         acc[j] += row[j];
                     }
+                }
+            }
+        }
+        if self.cvs {
+            // Geometry features ride at +768 in the same accumulator,
+            // STM-RELATIVE: the registry emits white-POV side bits, so flip
+            // the side when black is to move (mirrors the piece-square half).
+            let mut ids: Vec<u32> = Vec::with_capacity(32);
+            cvs_features::extract_cvs_ids_into(pos, &mut ids);
+            let flip = pos.stm == Color::Black;
+            for mut id in ids {
+                if flip {
+                    let fam = id / 8;
+                    let within = id % 8;
+                    let side = within / 4;
+                    let bucket = within % 4;
+                    id = fam * 8 + (1 - side) * 4 + bucket;
+                }
+                let f = NNUE_INPUTS + id as usize;
+                debug_assert!(f < self.inputs);
+                let row = &self.w1[f * h..f * h + h];
+                for j in 0..h {
+                    acc[j] += row[j];
                 }
             }
         }
