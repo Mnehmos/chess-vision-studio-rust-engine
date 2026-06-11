@@ -257,3 +257,37 @@ does the prepared response beat normal search at equal remaining time?
 
 Build order: predictor → cache → async lane dives on predicted futures →
 probe+verify on actual move → log hit quality. Dumb predictor first.
+
+---
+
+# Measured: Arbiter v1/v2 + predictor (the three-loop system is real)
+
+**Arbiter** (100 positions, candidates from 8 lanes, second-pass verification):
+| | fast | arbiter v1 | arbiter v2 | ceiling |
+|---|---:|---:|---:|---:|
+| oracle-match | 52.0% | 57.0% | **60.0%** | 71.0% |
+| danger subset | 53.7% | 61.0% | **62.2%** | — |
+| give-back | — | 5% | **0%** | — |
+| harvest rate | — | 52.6% | 42.1% | — |
+
+v1 = pure child-verification (d7 fast eval). v2 adds lane priors, domain match,
+fixes-the-flag tests (child CVS danger features), uneven verify depth (d8 for
+prioritized divergents), and an anti-giveback margin (challenger must beat
+fast's move by 10cp supported / 25cp unsupported). The margin eliminated
+give-back entirely at the cost of some harvest — net +3 overall. v1 kept as
+frozen baseline. v3 = margin tuning for supported challengers.
+
+Doctrine confirmed: **convergence for stability, divergence for strength,
+verification for safety.**
+
+**Opponent-reply predictor v1** (child-verification d4 ranking, 80 real
+transitions from d5 selfplay): top-1 62.5% · top-3 83.8% · **top-5 92.5%** ·
+top-8 97.5%. → Ponder cache GREEN-LIT at width 5. Tiered effort: reply 1 gets
+full lanes+arbiter, replies 2-3 reduced (fast+king+tactics), 4-5 fast-only.
+Cache suggests, current search verifies. Natural home: the lichess bot layer,
+where real opponent clock exists.
+
+Three loops, stated once:
+1. Specialist lanes create diversity.
+2. The arbiter mines divergence under verification.
+3. The opponent-turn loop precomputes likely futures on their clock.
