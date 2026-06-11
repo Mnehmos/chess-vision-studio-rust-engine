@@ -178,26 +178,42 @@ pub struct CvsActiveFeatures {
     pub names: Vec<String>,
 }
 
-/// Extract the active CVS feature IDs for a position. Pure, read-only,
-/// allocation-light (one Vec). Reuses the existing Rung-2 extraction so it adds
-/// no new geometry cost beyond bucketing.
-pub fn extract_cvs_features(pos: &Position) -> CvsActiveFeatures {
+/// CVS-FAST (Tier-1): active feature IDs only, appended into a caller-owned
+/// buffer. No allocation, no strings — this is the hot-path form for NNUE
+/// input and per-node search trace. `buf` is cleared first.
+pub fn extract_cvs_ids_into(pos: &Position, buf: &mut Vec<u32>) {
+    buf.clear();
     let r = extract_rung2(pos);
-    let mut ids = Vec::with_capacity(16);
-    let mut names = Vec::with_capacity(16);
     for (idx, fam) in FAMILIES.iter().enumerate() {
         let v = family_value(&r, idx);
         let b = bucket(v.abs(), &fam.thresholds);
         if b == 0 {
             continue;
         }
-        // side 0 = White-favoring (delta > 0), 1 = Black-favoring.
         let side = if v >= 0.0 { 0 } else { 1 };
-        let id = idx as u32 * FAMILY_STRIDE + side * (BUCKETS_PER_SIDE + 1) + b;
-        ids.push(id);
-        let who = if side == 0 { "WHITE" } else { "BLACK" };
-        names.push(format!("{}_{}_BUCKET_{}", who, fam.key, b));
+        buf.push(idx as u32 * FAMILY_STRIDE + side * (BUCKETS_PER_SIDE + 1) + b);
     }
+}
+
+/// Readable name for an active feature ID (debug / explanation alignment only).
+pub fn feature_name(id: u32) -> String {
+    let fam_idx = (id / FAMILY_STRIDE) as usize;
+    let within = id % FAMILY_STRIDE;
+    let side = within / (BUCKETS_PER_SIDE + 1);
+    let bucket = within % (BUCKETS_PER_SIDE + 1);
+    let who = if side == 0 { "WHITE" } else { "BLACK" };
+    match FAMILIES.get(fam_idx) {
+        Some(fam) => format!("{}_{}_BUCKET_{}", who, fam.key, bucket),
+        None => format!("UNKNOWN_{id}"),
+    }
+}
+
+/// CVS-FULL (debug/teaching): active IDs plus readable names. Built on the fast
+/// path — strings are added only here, never in the hot loop.
+pub fn extract_cvs_features(pos: &Position) -> CvsActiveFeatures {
+    let mut ids = Vec::with_capacity(16);
+    extract_cvs_ids_into(pos, &mut ids);
+    let names = ids.iter().map(|&id| feature_name(id)).collect();
     CvsActiveFeatures { ids, names }
 }
 

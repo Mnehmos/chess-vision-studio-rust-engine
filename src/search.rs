@@ -71,6 +71,11 @@ pub struct SearchOptions {
     /// history, shared stop flag). 1 = single-threaded, byte-identical to the
     /// pre-SMP engine.
     pub threads: usize,
+    /// CVS geometry trace (brief Gate 2): when on, extract CVS features at each
+    /// leaf eval and fold the active-id count into telemetry. OBSERVATIONAL
+    /// only - does not alter move choice. Default OFF; benchmark-mode upper
+    /// bound on the per-node geometry cost.
+    pub cvs_trace: bool,
 }
 
 impl Default for SearchOptions {
@@ -95,6 +100,7 @@ impl Default for SearchOptions {
             see_prune: false,
             delta_prune: false,
             threads: 1,
+            cvs_trace: false,
         }
     }
 }
@@ -137,6 +143,8 @@ pub struct Telemetry {
     pub see_prune_skips: u64,
     /// Captures dropped by delta pruning in quiescence (Patch 7).
     pub delta_skips: u64,
+    /// Sum of active CVS feature IDs seen at leaves when cvs_trace is on.
+    pub cvs_trace_features: u64,
 }
 
 #[derive(Clone, Debug)]
@@ -219,6 +227,8 @@ pub struct Searcher {
     /// NNUE eval head — when loaded, replaces the classical eval at every
     /// static/leaf eval site (search shape unchanged).
     nnue: Option<Nnue>,
+    /// Reusable scratch for CVS-Fast trace IDs (no per-node allocation).
+    cvs_buf: Vec<u32>,
 }
 
 impl Searcher {
@@ -237,6 +247,7 @@ impl Searcher {
             killers: vec![[None; 2]; MAX_KILLER_PLY],
             history: vec![0; 2 * 64 * 64],
             nnue: None,
+            cvs_buf: Vec::with_capacity(32),
         }
     }
 
@@ -487,7 +498,11 @@ impl Searcher {
         evaluate(pos, &self.weights, self.rung2.as_ref())
     }
 
-    fn leaf_eval(&self, pos: &Position, no_legal: bool, checked: bool) -> i32 {
+    fn leaf_eval(&mut self, pos: &Position, no_legal: bool, checked: bool) -> i32 {
+        if self.opts.cvs_trace {
+            crate::eval::cvs_features::extract_cvs_ids_into(pos, &mut self.cvs_buf);
+            self.tel.cvs_trace_features += self.cvs_buf.len() as u64;
+        }
         if no_legal {
             return if checked { -MATE_SCORE } else { 0 };
         }
