@@ -61,10 +61,11 @@ for cfg in configs:
         'quiet_avg': statistics.mean(ql) if ql else None,
     }
     out[cfg['name']] = {'stats': stats, 'moves': moves, 'losses': losses}
+    fmt = lambda v: f'{v:>7.1f}' if v is not None else '      -'
     print(f"{cfg['name']:>12s} {stats['match_pct']:>6.1f}% {stats['avg']:>7.1f} "
           f"{stats['median']:>6.0f} {stats['p90']:>5.0f} {stats['p95']:>5.0f} "
           f"{stats['bl100_pct']:>5.1f}% {stats['bl200_pct']:>5.1f}% "
-          f"{stats['danger_avg']:>7.1f} {stats['quiet_avg']:>7.1f}")
+          f"{fmt(stats['danger_avg'])} {fmt(stats['quiet_avg'])}")
 sf.close()
 
 if len(configs) == 2:

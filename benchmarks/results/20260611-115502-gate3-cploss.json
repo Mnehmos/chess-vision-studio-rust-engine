@@ -1,0 +1,40 @@
+{
+ "provenance": [
+  {
+   "date": "2026-06-11T18:55:02+00:00",
+   "git_commit": "fa58fb8",
+   "git_describe": "snapshot/gen7-acc-futility-2026-06-11-1-gfa58fb8-dirty",
+   "machine": "DESKTOP-KF0SM7V",
+   "engine_exe": "f:/tools/cvs-baselines/analyze-gen7-acc-futility.exe",
+   "engine_sha": "3376c2ac434b1a71",
+   "net": "f:/tools/cvs-baselines/raw-nnue-h256-sf-d12-v3.json",
+   "net_sha": "4cc9765c35c92d51",
+   "futility": true,
+   "extra_flags": [],
+   "threads": 1,
+   "depth": 9,
+   "baseline_ref": "snapshot/gen7-acc-futility-2026-06-11"
+  }
+ ],
+ "suite": {
+  "name": "suite-hard-100",
+  "hash": "fa4e2cd8e2f196a8"
+ },
+ "engine_budget": {
+  "movetime_ms": null,
+  "depth": 9
+ },
+ "results": {
+  "baseline": {
+   "match_pct": 29.0,
+   "avg": 46.91,
+   "median": 26.0,
+   "p90": 129,
+   "p95": 168,
+   "bl100_pct": 13.0,
+   "bl200_pct": 4.0,
+   "danger_avg": null,
+   "quiet_avg": 46.91
+  }
+ }
+}
