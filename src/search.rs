@@ -31,6 +31,23 @@ const MAX_QUIESCENCE_PLY: u32 = 64;
 const QUIET_CHECK_MAX_PLY: u32 = 2;
 const MAX_QUIET_CHECKS_PER_NODE: usize = 3;
 
+/// Specialist search lane (CVS_HETEROGENEOUS_SMP.md). Changes ONLY move
+/// ordering on a helper thread (Level 1 / Channel A): the lane biases its
+/// failure-family's moves to the front so its TT move propagates to the fast
+/// main thread. Ordering never affects the alpha-beta value, so this is
+/// correctness-safe.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum Lane {
+    #[default]
+    Fast,
+    /// Bias king-defending moves first (king tropism + castling).
+    KingSafety,
+    /// Bias clean SEE-winning captures / material rescue first.
+    See,
+    /// Bias forcing moves (checks, then captures) first.
+    Tactics,
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct SearchOptions {
     /// Iterative-deepening target depth. Default 4.
@@ -81,6 +98,9 @@ pub struct SearchOptions {
     /// classical eval. K=0 = homogeneous. Only meaningful with threads>1 and a
     /// loaded net. See CVS_HETEROGENEOUS_SMP.md.
     pub cvs_helpers: usize,
+    /// Specialist ordering lane for THIS searcher (helpers get assigned a
+    /// roster; the main thread stays Fast). Ordering-only, Channel-A safe.
+    pub lane: Lane,
 }
 
 impl Default for SearchOptions {
@@ -107,6 +127,7 @@ impl Default for SearchOptions {
             threads: 1,
             cvs_trace: false,
             cvs_helpers: 0,
+            lane: Lane::Fast,
         }
     }
 }
@@ -326,8 +347,17 @@ impl Searcher {
                 let mut hpos = pos.clone();
                 // Odd helpers aim one ply deeper — cheap diversity so threads
                 // don't lockstep on identical trees.
+                // Specialist lane roster for the first K helpers (Channel-A
+                // ordering-only); remaining helpers stay Fast.
+                const ROSTER: [Lane; 3] = [Lane::KingSafety, Lane::See, Lane::Tactics];
+                let lane = if t < opts.cvs_helpers {
+                    ROSTER[t % ROSTER.len()]
+                } else {
+                    Lane::Fast
+                };
                 let hopts = SearchOptions {
                     depth: single.depth + (t as u32 & 1),
+                    lane,
                     ..single
                 };
                 let lead = 2 + (t as u32 % 6);
@@ -978,14 +1008,93 @@ impl Searcher {
                 };
             }
             if killers[0] == Some(*m) {
-                return 700_000;
+                return 700_000 + self.lane_bonus(pos, *m);
             }
             if killers[1] == Some(*m) {
-                return 699_999;
+                return 699_999 + self.lane_bonus(pos, *m);
             }
-            self.history[Self::history_idx(side, *m)]
+            self.history[Self::history_idx(side, *m)] + self.lane_bonus(pos, *m)
         };
         moves.sort_by_key(|m| -score_of(m));
+    }
+
+    /// Lane ordering bonus (Level-1 specialist lanes). Applied to quiet/killer
+    /// tiers so it reorders WITHIN ordering without displacing the TT move or
+    /// winning captures. Ordering-only -> cannot change the search value.
+    fn lane_bonus(&self, pos: &Position, m: Move) -> i32 {
+        match self.opts.lane {
+            Lane::Fast => 0,
+            Lane::Tactics => {
+                // Forcing first: checks lifted above the quiet tail.
+                let mut p = pos.clone();
+                if gives_check(&mut p, m) {
+                    60_000
+                } else {
+                    0
+                }
+            }
+            Lane::See => {
+                // Reward moves to/that leave a clean material footing; for quiets
+                // this is mild, the lane's force is on captures (already tiered).
+                let s = see(pos, m.from, m.to);
+                s.clamp(-200, 200) * 50
+            }
+            Lane::KingSafety => {
+                // Castling is the archetypal king-safety move.
+                if matches!(m.flag, MoveFlag::KingCastle | MoveFlag::QueenCastle) {
+                    return 80_000;
+                }
+                // Otherwise prefer moves that REDUCE enemy king-tropism toward
+                // our own king (cheap: enemy piece weight / distance to our king).
+                let before = self.king_tropism(pos);
+                let mut p = pos.clone();
+                p.make(m);
+                let after = self.king_tropism_of(&p, pos.stm);
+                p.unmake();
+                // Lower tropism after = safer = higher bonus.
+                ((before - after) * 1500).clamp(-40_000, 40_000)
+            }
+        }
+    }
+
+    /// Enemy king-tropism toward the side-to-move's own king (higher = more
+    /// enemy pressure). Cheap king-safety proxy: Σ enemyWeight / Chebyshev dist.
+    fn king_tropism(&self, pos: &Position) -> i32 {
+        self.king_tropism_of(pos, pos.stm)
+    }
+
+    fn king_tropism_of(&self, pos: &Position, own: Color) -> i32 {
+        let ksq = pos.king_sq(own);
+        let kf = crate::file_of(ksq) as i32;
+        let kr = crate::rank_of(ksq) as i32;
+        let enemy = own.flip().index();
+        let mut t = 0i32;
+        // Knights/bishops 2, rooks 3, queens 5 (attack-unit weights).
+        for (pc, w) in [
+            (Piece::Knight, 2),
+            (Piece::Bishop, 2),
+            (Piece::Rook, 3),
+            (Piece::Queen, 5),
+        ] {
+            let mut bb = pos.pieces[enemy][pc.index()];
+            while bb != 0 {
+                let sq = bb.trailing_zeros() as u8;
+                bb &= bb - 1;
+                let df = (crate::file_of(sq) as i32 - kf).abs();
+                let dr = (crate::rank_of(sq) as i32 - kr).abs();
+                let dist = df.max(dr).max(1);
+                t += w * (8 - dist).max(0);
+            }
+        }
+        t
+    }
+
+    /// Test/inspection: the lane-ordered root moves for a position.
+    pub fn debug_ordered_root_moves(&mut self, pos: &mut Position, lane: Lane) -> Vec<Move> {
+        self.opts.lane = lane;
+        let mut moves = generate_legal(pos);
+        self.order_moves(pos, &mut moves, None, 0);
+        moves
     }
 
     #[inline]

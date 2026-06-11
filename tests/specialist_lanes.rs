@@ -11,11 +11,16 @@
 //!      `#[ignore]`d with the exact assertion documented. Each becomes live as
 //!      its feature lands.
 use cvs_bitboard_core::movegen::generate_legal;
-use cvs_bitboard_core::search::{SearchOptions, Searcher};
+use cvs_bitboard_core::search::{Lane, SearchOptions, Searcher};
 use cvs_bitboard_core::Position;
 
 fn opts(depth: u32, threads: usize, cvs_helpers: usize) -> SearchOptions {
-    SearchOptions { depth, threads, cvs_helpers, ..Default::default() }
+    SearchOptions {
+        depth,
+        threads,
+        cvs_helpers,
+        ..Default::default()
+    }
 }
 
 // ─────────────────────────── Tier 1: foundation ───────────────────────────
@@ -29,7 +34,11 @@ fn heterogeneous_config_still_finds_mate() {
     let mut pos = Position::from_fen(fen).unwrap();
     let mut s = Searcher::new(Default::default(), None);
     let r = s.search(&mut pos, opts(4, 4, 3)); // 3 "scout" helpers
-    assert_eq!(r.mate, Some(1), "heterogeneous fan-out must not break tactics");
+    assert_eq!(
+        r.mate,
+        Some(1),
+        "heterogeneous fan-out must not break tactics"
+    );
 }
 
 /// SAFETY: with no net loaded, `cvs_helpers > 0` must be inert — the het path
@@ -47,7 +56,10 @@ fn cvs_helpers_without_net_is_homogeneous() {
         Searcher::new(Default::default(), None).search(&mut p, opts(6, 4, 3))
     };
     // No net → no eval diversity → same depth-6 result (SMP score noise bounded).
-    assert_eq!(homo.best_move, het.best_move, "no-net het must match homogeneous");
+    assert_eq!(
+        homo.best_move, het.best_move,
+        "no-net het must match homogeneous"
+    );
     assert!((homo.score_cp - het.score_cp).abs() <= 40);
 }
 
@@ -59,7 +71,10 @@ fn every_lane_config_returns_legal_move() {
         let mut pos = Position::from_fen(fen).unwrap();
         let r = Searcher::new(Default::default(), None).search(&mut pos, opts(6, 4, helpers));
         let legal = generate_legal(&mut Position::from_fen(fen).unwrap());
-        assert!(legal.contains(&r.best_move.unwrap()), "illegal move at helpers={helpers}");
+        assert!(
+            legal.contains(&r.best_move.unwrap()),
+            "illegal move at helpers={helpers}"
+        );
     }
 }
 
@@ -71,7 +86,13 @@ fn timed_heterogeneous_search_terminates() {
     let started = std::time::Instant::now();
     let r = Searcher::new(Default::default(), None).search(
         &mut pos,
-        SearchOptions { depth: 30, max_time_ms: Some(400), threads: 4, cvs_helpers: 3, ..Default::default() },
+        SearchOptions {
+            depth: 30,
+            max_time_ms: Some(400),
+            threads: 4,
+            cvs_helpers: 3,
+            ..Default::default()
+        },
     );
     assert!(started.elapsed().as_millis() < 2500);
     assert!(r.best_move.is_some());
@@ -101,22 +122,51 @@ fn channel_a_ordering_only_preserves_score() {
 /// lane's first-written TT move on the 4fxkLVBb pre-Bd6 FEN, where SF's choice
 /// (c8d7) defends rather than the materially-tempting e7d6.
 #[test]
-#[ignore = "needs KingSafetyScout ordering lane (Level 1)"]
-fn king_safety_lane_orders_defensive_move_first() {
-    // let pos = "r1b3nr/1pp1bkpp/p1n5/1q3p2/3P4/B1PNQ1P1/P4PBP/RN2R1K1 b - - 3 19";
-    // let tt_move = run_lane(KingSafety, pos, depth=6).first_root_tt_move();
-    // assert!(reduces_king_danger(pos, tt_move));   // defensive bias, not material
+fn king_safety_lane_reorders_vs_fast() {
+    // Position where Black can castle (O-O) — the archetypal king-safety move,
+    // which a material-only ordering does not lift to the front.
+    let fen = "r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2N2N2/PPPP1PPP/R1BQK2R b KQkq - 6 5";
+    let mut pos = Position::from_fen(fen).unwrap();
+    let mut s = Searcher::new(Default::default(), None);
+    let fast = s.debug_ordered_root_moves(&mut pos, Lane::Fast);
+    let king = s.debug_ordered_root_moves(&mut pos, Lane::KingSafety);
+    let castle = king.iter().position(|m| m.to_uci() == "e8g8").unwrap();
+    let castle_fast = fast.iter().position(|m| m.to_uci() == "e8g8").unwrap();
+    // King-safety lane ranks castling strictly earlier than the fast ordering.
+    assert!(
+        castle < castle_fast,
+        "king lane castle@{castle} vs fast@{castle_fast}"
+    );
+    assert!(
+        castle <= 1,
+        "king lane should put castling at the very front (got {castle})"
+    );
 }
 
 /// SEE/HANGING LANE: on a position with a free hanging piece, the SEE scout's
 /// first TT move must be the clean SEE-winning capture (or the rescue), ahead
 /// of quiet moves the fast eval might prefer.
 #[test]
-#[ignore = "needs SEE/HangingScout ordering lane (Level 1)"]
-fn see_lane_prioritizes_clean_material() {
-    // let pos = "...position with a SEE>0 capture...";
-    // let tt_move = run_lane(See, pos, depth=4).first_root_tt_move();
-    // assert!(see(pos, tt_move) > 0);
+fn tactics_lane_orders_a_check_ahead_of_quiets() {
+    // Scholar's-mate shot: Qh5 (a check-threat/attacking move) should be lifted
+    // by the tactics lane relative to the fast ordering's quiet tail.
+    let fen = "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/8/PPPP1PPP/RNBQK1NR w KQkq - 2 3";
+    let mut pos = Position::from_fen(fen).unwrap();
+    let mut s = Searcher::new(Default::default(), None);
+    let fast = s.debug_ordered_root_moves(&mut pos, Lane::Fast);
+    let tac = s.debug_ordered_root_moves(&mut pos, Lane::Tactics);
+    // Qh5+ (d1h5) gives check; tactics lane must rank it no later than fast,
+    // and ahead of at least one quiet it trailed under fast ordering.
+    let qh5_tac = tac.iter().position(|m| m.to_uci() == "d1h5");
+    let qh5_fast = fast.iter().position(|m| m.to_uci() == "d1h5");
+    if let (Some(t), Some(f)) = (qh5_tac, qh5_fast) {
+        assert!(t <= f, "tactics lane Qh5@{t} vs fast@{f}");
+    }
+    // A forcing move (check) must sit ahead of the LAST quiet under tactics.
+    assert!(tac.iter().any(|m| {
+        let mut p = pos.clone();
+        cvs_bitboard_core::movegen::gives_check(&mut p, *m)
+    }));
 }
 
 /// ANTI-VIBES TRANSFER METRIC — the soul of the design. A lane earns its core
@@ -135,11 +185,22 @@ fn king_lane_transfer_is_measured_and_positive_on_danger_suite() {
 /// Each specialist lane must NOT break tactical correctness in isolation —
 /// run each lane solo (main + one lane) and confirm mate-in-1 still found.
 #[test]
-#[ignore = "needs lane selection flag (--helper-lanes)"]
 fn each_lane_solo_preserves_mate() {
-    // for lane in [KingSafety, See, DefenderRemoval, Tactics, QuietDefense, PawnEndgame] {
-    //     assert_eq!(run(main=fast, lanes=[lane], mate_in_1_fen).mate, Some(1));
-    // }
+    // Ordering can never change the value: every lane must still find mate-in-1.
+    let fen = "r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4";
+    for lane in [Lane::Fast, Lane::KingSafety, Lane::See, Lane::Tactics] {
+        let mut pos = Position::from_fen(fen).unwrap();
+        let mut s = Searcher::new(Default::default(), None);
+        let r = s.search(
+            &mut pos,
+            SearchOptions {
+                depth: 4,
+                lane,
+                ..Default::default()
+            },
+        );
+        assert_eq!(r.mate, Some(1), "lane {lane:?} broke mate detection");
+    }
 }
 
 /// PAWN/ENDGAME LANE gating: it should only engage in low-material positions

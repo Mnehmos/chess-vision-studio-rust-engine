@@ -62,6 +62,7 @@ fn main() {
         cvs_helpers: get("--cvs-helpers")
             .and_then(|s| s.parse().ok())
             .unwrap_or(0),
+        lane: cvs_bitboard_core::search::Lane::Fast,
     };
 
     // --features: emit the eval + Rung-2 feature vector per FEN instead of
