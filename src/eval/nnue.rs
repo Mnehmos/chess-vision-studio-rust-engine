@@ -7,11 +7,21 @@
 //! (piece, square) as-is; black to move → colors swapped and squares mirrored
 //! vertically (sq ^ 56), so the net always sees "my pieces are planes 0–5".
 use crate::eval::cvs_features;
-use crate::{Color, Piece, Position};
+use crate::{Color, Move, MoveFlag, Piece, Position};
 
 pub const NNUE_INPUTS: usize = 768;
 /// cvs_nnue input width: piece-square (768) + CVS registry v1 ids (168).
 pub const CVS_NNUE_INPUTS: usize = NNUE_INPUTS + cvs_features::CVS_INPUT_DIM;
+
+/// Both-perspective hidden-layer sums, maintained incrementally across
+/// make/unmake by the searcher (a stack of these — clone-on-make, pop-on-
+/// unmake). Two views because features are stm-relative: white's view uses
+/// (color, square) as-is, black's swaps colors and mirrors squares.
+#[derive(Clone)]
+pub struct Accumulator {
+    pub white: Vec<f32>,
+    pub black: Vec<f32>,
+}
 
 #[derive(Clone)]
 pub struct Nnue {
@@ -91,6 +101,109 @@ impl Nnue {
             b2,
             scale,
         })
+    }
+
+    /// Incremental updates only apply to pure piece-square models; cvs_nnue
+    /// re-extracts geometry per position and stays on the full recompute.
+    pub fn supports_incremental(&self) -> bool {
+        !self.cvs
+    }
+
+    /// Both-perspective accumulator built from scratch (search-root entry).
+    pub fn fresh_acc(&self, pos: &Position) -> Accumulator {
+        let h = self.hidden;
+        let mut acc = Accumulator {
+            white: self.b1.clone(),
+            black: self.b1.clone(),
+        };
+        debug_assert_eq!(acc.white.len(), h);
+        for ci in 0..2usize {
+            for p in Piece::ALL {
+                let mut bb = pos.pieces[ci][p.index()];
+                while bb != 0 {
+                    let sq = bb.trailing_zeros() as usize;
+                    bb &= bb - 1;
+                    self.feat(&mut acc, ci, p, sq, 1.0);
+                }
+            }
+        }
+        acc
+    }
+
+    /// Add (+1) or remove (-1) one piece-square feature from BOTH perspective
+    /// accumulators. White view: plane = color*6+piece, square as-is. Black
+    /// view: colors swapped, square vertically mirrored — exactly the
+    /// `eval_stm` perspective rule, maintained persistently.
+    #[inline]
+    fn feat(&self, acc: &mut Accumulator, ci: usize, p: Piece, sq: usize, sign: f32) {
+        let h = self.hidden;
+        let wf = (ci * 6 + p.index()) * 64 + sq;
+        let bf = ((1 - ci) * 6 + p.index()) * 64 + (sq ^ 56);
+        let wrow = &self.w1[wf * h..wf * h + h];
+        let brow = &self.w1[bf * h..bf * h + h];
+        for j in 0..h {
+            acc.white[j] += sign * wrow[j];
+            acc.black[j] += sign * brow[j];
+        }
+    }
+
+    /// Apply `mv`'s feature deltas to `acc`. MUST be called with the position
+    /// BEFORE `pos.make(mv)` — it reads the mover and capture target from the
+    /// pre-move board. Mirrors Position::make's piece bookkeeping exactly.
+    pub fn acc_apply(&self, acc: &mut Accumulator, pos: &Position, mv: Move) {
+        let us = pos.stm;
+        let them = us.flip();
+        let (ui, ti) = (us.index(), them.index());
+        let from = mv.from as usize;
+        let to = mv.to as usize;
+        let moving = pos
+            .piece_at(mv.from)
+            .map(|(_, p)| p)
+            .expect("acc_apply: empty from-square");
+        self.feat(acc, ui, moving, from, -1.0);
+        match mv.flag {
+            MoveFlag::EnPassant => {
+                self.feat(acc, ti, Piece::Pawn, to ^ 8, -1.0);
+                self.feat(acc, ui, Piece::Pawn, to, 1.0);
+            }
+            MoveFlag::KingCastle | MoveFlag::QueenCastle => {
+                self.feat(acc, ui, Piece::King, to, 1.0);
+                // Rook hop, same ranks as Position::make: king-side h->f,
+                // queen-side a->d (relative to the king's destination).
+                let (rf, rt) = if mv.flag == MoveFlag::KingCastle {
+                    (to + 1, to - 1)
+                } else {
+                    (to - 2, to + 1)
+                };
+                self.feat(acc, ui, Piece::Rook, rf, -1.0);
+                self.feat(acc, ui, Piece::Rook, rt, 1.0);
+            }
+            _ => {
+                if mv.flag.is_capture() {
+                    let cap = pos
+                        .piece_at(mv.to)
+                        .map(|(_, p)| p)
+                        .expect("acc_apply: capture with empty to-square");
+                    self.feat(acc, ti, cap, to, -1.0);
+                }
+                let placed = mv.flag.promo_piece().unwrap_or(moving);
+                self.feat(acc, ui, placed, to, 1.0);
+            }
+        }
+    }
+
+    /// Centipawns from `stm`'s perspective using the maintained accumulator —
+    /// the hot-path replacement for `eval_stm`'s full recompute.
+    pub fn eval_acc(&self, acc: &Accumulator, stm: Color) -> i32 {
+        let side = match stm {
+            Color::White => &acc.white,
+            Color::Black => &acc.black,
+        };
+        let mut out = self.b2;
+        for j in 0..self.hidden {
+            out += self.w2[j] * side[j].clamp(0.0, 1.0);
+        }
+        (out * self.scale).round() as i32
     }
 
     /// Centipawns from the side to move's perspective.

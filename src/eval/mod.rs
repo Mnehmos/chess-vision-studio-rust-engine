@@ -12,7 +12,7 @@ pub mod rung2;
 pub mod weights;
 
 pub use cvs_features::{extract_cvs_features, registry_hash, CvsActiveFeatures, CVS_INPUT_DIM};
-pub use nnue::Nnue;
+pub use nnue::{Accumulator, Nnue};
 pub use rung2::{extract_rung2, rung2_contribution, Rung2Features};
 pub use weights::{Rung2Weights, ValueWeights};
 

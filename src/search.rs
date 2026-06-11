@@ -328,6 +328,15 @@ pub struct Searcher {
     /// NNUE eval head — when loaded, replaces the classical eval at every
     /// static/leaf eval site (search shape unchanged).
     nnue: Option<Nnue>,
+    /// Incremental NNUE accumulator path-stack (top = current node). Non-empty
+    /// only when the loaded net supports incremental updates; empty means
+    /// eval falls back to the full recompute. Maintained in lockstep with
+    /// pos.make/unmake at the three search sites (root/negamax/qsearch);
+    /// null moves change no pieces, so the top stays valid through them.
+    acc_stack: Vec<crate::eval::Accumulator>,
+    /// Index of the current node's accumulator in `acc_stack`
+    /// (usize::MAX = incremental path inactive).
+    acc_top: usize,
     /// Reusable scratch for CVS-Fast trace IDs (no per-node allocation).
     cvs_buf: Vec<u32>,
 }
@@ -349,6 +358,8 @@ impl Searcher {
             killers: vec![[None; 2]; MAX_KILLER_PLY],
             history: vec![0; 2 * 64 * 64],
             nnue: None,
+            acc_stack: Vec::new(),
+            acc_top: usize::MAX,
             cvs_buf: Vec::with_capacity(32),
         }
     }
@@ -487,6 +498,20 @@ impl Searcher {
         self.tel = Telemetry::default();
         self.tel.danger_extension_plies = danger_plies;
         self.aborted = false;
+        // Incremental NNUE: root accumulator rebuilt fresh per search (also
+        // bounds f32 drift to the search path length).
+        self.acc_top = usize::MAX;
+        if let Some(n) = &self.nnue {
+            if n.supports_incremental() {
+                let fresh = n.fresh_acc(pos);
+                if self.acc_stack.is_empty() {
+                    self.acc_stack.push(fresh);
+                } else {
+                    self.acc_stack[0] = fresh;
+                }
+                self.acc_top = 0;
+            }
+        }
         let started = Instant::now();
         self.deadline = opts
             .max_time_ms
@@ -583,6 +608,7 @@ impl Searcher {
         let mut best = -INF;
         let mut best_move: Option<Move> = None;
         for (move_index, mv) in legal.into_iter().enumerate() {
+            self.acc_make(pos, mv);
             pos.make(mv);
             let mut score;
             if !self.opts.pvs || move_index == 0 || alpha <= alpha0 {
@@ -596,6 +622,7 @@ impl Searcher {
                 }
             }
             pos.unmake();
+            self.acc_unmake();
             if self.aborted {
                 return (best, best_move);
             }
@@ -611,6 +638,36 @@ impl Searcher {
             self.store(pos.hash, depth, best, Flag::Exact, best_move);
         }
         (best, best_move)
+    }
+
+    /// Push the child accumulator for `mv` (call with the PRE-make position).
+    /// Slot-reuse: the stack never shrinks, so steady-state pushes are two
+    /// memcpys + the feature deltas — no per-node allocation.
+    #[inline]
+    fn acc_make(&mut self, pos: &Position, mv: Move) {
+        if let Some(n) = &self.nnue {
+            if self.acc_top == usize::MAX {
+                return; // incremental path inactive (cvs model)
+            }
+            let top = self.acc_top;
+            if self.acc_stack.len() <= top + 1 {
+                let clone = self.acc_stack[top].clone();
+                self.acc_stack.push(clone);
+            } else {
+                let (head, tail) = self.acc_stack.split_at_mut(top + 1);
+                tail[0].white.copy_from_slice(&head[top].white);
+                tail[0].black.copy_from_slice(&head[top].black);
+            }
+            n.acc_apply(&mut self.acc_stack[top + 1], pos, mv);
+            self.acc_top = top + 1;
+        }
+    }
+
+    #[inline]
+    fn acc_unmake(&mut self) {
+        if self.acc_top != usize::MAX && self.acc_top > 0 {
+            self.acc_top -= 1;
+        }
     }
 
     fn time_up(&mut self) -> bool {
@@ -632,6 +689,9 @@ impl Searcher {
     /// Side-to-move static eval — NNUE when loaded, classical otherwise.
     fn static_eval(&self, pos: &mut Position) -> i32 {
         if let Some(n) = &self.nnue {
+            if self.acc_top != usize::MAX {
+                return n.eval_acc(&self.acc_stack[self.acc_top], pos.stm);
+            }
             return n.eval_stm(pos);
         }
         evaluate(pos, &self.weights, self.rung2.as_ref())
@@ -649,6 +709,9 @@ impl Searcher {
             return 0;
         }
         if let Some(n) = &self.nnue {
+            if self.acc_top != usize::MAX {
+                return n.eval_acc(&self.acc_stack[self.acc_top], pos.stm);
+            }
             return n.eval_stm(pos);
         }
         let white = js_round(evaluate_white_float_nonterminal(
@@ -856,6 +919,7 @@ impl Searcher {
                 && Some(mv) != tt_move
                 && !killer_pair.contains(&Some(mv))
                 && !gives_check(pos, mv);
+            self.acc_make(pos, mv);
             pos.make(mv);
             let mut score;
             if reduce {
@@ -877,6 +941,7 @@ impl Searcher {
                 score = -self.negamax(pos, depth - 1, -beta, -alpha, ply + 1, true);
             }
             pos.unmake();
+            self.acc_unmake();
             if self.aborted {
                 return if best > -INF { best } else { score };
             }
@@ -1029,9 +1094,11 @@ impl Searcher {
             if mv.flag.is_capture() {
                 self.tel.q_capture_nodes += 1;
             }
+            self.acc_make(pos, mv);
             pos.make(mv);
             let score = -self.quiesce(pos, -beta, -alpha, ply + 1, q_depth + 1);
             pos.unmake();
+            self.acc_unmake();
             if self.aborted {
                 return best;
             }
