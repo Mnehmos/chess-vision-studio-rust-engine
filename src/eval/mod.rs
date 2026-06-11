@@ -5,11 +5,13 @@
 //!   tempo → optional Rung-2 contribution. With default weights this reproduces
 //!   the handcrafted eval; with the trained mixed weights it reproduces the gated
 //!   Rung-2 head. Parity target: TS float within tolerance on a curated FEN suite.
+pub mod cvs_features;
 pub mod nnue;
 pub mod pst;
 pub mod rung2;
 pub mod weights;
 
+pub use cvs_features::{extract_cvs_features, registry_hash, CvsActiveFeatures, CVS_INPUT_DIM};
 pub use nnue::Nnue;
 pub use rung2::{extract_rung2, rung2_contribution, Rung2Features};
 pub use weights::{Rung2Weights, ValueWeights};

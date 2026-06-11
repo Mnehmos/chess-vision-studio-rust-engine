@@ -191,6 +191,24 @@ fn main() {
                     }
                     Err(e) => serde_json::json!({ "fen": efen.trim(), "error": e }).to_string(),
                 }
+            } else if let Some(cfen) = fen.strip_prefix("cvs ") {
+                // CVS Feature Registry debug dump (first milestone): FEN -> active
+                // CVS-NNUE feature IDs + readable fact names.
+                match Position::from_fen(cfen.trim()) {
+                    Ok(pos) => {
+                        let f = cvs_bitboard_core::eval::extract_cvs_features(&pos);
+                        serde_json::json!({
+                            "fen": cfen.trim(),
+                            "registryVersion": cvs_bitboard_core::eval::cvs_features::CVS_REGISTRY_VERSION,
+                            "registryHash": format!("{:016x}", cvs_bitboard_core::eval::registry_hash()),
+                            "inputDim": cvs_bitboard_core::eval::CVS_INPUT_DIM,
+                            "activeIds": f.ids,
+                            "activeNames": f.names,
+                        })
+                        .to_string()
+                    }
+                    Err(e) => serde_json::json!({ "fen": cfen.trim(), "error": e }).to_string(),
+                }
             } else {
                 analyze_one(fen)
             };
