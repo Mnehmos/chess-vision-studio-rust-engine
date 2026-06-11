@@ -327,3 +327,33 @@ All five pass criteria met at every margin. Suite-overfit hypothesis REJECTED.
 Freeze manifest updated (frozen-evals/arbiter-v3-gen7-suite100-cploss-pass).
 Next: in-engine/bot-layer arbiter mode on opponent clock (ponder-cache shape);
 margin recommendation 5/15 or 10/25.
+
+## 2026-06-11 — Bot-layer gate: PLAIN PONDER PASSES, ARBITER-CACHE FAILS
+
+`arena/bench-ponder-cache.py`: 80 real transitions from the gen7-vs-gen6 SPRT
+games, top-5 predictor (gen7 d4 ranking), tiered opponent-clock effort, d6
+quick verify (reject >25cp). Cache hit rate 88.8% on real game replies.
+
+| config | avgCP | hit | miss | bl100 | bl200 | verify-rej |
+|---|---:|---:|---:|---:|---:|---:|
+| gen7-alone (d5) | 28.2 | 27.8 | 31.9 | 12.5% | 1.2% | — |
+| **gen7+plain-ponder (d7)** | **24.9** | **24.0** | 31.9 | 10.0% | **0.0%** | 1/71 |
+| gen7+arb-cache (5/15) | 29.0 | 28.7 | 31.9 | 13.8% | 1.2% | 3/71 |
+
+GATE VERDICT: plain ponder PROMOTES (beats gen7-alone, blunders eliminated).
+Arbiter-cache REJECTED at the bot layer — worse than doing nothing.
+
+Why the suite win didn't transfer (two compounding causes):
+1. WRONG BASELINE ON THE SUITES: arbiter was only ever compared to gen7-d5.
+   Given the same opponent-time budget, a plain gen7-d7 search of the
+   predicted child beats the arbiter's d5-main + candidate-verify, because
+   full search considers every move at depth while the arbiter only
+   deep-checks the d5 move + lane proposals. "Search deeper" beat "consult
+   the panel" at equal (actually lower) cost.
+2. POPULATION SHIFT: suites were 82% danger-classified; real game transitions
+   are mostly ordinary positions where lane switches add noise, not rescue.
+
+Hypothesis under test now (same seed, 4th config): DANGER-GATED HYBRID — CVS
+geometry decides WHEN to convene the lane panel (danger child -> arbiter,
+quiet child -> plain d7). This is the doctrine's "CVS = attention/search-
+control layer" made literal.
