@@ -1,0 +1,194 @@
+{
+ "provenance": [
+  {
+   "date": "2026-06-11T18:44:47+00:00",
+   "git_commit": "f07caae",
+   "git_describe": "snapshot/gen7-acc-futility-2026-06-11-dirty",
+   "machine": "DESKTOP-KF0SM7V",
+   "engine_exe": "f:/tools/cvs-baselines/analyze-gen7-acc-futility.exe",
+   "engine_sha": "3376c2ac434b1a71",
+   "net": "f:/tools/cvs-baselines/raw-nnue-h256-sf-d12-v3.json",
+   "net_sha": "4cc9765c35c92d51",
+   "futility": true,
+   "extra_flags": [],
+   "threads": 1,
+   "depth": 30,
+   "baseline_ref": "snapshot/gen7-acc-futility-2026-06-11"
+  }
+ ],
+ "times_ms": [
+  5,
+  10,
+  25,
+  50,
+  100,
+  250,
+  500,
+  1000,
+  2500,
+  5000
+ ],
+ "threads": [
+  1,
+  4,
+  8
+ ],
+ "positions": [
+  "startpos",
+  "midgame-r1",
+  "preBd6-danger",
+  "tactical-wac001"
+ ],
+ "table": {
+  "baseline|1T|5ms": {
+   "avg_depth": 2.25,
+   "avg_mnps": 0.509875,
+   "nodes": 9199
+  },
+  "baseline|1T|10ms": {
+   "avg_depth": 2.5,
+   "avg_mnps": 0.509875,
+   "nodes": 16367
+  },
+  "baseline|1T|25ms": {
+   "avg_depth": 3.5,
+   "avg_mnps": 0.5047550000000001,
+   "nodes": 38895
+  },
+  "baseline|1T|50ms": {
+   "avg_depth": 3.75,
+   "avg_mnps": 0.4905765384615385,
+   "nodes": 74735
+  },
+  "baseline|1T|100ms": {
+   "avg_depth": 4.0,
+   "avg_mnps": 0.4832864851485148,
+   "nodes": 144367
+  },
+  "baseline|1T|250ms": {
+   "avg_depth": 5.0,
+   "avg_mnps": 0.47876743027888446,
+   "nodes": 355311
+  },
+  "baseline|1T|500ms": {
+   "avg_depth": 5.75,
+   "avg_mnps": 0.48111792520934227,
+   "nodes": 712687
+  },
+  "baseline|1T|1000ms": {
+   "avg_depth": 6.0,
+   "avg_mnps": 0.4835355538589028,
+   "nodes": 1433583
+  },
+  "baseline|1T|2500ms": {
+   "avg_depth": 7.75,
+   "avg_mnps": 0.8735227999999999,
+   "nodes": 6218735
+  },
+  "baseline|1T|5000ms": {
+   "avg_depth": 8.5,
+   "avg_mnps": 0.88407,
+   "nodes": 12647407
+  },
+  "baseline|4T|5ms": {
+   "avg_depth": 2.5,
+   "avg_mnps": 3.6786333333333334,
+   "nodes": 64242
+  },
+  "baseline|4T|10ms": {
+   "avg_depth": 3.5,
+   "avg_mnps": 3.324568181818182,
+   "nodes": 102107
+  },
+  "baseline|4T|25ms": {
+   "avg_depth": 4.0,
+   "avg_mnps": 3.3772,
+   "nodes": 239608
+  },
+  "baseline|4T|50ms": {
+   "avg_depth": 4.5,
+   "avg_mnps": 3.30594,
+   "nodes": 476850
+  },
+  "baseline|4T|100ms": {
+   "avg_depth": 4.75,
+   "avg_mnps": 3.0876411881188117,
+   "nodes": 832504
+  },
+  "baseline|4T|250ms": {
+   "avg_depth": 6.0,
+   "avg_mnps": 3.46424,
+   "nodes": 2446328
+  },
+  "baseline|4T|500ms": {
+   "avg_depth": 6.5,
+   "avg_mnps": 3.411826,
+   "nodes": 4916973
+  },
+  "baseline|4T|1000ms": {
+   "avg_depth": 7.5,
+   "avg_mnps": 3.50008,
+   "nodes": 9916408
+  },
+  "baseline|4T|2500ms": {
+   "avg_depth": 8.25,
+   "avg_mnps": 3.641281208796481,
+   "nodes": 24225550
+  },
+  "baseline|4T|5000ms": {
+   "avg_depth": 9.0,
+   "avg_mnps": 3.3706655999999997,
+   "nodes": 48017192
+  },
+  "baseline|8T|5ms": {
+   "avg_depth": 2.75,
+   "avg_mnps": 8.076188095238095,
+   "nodes": 125479
+  },
+  "baseline|8T|10ms": {
+   "avg_depth": 3.5,
+   "avg_mnps": 7.08085,
+   "nodes": 199741
+  },
+  "baseline|8T|25ms": {
+   "avg_depth": 4.0,
+   "avg_mnps": 7.293599230769231,
+   "nodes": 459267
+  },
+  "baseline|8T|50ms": {
+   "avg_depth": 4.5,
+   "avg_mnps": 7.36093,
+   "nodes": 846309
+  },
+  "baseline|8T|100ms": {
+   "avg_depth": 5.5,
+   "avg_mnps": 6.537053861386139,
+   "nodes": 1692868
+  },
+  "baseline|8T|250ms": {
+   "avg_depth": 6.25,
+   "avg_mnps": 7.072059752988048,
+   "nodes": 4143621
+  },
+  "baseline|8T|500ms": {
+   "avg_depth": 7.0,
+   "avg_mnps": 6.269582670658682,
+   "nodes": 8363195
+  },
+  "baseline|8T|1000ms": {
+   "avg_depth": 7.75,
+   "avg_mnps": 6.881501626373627,
+   "nodes": 16697948
+  },
+  "baseline|8T|2500ms": {
+   "avg_depth": 8.25,
+   "avg_mnps": 6.9838728532586964,
+   "nodes": 40428027
+  },
+  "baseline|8T|5000ms": {
+   "avg_depth": 8.75,
+   "avg_mnps": 6.965471606638673,
+   "nodes": 80082506
+  }
+ }
+}

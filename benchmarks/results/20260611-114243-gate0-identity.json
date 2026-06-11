@@ -1,0 +1,18 @@
+{
+ "provenance": {
+  "date": "2026-06-11T18:42:42+00:00",
+  "git_commit": "f07caae",
+  "git_describe": "snapshot/gen7-acc-futility-2026-06-11-dirty",
+  "machine": "DESKTOP-KF0SM7V",
+  "engine_exe": "f:/tools/cvs-baselines/analyze-gen7-acc-futility.exe",
+  "engine_sha": "3376c2ac434b1a71",
+  "net": "f:/tools/cvs-baselines/raw-nnue-h256-sf-d12-v3.json",
+  "net_sha": "4cc9765c35c92d51",
+  "futility": true,
+  "extra_flags": [],
+  "threads": 1,
+  "depth": 4,
+  "baseline_ref": "snapshot/gen7-acc-futility-2026-06-11"
+ },
+ "pass": true
+}
