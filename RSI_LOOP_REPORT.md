@@ -292,3 +292,23 @@ gen7 alone 51%; some lane beats gen7 on cp-loss in 28% of positions. The lane
 layer is NOT obsolete post-gen7 — next frontier: rebuild roster with gen7 as
 main/verifier (gen6 + cvs-v3 + scalar profiles as diversity lanes), keep only
 lanes that add unique low-loss candidates, re-gate arbiter v2/v3 by cp-loss.
+
+## 2026-06-11 — Arbiter v3 (gen7-centered) PASSES the cp-loss milestone
+
+`arena/bench-arbiter-v3.py`: gen7 main/verifier, 9 lanes as provocateurs,
+gen7 child-verification d7 (d8 danger), support-scaled margins swept post-hoc.
+Same-run SF-d12 cp-loss scoring (gen7-alone re-scored in-run for fairness):
+
+| config | match% | avgCP | p90 | bl100 | bl200 | danger | quiet | giveback | harvest |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| gen7-alone | 51 | 22.7 | 79 | 8% | 2% | 23.6 | 18.4 | — | — |
+| arb 5/15 | 55 | **15.4** | **58** | 5% | 1% | 15.7 | 14.0 | 19% of 31 sw | **60%** |
+| arb 10/25 | 56 | 16.0 | 69 | 5% | 1% | 16.4 | 14.4 | 13% of 23 sw | 47% |
+| arb 25/50 | 57 | 15.8 | 69 | 5% | 1% | **15.2** | 18.4 | 6% of 16 sw | 37% |
+
+Milestone targets (avg<23.2, p90<87, bl200<=1%, danger<23.9, match>=51) met at
+EVERY margin. Danger avg cut by a third (23.6 -> ~16). bl200 1% preserved.
+see/defender harvested under verification without their 146cp blunders leaking.
+Caveats: same suite-100 the lanes were developed on (fresh-suite validation
+queued); benchmark-level decision quality, in-engine arbiter mode not yet built.
+SF-d12 rescore variance: gen7-alone reads 22.7/2% this run vs 23.2/1% prior.
