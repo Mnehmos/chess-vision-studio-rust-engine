@@ -1,0 +1,68 @@
+{
+ "provenance": [
+  {
+   "date": "2026-06-11T19:55:27+00:00",
+   "git_commit": "92b2190",
+   "git_describe": "snapshot/gen7-acc-futility-2026-06-11-3-g92b2190-dirty",
+   "machine": "DESKTOP-KF0SM7V",
+   "engine_exe": "f:/tools/cvs-baselines/analyze-gen7-acc-futility.exe",
+   "engine_sha": "3376c2ac434b1a71",
+   "net": "f:/tools/cvs-baselines/raw-nnue-h256-sf-d12-v3.json",
+   "net_sha": "4cc9765c35c92d51",
+   "futility": true,
+   "extra_flags": [],
+   "threads": 1,
+   "depth": 9,
+   "baseline_ref": "snapshot/gen7-acc-futility-2026-06-11"
+  },
+  {
+   "date": "2026-06-11T19:55:28+00:00",
+   "git_commit": "92b2190",
+   "git_describe": "snapshot/gen7-acc-futility-2026-06-11-3-g92b2190-dirty",
+   "machine": "DESKTOP-KF0SM7V",
+   "engine_exe": "f:/tools/cvs-baselines/analyze-gen7-acc-futility.exe",
+   "engine_sha": "3376c2ac434b1a71",
+   "net": "f:/tools/cvs-baselines/raw-nnue-h256-sf-d12-v3.json",
+   "net_sha": "4cc9765c35c92d51",
+   "futility": true,
+   "extra_flags": [
+    "--rfp"
+   ],
+   "threads": 1,
+   "depth": 9,
+   "baseline_ref": "snapshot/gen7-acc-futility-2026-06-11"
+  }
+ ],
+ "suite": {
+  "name": "suite-fresh-100",
+  "hash": "23275256e9ba122c"
+ },
+ "engine_budget": {
+  "movetime_ms": null,
+  "depth": 9
+ },
+ "results": {
+  "baseline": {
+   "match_pct": 60.0,
+   "avg": 11.64,
+   "median": 0.0,
+   "p90": 50,
+   "p95": 74,
+   "bl100_pct": 1.0,
+   "bl200_pct": 0.0,
+   "danger_avg": 13.475609756097562,
+   "quiet_avg": 3.2777777777777777
+  },
+  "rfp": {
+   "match_pct": 57.0,
+   "avg": 12.67,
+   "median": 0.0,
+   "p90": 51,
+   "p95": 74,
+   "bl100_pct": 0.0,
+   "bl200_pct": 0.0,
+   "danger_avg": 14.329268292682928,
+   "quiet_avg": 5.111111111111111
+  }
+ }
+}

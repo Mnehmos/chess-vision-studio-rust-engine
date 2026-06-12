@@ -1,0 +1,137 @@
+{
+  "name": "gen8-raw-nnue-training",
+  "created": "2026-06-11",
+  "baseline": {
+    "ref": "snapshot/gen7-acc-futility-2026-06-11",
+    "engine": "f:/tools/cvs-baselines/uci-gen7-acc-futility.exe",
+    "serveEngine": "f:/tools/cvs-baselines/analyze-gen7-acc-futility.exe",
+    "net": "f:/tools/cvs-baselines/raw-nnue-h256-sf-d12-v3.json",
+    "netSha256Prefix": "4cc9765c",
+    "inputGeometry": "raw-768-piece-square-stm-perspective",
+    "hidden": 256,
+    "labelDepth": 12
+  },
+  "firstCandidate": {
+    "id": "gen8-raw-h256-sf-d20",
+    "inputGeometry": "raw-768-piece-square-stm-perspective",
+    "hidden": 256,
+    "labelDepth": 20,
+    "purpose": "isolate stronger Stockfish labels while preserving gen7 hot-path shape"
+  },
+  "candidateOrder": [
+    "gen8-raw-h256-sf-d20",
+    "gen8-raw-h384-sf-d20",
+    "gen8-raw-h512-sf-d20",
+    "gen8-king-bucket-halfkp-lite"
+  ],
+  "dataTiers": [
+    {
+      "id": "tier-a-broad-quiet",
+      "targetRows": 4780000,
+      "source": "current quiet corpus",
+      "labelDepth": "d16-or-d20",
+      "status": "path-to-confirm"
+    },
+    {
+      "id": "tier-b-hard-booster",
+      "targetRows": "250k-1M",
+      "source": "losses, benchmark PGNs, high cp-loss, disagreement, pawn races, rook trades, king danger",
+      "labelDepth": "d20-or-d24",
+      "trackedSeeds": [
+        "training/gen8/seeds/hard-pgn-seeds.jsonl"
+      ]
+    },
+    {
+      "id": "tier-c-fresh-selfplay",
+      "source": "gen7 + accumulator + futility + ponder distribution",
+      "labelDepth": "d20",
+      "status": "generator exists: src/bin/selfplay.rs"
+    }
+  ],
+  "seedRowSchema": {
+    "required": [
+      "fen",
+      "sourceBucket",
+      "sourceFile",
+      "sourceKey",
+      "splitKey",
+      "gameId",
+      "ply",
+      "sideToMove",
+      "moveUci",
+      "moveSan",
+      "result",
+      "resultWhite",
+      "phase",
+      "material",
+      "tags"
+    ],
+    "notes": "Seed rows are provenance-rich relabel inputs. Trainer rows are adapted later to {fen, cp, res}."
+  },
+  "splitPolicy": {
+    "unit": "source/game",
+    "defaultTrainPct": 0.8,
+    "defaultValidationPct": 0.1,
+    "defaultTestPct": 0.1,
+    "script": "training/gen8/scripts/split_by_source.py",
+    "rule": "never random-split positions from the same game/source"
+  },
+  "lockedEvaluationSlices": [
+    "gen7 baseline positions",
+    "suite-fresh-100",
+    "suite-hard-100",
+    "eubos endgame seed set",
+    "king-danger set",
+    "passed-pawn set",
+    "quiet set"
+  ],
+  "hardBoosterMix": {
+    "broadQuietPct": "80-90",
+    "hardBoosterPct": "10-20",
+    "weightVariants": [
+      "1x",
+      "2x",
+      "4x"
+    ],
+    "rule": "oversample hard positions without letting them dominate normal play"
+  },
+  "labelRowSchema": {
+    "stockfish": [
+      "fen",
+      "res",
+      "sfCp",
+      "sfMate",
+      "sfDepth"
+    ],
+    "trainer": [
+      "fen",
+      "cp",
+      "res"
+    ],
+    "cpConvention": "trainer cp is White-POV; sfCp from sf-relabel-worker is side-to-move POV",
+    "mateHandling": "mate labels become signed mateCp before clipping",
+    "mateCp": 32000,
+    "clipCp": 2000,
+    "teacherDeltaScript": "training/gen8/scripts/compare_teacher_depths.py"
+  },
+  "metrics": [
+    "holdout loss",
+    "avgCP",
+    "p90",
+    "bl >= 100",
+    "bl >= 200",
+    "danger avg",
+    "quiet avg",
+    "endgame avg",
+    "correlation with Stockfish",
+    "sign accuracy",
+    "WDL bucket accuracy"
+  ],
+  "gates": [
+    "fixed-depth sanity",
+    "gate3-cploss",
+    "gate5-screen",
+    "80+ game confirm if promising",
+    "promotion gates only after screen/confirm"
+  ]
+}

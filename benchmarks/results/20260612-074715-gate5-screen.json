@@ -1,0 +1,37 @@
+{
+ "provenance": {
+  "date": "2026-06-12T14:47:15+00:00",
+  "git_commit": "75251c9",
+  "git_describe": "snapshot/gen7-acc-futility-2026-06-11-5-g75251c9-dirty",
+  "machine": "DESKTOP-KF0SM7V",
+  "engine_exe": "f:/Github/chess-vision-studio-rust-engine/target-next/release/uci.exe",
+  "engine_sha": "c6fe4d1efec01086",
+  "net": "f:/tools/cvs-baselines/raw-nnue-h256-sf-d12-v3.json",
+  "net_sha": "4cc9765c35c92d51",
+  "futility": true,
+  "extra_flags": [],
+  "threads": 1,
+  "depth": 30,
+  "baseline_ref": "snapshot/gen7-acc-futility-2026-06-11"
+ },
+ "cand_args": [
+  "--futility",
+  "--rfp",
+  "--tt-prune-store",
+  "--qtt"
+ ],
+ "base_args": [
+  "--futility",
+  "--rfp"
+ ],
+ "tc": "5+0.05",
+ "conc": "2",
+ "wld": [
+  41,
+  29,
+  30
+ ],
+ "score_pct": 56.00000000000001,
+ "label": "NEUTRAL",
+ "pgn": "f:/tools/screen-ttpair-confirm-20260612.pgn"
+}

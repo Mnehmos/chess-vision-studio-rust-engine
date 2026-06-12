@@ -60,3 +60,53 @@ promotions, checks, TT move, killers, or the first few moves.
   **+196 −47 =57 — 75.2%, Elo +192.4 ± 39.3, LOS 100%.**
 - **Verdict:** new champion. Native SF-2400 quiet-box anchor next; bot rollout
   follows the anchor.
+
+## Next Search Queue — Gen7 Snapshot Era
+
+The next search work is ordered for one-variable gates against
+`snapshot/gen7-acc-futility-2026-06-11`.
+
+1. **Reverse futility pruning:** opt-in `--rfp`; gate with fixed-depth sanity,
+   cp-loss suites, telemetry, and 20-game screen.
+2. **Pruning/search telemetry:** counters are required before stacking more
+   pruning. Use `benchmarks/scripts/bench_telemetry.py`. Columns labeled
+   `c/a` are cut/attempt pairs. The `mate_threat_extensions` and
+   `hanging_major_extensions` telemetry fields are scaffolded only; their zero
+   values do not prove the extension ideas are inactive by policy, just not
+   implemented yet.
+3. **Late move pruning:** conservative shallow quiet pruning after ordering has
+   had a chance; protect quiet defensive resources.
+4. **SEE pruning:** skip badly losing captures/tactical garbage; soften around
+   checks, promotions, PV nodes, and king attacks.
+5. **QSearch cleanup:** SEE-gated captures, delta pruning, stand-pat discipline,
+   limited checking moves, promotion handling, and no endless bad capture chains.
+6. **Aspiration windows:** previous-score windows with fail-high/fail-low
+   re-search accounting.
+7. **Move ordering upgrades:** countermove, continuation history, capture
+   history, history maluses, aging, hash-move validation, killer hygiene.
+8. **LMR retune:** tune by depth, move index, PV, capture/quiet, checks,
+   history, killer/countermove, improving flag, and static margin.
+9. **Null-move retune / verification:** add endgame and pawn-ending caution;
+   consider verification search at deeper depths.
+10. **Razoring and extensions:** later-stage, after RFP/LMP/SEE/qsearch are
+    stable.
+
+Diagnostic target for every search change:
+
+```text
+effective branching factor drops
+time-to-depth improves
+CP-loss stays sane
+catastrophic blunders stay flat
+candidate beats the frozen snapshot
+```
+
+RFP telemetry gate shape:
+
+```powershell
+python benchmarks/scripts/bench_telemetry.py --suite canonical --base-exe target/release/analyze.exe --exe target/release/analyze.exe --extra "--rfp"
+python benchmarks/scripts/bench_parity.py --extra "--rfp" --depths 6,7,8
+python benchmarks/scripts/bench_cploss.py --suite suite-fresh-100 --extra "--rfp"
+python benchmarks/scripts/bench_cploss.py --suite suite-hard-100 --extra "--rfp"
+python benchmarks/scripts/bench_screen.py --cand-args "--futility --rfp" --base-args "--futility"
+```

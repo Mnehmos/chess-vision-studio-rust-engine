@@ -1,0 +1,36 @@
+{
+ "provenance": {
+  "date": "2026-06-12T00:54:55+00:00",
+  "git_commit": "75251c9",
+  "git_describe": "snapshot/gen7-acc-futility-2026-06-11-5-g75251c9-dirty",
+  "machine": "DESKTOP-KF0SM7V",
+  "engine_exe": "f:/Github/chess-vision-studio-rust-engine/target-next/release/uci.exe",
+  "engine_sha": "0aa28b0a5190bf79",
+  "net": "f:/tools/cvs-baselines/raw-nnue-h256-sf-d12-v3.json",
+  "net_sha": "4cc9765c35c92d51",
+  "futility": true,
+  "extra_flags": [],
+  "threads": 1,
+  "depth": 30,
+  "baseline_ref": "snapshot/gen7-acc-futility-2026-06-11"
+ },
+ "cand_args": [
+  "--futility",
+  "--rfp",
+  "--king-activity"
+ ],
+ "base_args": [
+  "--futility",
+  "--rfp"
+ ],
+ "tc": "5+0.05",
+ "conc": "2",
+ "wld": [
+  10,
+  6,
+  4
+ ],
+ "score_pct": 60.0,
+ "label": "GREEN",
+ "pgn": "f:/tools/screen-kingactivity-gate-20260611.pgn"
+}

@@ -45,6 +45,13 @@ ON/OFF**), ponder (formal SPRT +91). Rollbacks: `uci-gen7-ponder.exe`
 | 6 promotion | cutechess + SPRT | 80–100 screen → 200–400 confirm → SPRT (elo0=0, elo1=20, α=β=0.05) when warranted. Labels: formal SPRT pass / fixed-N positive / accepted with note / rejected / inconclusive. **Never say "SPRT pass" unless the bound crossed** |
 | 7 bot replay | `arena/bench-ponder-cache.py` (app repo) | opponent-clock systems on real transitions: hit rates, cached-used, verify-reject, avgCP hit/miss, bl100/200, flag risk, helper call/change/improve/regress counts. Must beat plain ponder baseline at same budget |
 
+Telemetry helper: `bench_telemetry.py` aggregates pruning/search counters for a
+candidate (`--extra "--rfp"` etc.) before a gate decision: RFP/null/LMP/SEE/delta
+cut/attempt pairs, TT hit/cut rates, hash-move and first-move cutoffs, qnode
+share, cutoff move index, and effective branching. Use `--base-exe` when
+comparing against the current instrumented build; legacy binaries emit only
+top-level counters and will be warned as incomplete telemetry rows.
+
 Suite builder: `build_hard_suite.py` mines `suite-hard-100` = positions where
 the snapshot itself loses ≥50cp vs SF — "hard" defined relative to the baseline.
 
@@ -76,6 +83,11 @@ Changed, danger explanations.
 - **Futility**: accepted with note (fixed-N +34, NOT formal SPRT; was −188 on
   gen6/classical). Fixed-depth sanity ON vs OFF identical (avgCP 10.3/10.2,
   bl200 0% both): gain is pure depth, not traded judgment.
+- **RFP-v2** (depth≤4): ACCEPTED WITH NOTE (user ruling 2026-06-11 — standard
+  engine practice, non-degrading). On record: formal SPRT bound crossing
+  (+68.8, llr 2.97, 220g @10+0.1) and 100-game GREEN screen (63.5% @5+0.05)
+  that resolved a suspicious 45% 20-game start as sampling noise (PGNs clean,
+  build parity 0-diff). Live on the bot via CVS_RUST_RFP=1.
 
 ## Candidate change report
 

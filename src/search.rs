@@ -157,6 +157,39 @@ pub struct SearchOptions {
     /// SEE pruning (Patch 7): at shallow depth, skip captures that lose
     /// material by a depth-scaled SEE margin.
     pub see_prune: bool,
+    /// Countermove heuristic (move-ordering roadmap item 7): order the stored
+    /// refutation of the opponent's previous move just below the killers.
+    pub countermove: bool,
+    /// Continuation history (item 8): quiet ordering bonus keyed by the
+    /// (opponent's previous piece/to, our piece/to) move pair — finer-grained
+    /// than butterfly history, additive within the quiet tier.
+    pub conthist: bool,
+    /// Store Lower(beta) TT entries on RFP cutoffs (TT discipline): RFP cuts
+    /// the majority of shallow non-PV nodes and otherwise leaves them
+    /// unstored, so every ID iteration re-probes them empty.
+    pub tt_prune_store: bool,
+    /// Rule-50 eval scaling (conversion pressure): eval × (256 − halfmove)/256
+    /// so the winning side must make counter-resetting progress.
+    pub rule50_scale: bool,
+    /// TT probe/store in quiescence (depth-0 entries): q-nodes are the
+    /// majority of the tree and were table-blind.
+    pub qsearch_tt: bool,
+    /// History maluses + gravity updates (research 2026-06-12): penalize every
+    /// quiet tried before a quiet cutoff; capped linear bonus; self-limiting
+    /// gravity form. The missing half of the history heuristic.
+    pub hist_malus: bool,
+    /// History-informed LMR (consumes hist_malus's signed entries): strong
+    /// history escapes reduction, proven-bad history reduces an extra ply.
+    pub hist_lmr: bool,
+    /// Two-bucket TT (--tt2): depth-preferred + always-replace buckets, so a
+    /// shallow store no longer evicts a deep entry at the same index.
+    pub tt2: bool,
+    /// Eval-trajectory "improving" flag (--improving): reductions ease/deepen
+    /// by whether the static eval is rising vs two plies back.
+    pub improving: bool,
+    /// King-activity conversion pressure: position-only progress gradient for
+    /// the side that is clearly ahead in simplified material.
+    pub king_activity: bool,
     /// Delta pruning (Patch 7, quiescence): skip captures that cannot lift
     /// stand-pat back to alpha even with a safety margin.
     pub delta_prune: bool,
@@ -201,6 +234,16 @@ impl Default for SearchOptions {
             lmp: false,
             see_prune: false,
             delta_prune: false,
+            countermove: false,
+            conthist: false,
+            tt_prune_store: false,
+            rule50_scale: false,
+            king_activity: false,
+            qsearch_tt: false,
+            hist_malus: false,
+            hist_lmr: false,
+            tt2: false,
+            improving: false,
             threads: 1,
             cvs_trace: false,
             cvs_helpers: 0,
@@ -223,6 +266,10 @@ pub struct Telemetry {
     pub tt_probes: u64,
     pub tt_entries: u64,
     pub tt_hits: u64,
+    /// Probe misses where the slot was empty (never written at this index).
+    pub tt_miss_cold: u64,
+    /// Probe misses where a DIFFERENT position occupied the slot (contention).
+    pub tt_miss_contended: u64,
     pub tt_cutoffs: u64,
     pub beta_cutoffs: u64,
     pub hash_move_cutoffs: u64,
@@ -358,6 +405,24 @@ pub struct Searcher {
     /// History heuristic: [side][from][to] — quiet cutoff counts weighted by
     /// depth², so deep cutoffs teach more than leaf noise.
     history: Vec<i32>, // 2*64*64, flat for cache friendliness
+    /// Countermove heuristic (--countermove): keyed by the opponent's
+    /// previous (piece, to-square) -> the quiet that refuted it last time.
+    /// v2 re-key (research 2026-06-12): from-to keying split each refutation
+    /// across 64 from-squares; piece+to is how Ethereal/Berserk key it.
+    counters: Vec<Option<Move>>, // 2 colors * 6 pieces * 64 squares
+    /// Continuation history (--conthist): [prev_piece][prev_to][piece][to]
+    /// depth²-weighted quiet-cutoff counts for the move PAIR — the table that
+    /// usually closes the first-move-cutoff gap butterfly history can't.
+    conthist: Vec<i32>, // 6*64*6*64
+    /// prev_moves[ply] = the move that led to the node at `ply` (None at the
+    /// root and after a null move — a null subtree must not teach or consult
+    /// counters keyed to a move the opponent never answered).
+    prev_moves: Vec<Option<Move>>,
+    /// Per-ply static eval (--improving): the eval-trajectory primitive. A node
+    /// is "improving" when its static eval exceeds the same side's eval two
+    /// plies back; pruning leans harder when NOT improving, reductions ease
+    /// when improving. i32::MIN = unknown (root / in-check ply).
+    eval_stack: Vec<i32>,
     /// NNUE eval head — when loaded, replaces the classical eval at every
     /// static/leaf eval site (search shape unchanged).
     nnue: Option<Nnue>,
@@ -393,6 +458,10 @@ impl Searcher {
             opts: SearchOptions::default(),
             killers: vec![[None; 2]; MAX_KILLER_PLY],
             history: vec![0; 2 * 64 * 64],
+            counters: vec![None; 2 * 6 * 64],
+            conthist: vec![0; 6 * 64 * 6 * 64],
+            prev_moves: vec![None; MAX_KILLER_PLY],
+            eval_stack: vec![i32::MIN; MAX_KILLER_PLY + 2],
             nnue: None,
             helper_nnue: None,
             acc_stack: Vec::new(),
@@ -426,18 +495,84 @@ impl Searcher {
         side * 4096 + mv.from as usize * 64 + mv.to as usize
     }
 
+    #[inline]
+    fn counter_idx(side: usize, piece: Piece, to: u8) -> usize {
+        (side * 6 + piece as usize) * 64 + to as usize
+    }
+
+    #[inline]
+    fn conthist_idx(prev_piece: Piece, prev_to: u8, piece: Piece, to: u8) -> usize {
+        ((prev_piece as usize * 64 + prev_to as usize) * 6 + piece as usize) * 64 + to as usize
+    }
+
+    /// Gravity-form history update: entry += delta − entry·|delta|/D, which
+    /// self-limits to ±D and lets recent evidence dominate stale counts.
+    #[inline]
+    fn hist_gravity(&mut self, side: usize, mv: Move, delta: i32) {
+        const D: i32 = 8192;
+        let e = &mut self.history[Self::history_idx(side, mv)];
+        *e += delta - *e * delta.abs() / D;
+    }
+
+    /// History maluses (--histmalus): every quiet tried BEFORE the cutoff was
+    /// ordered too high — penalize it. Without this, bonus-only updates drift
+    /// every entry positive until quiet ordering is saturation noise (the
+    /// measured 35% first-move-cutoff plateau).
+    fn punish_tried_quiets(&mut self, side: usize, tried: &[Move], cutter: Move, depth: i32) {
+        let malus = (300 * depth).min(2200);
+        for &q in tried {
+            if q != cutter {
+                self.hist_gravity(side, q, -malus);
+            }
+        }
+    }
+
     /// Record a QUIET move that produced a beta cutoff (the only teacher).
-    fn record_quiet_cutoff(&mut self, side: usize, mv: Move, depth: i32, ply: u32) {
+    /// `pos` is at the cutoff node (mv unmade): mv.from holds the mover,
+    /// prev.to holds the opponent piece whose move this quiet refuted.
+    fn record_quiet_cutoff(&mut self, pos: &Position, side: usize, mv: Move, depth: i32, ply: u32) {
         let p = ply as usize;
         if p < MAX_KILLER_PLY && self.killers[p][0] != Some(mv) {
             self.killers[p][1] = self.killers[p][0];
             self.killers[p][0] = Some(mv);
         }
-        let idx = Self::history_idx(side, mv);
-        self.history[idx] += depth * depth;
-        if self.history[idx] >= HISTORY_CAP {
-            for h in self.history.iter_mut() {
-                *h /= 2;
+        if self.opts.countermove {
+            // The opponent's previous (piece, to) is the key; the piece that
+            // just landed on prev.to is still there at this node.
+            if let Some(prev) = self.prev_moves.get(p).copied().flatten() {
+                if let Some((_, pp)) = pos.piece_at(prev.to) {
+                    self.counters[Self::counter_idx(side ^ 1, pp, prev.to)] = Some(mv);
+                }
+            }
+        }
+        if self.opts.conthist {
+            if let Some(prev) = self.prev_moves.get(p).copied().flatten() {
+                if let (Some((_, pp)), Some((_, cp))) =
+                    (pos.piece_at(prev.to), pos.piece_at(mv.from))
+                {
+                    let ci = Self::conthist_idx(pp, prev.to, cp, mv.to);
+                    self.conthist[ci] += depth * depth;
+                    if self.conthist[ci] >= HISTORY_CAP {
+                        for h in self.conthist.iter_mut() {
+                            *h /= 2;
+                        }
+                    }
+                }
+            }
+        }
+        if self.opts.hist_malus {
+            // Gravity update (research 2026-06-12, SF/Ethereal): capped LINEAR
+            // bonus — depth² uncapped lets a few deep nodes saturate entries —
+            // and the entry self-limits to ±HIST_GRAVITY_D.
+            let bonus = (150 * depth).min(1500);
+            self.hist_gravity(side, mv, bonus);
+        } else {
+            let idx = Self::history_idx(side, mv);
+            self.history[idx] += depth * depth;
+            if self.history[idx] >= HISTORY_CAP {
+                for h in self.history.iter_mut() {
+                    *h /= 2;
+                }
             }
         }
     }
@@ -543,6 +678,9 @@ impl Searcher {
         // deepening iterations within it) — searches stay deterministic.
         self.killers.iter_mut().for_each(|k| *k = [None; 2]);
         self.history.iter_mut().for_each(|h| *h = 0);
+        self.counters.iter_mut().for_each(|c| *c = None);
+        self.conthist.iter_mut().for_each(|h| *h = 0);
+        self.prev_moves.iter_mut().for_each(|m| *m = None);
         self.tel = Telemetry::default();
         self.tel.danger_extension_plies = danger_plies;
         self.aborted = false;
@@ -678,7 +816,7 @@ impl Searcher {
         self.tel.legal_move_sum += legal.len() as u64;
         let tt_move = if self.opts.use_tt {
             self.tel.tt_probes += 1;
-            if let Some(e) = self.tt_probe(pos.hash) {
+            if let Some(e) = self.tt_probe(self.tt_key(pos)) {
                 self.tel.tt_entries += 1;
                 e.mv
             } else {
@@ -698,6 +836,7 @@ impl Searcher {
             self.tel.ply_child_searches[0] += 1;
             self.acc_make(pos, mv);
             pos.make(mv);
+            self.prev_moves[1] = Some(mv);
             let mut score;
             if !self.opts.pvs || move_index == 0 || alpha <= alpha0 {
                 score = -self.negamax(pos, depth - 1, -beta, -alpha, 1, true);
@@ -723,7 +862,7 @@ impl Searcher {
             }
         }
         if self.opts.use_tt {
-            self.store(pos.hash, depth, best, Flag::Exact, best_move);
+            self.store(self.tt_key(pos), depth, best, Flag::Exact, best_move);
         }
         (best, best_move)
     }
@@ -775,14 +914,87 @@ impl Searcher {
     /// Leaf eval = the TS `evaluate()` (stm POV, terminal-aware), given that the
     /// caller already knows whether legal moves exist (avoids a second movegen).
     /// Side-to-move static eval — NNUE when loaded, classical otherwise.
+    /// Rule-50 conversion pressure (--rule50): scale the eval toward 0 as the
+    /// halfmove clock climbs, so a side that is ahead watches its score bleed
+    /// while it shuffles — lines that reset the counter (pawn pushes, trades)
+    /// outscore repetition at the same material. Targets the measured failed
+    /// conversions (7/11 SPRT draws where we peaked +1.2..+4.4 then drew).
+    /// v1 REJECTED (2026-06-11): hm is path state outside the Zobrist key, so
+    /// scaled scores contaminated the TT across hm contexts. v2 (research
+    /// 2026-06-12) pairs the damp with SF's adjust_key50 bucketing + the
+    /// hm≥96 cutoff guard — the full anti-contamination kit.
+    #[inline]
+    fn rule50_scale(&self, pos: &Position, v: i32) -> i32 {
+        if self.opts.rule50_scale {
+            v * (256 - pos.halfmove.min(100) as i32) / 256
+        } else {
+            v
+        }
+    }
+
+    /// TT key with SF's adjust_key50 (rule50-v2): a damped score is only valid
+    /// near the halfmove count it was computed at, so re-bucket the key every
+    /// 8 halfmoves past 14. Damped scores can then never satisfy probes at
+    /// distant counters — the exact failure that rejected v1.
+    #[inline]
+    fn tt_key(&self, pos: &Position) -> u64 {
+        if self.opts.rule50_scale && pos.halfmove >= 14 {
+            pos.hash ^ 0x9E37_79B9_7F4A_7C15u64.wrapping_mul((pos.halfmove as u64 - 14) / 8 + 1)
+        } else {
+            pos.hash
+        }
+    }
+
+    /// King-activity conversion pressure (--king-activity): when one side is
+    /// clearly ahead in a simplified position, reward marching the winning
+    /// king toward the enemy king and toward the center. Position-only (TT-
+    /// safe, unlike rule50): creates the progress gradient that converts won
+    /// endings instead of shuffling on the back rank. Magnitude ≤ ~50cp.
+    #[inline]
+    fn king_activity(&self, pos: &Position, v: i32) -> i32 {
+        if !self.opts.king_activity {
+            return v;
+        }
+        // Simplified = no queens-and-rooks armies left: total non-pawn,
+        // non-king material under ~rook+minor per side on average.
+        let mut nonpawn = 0i32;
+        for c in 0..2 {
+            for p in 1..5 {
+                // N,B,R,Q
+                nonpawn += pos.pieces[c][p].count_ones() as i32 * SEE_VALUE[p];
+            }
+        }
+        if nonpawn > 1700 || v.abs() < 150 || v.abs() >= MATE_THRESHOLD {
+            return v;
+        }
+        // From stm POV: the side that is AHEAD gets the activity term.
+        let (winner, sign) = if v > 0 {
+            (pos.stm, 1)
+        } else {
+            (pos.stm.flip(), -1)
+        };
+        let wk = pos.king_sq(winner) as i32;
+        let lk = pos.king_sq(winner.flip()) as i32;
+        let (wf, wr, lf, lr) = (wk % 8, wk / 8, lk % 8, lk / 8);
+        let cheb = ((wf - lf).abs()).max((wr - lr).abs());
+        // Centralization metric: (2f−7)+(2r−7) is 2 (center) .. 14 (corner).
+        let lcentral = (2 * lf - 7).abs() + (2 * lr - 7).abs();
+        // v2 mop-up (v1 NEUTRAL at 100g — still drew from +11.6): the dominant
+        // term drives the LOSING king to the edge — the thing that separates
+        // progress moves in won-but-shuffling endings — plus king proximity.
+        let bonus = 8 * (lcentral - 2) + 6 * (6 - cheb);
+        v + sign * bonus
+    }
+
     fn static_eval(&self, pos: &mut Position) -> i32 {
         if let Some(n) = &self.nnue {
             if self.acc_top != usize::MAX {
-                return n.eval_acc(&self.acc_stack[self.acc_top], pos.stm);
+                return self.king_activity(pos, self.rule50_scale(pos, n.eval_acc(&self.acc_stack[self.acc_top], pos.stm)));
             }
-            return n.eval_stm(pos);
+            return self.king_activity(pos, self.rule50_scale(pos, n.eval_stm(pos)));
         }
-        evaluate(pos, &self.weights, self.rung2.as_ref())
+        let v = evaluate(pos, &self.weights, self.rung2.as_ref());
+        self.king_activity(pos, self.rule50_scale(pos, v))
     }
 
     fn leaf_eval(&mut self, pos: &Position, no_legal: bool, checked: bool) -> i32 {
@@ -798,20 +1010,16 @@ impl Searcher {
         }
         if let Some(n) = &self.nnue {
             if self.acc_top != usize::MAX {
-                return n.eval_acc(&self.acc_stack[self.acc_top], pos.stm);
+                return self.king_activity(pos, self.rule50_scale(pos, n.eval_acc(&self.acc_stack[self.acc_top], pos.stm)));
             }
-            return n.eval_stm(pos);
+            return self.king_activity(pos, self.rule50_scale(pos, n.eval_stm(pos)));
         }
         let white = js_round(evaluate_white_float_nonterminal(
             pos,
             &self.weights,
             self.rung2.as_ref(),
         ));
-        if pos.stm == Color::White {
-            white
-        } else {
-            -white
-        }
+        self.king_activity(pos, self.rule50_scale(pos, if pos.stm == Color::White { white } else { -white }))
     }
 
     fn negamax(
@@ -857,7 +1065,8 @@ impl Searcher {
         let mut tt_move_lane: u8 = 0;
         if self.opts.use_tt && !(checked && rule_draw) {
             self.tel.tt_probes += 1;
-            if let Some(e) = self.tt_probe(pos.hash) {
+            let probe_key = self.tt_key(pos);
+            if let Some(e) = self.tt_probe(probe_key) {
                 self.tel.tt_entries += 1;
                 tt_move = e.mv;
                 tt_move_lane = e.lane;
@@ -866,7 +1075,11 @@ impl Searcher {
                 if e.mv.is_some() && e.lane != self.opts.lane.id() {
                     self.tel.foreign_tt_hints[(e.lane & 3) as usize] += 1;
                 }
-                if e.depth >= depth {
+                // rule50-v2: near the 50-move boundary every stored score is
+                // suspect (graph-history interaction) — keep the move hint,
+                // refuse the cutoff. Mirrors SF's rule50_count() >= 96 guard.
+                let r50_block = self.opts.rule50_scale && pos.halfmove >= 96;
+                if e.depth >= depth && !r50_block {
                     self.tel.tt_hits += 1;
                     match e.flag {
                         Flag::Exact => {
@@ -889,6 +1102,10 @@ impl Searcher {
                         return e.score;
                     }
                 }
+            } else if self.tt.slot_occupied(probe_key) {
+                self.tel.tt_miss_contended += 1;
+            } else {
+                self.tel.tt_miss_cold += 1;
             }
         }
 
@@ -915,6 +1132,25 @@ impl Searcher {
         }
         let is_pv = beta_in - alpha_in > 1;
 
+        // --improving: record this node's static eval and compare to the same
+        // side's eval two plies back. Gated so flag-off computes nothing extra.
+        let improving = if self.opts.improving {
+            let p = ply as usize;
+            let se = if checked { i32::MIN } else { static_eval!() };
+            if p < self.eval_stack.len() {
+                self.eval_stack[p] = se;
+            }
+            // Unknown (in-check now, or no ply-2 baseline) defaults to true —
+            // the conservative choice that does NOT prune harder.
+            if checked || p < 2 || self.eval_stack[p - 2] == i32::MIN {
+                true
+            } else {
+                se > self.eval_stack[p - 2]
+            }
+        } else {
+            true
+        };
+
         // Reverse futility pruning (Search Patch 7): at a shallow non-PV node
         // whose static eval beats beta by a depth-scaled margin, a quiet
         // continuation is overwhelmingly likely to hold — cut without moving.
@@ -926,6 +1162,14 @@ impl Searcher {
             self.tel.rfp_attempts += 1;
             if static_eval!() - 90 * depth >= beta {
                 self.tel.rfp_cutoffs += 1;
+                // --tt-prune-store: an RFP cut is a position-only fail-high
+                // (static eval, no path dependence — unlike null) so it is a
+                // legitimate Lower(beta) entry. Without it the ~60% of shallow
+                // nodes RFP cuts are re-probed empty every ID iteration
+                // (measured 19% any-entry rate at d8).
+                if self.opts.tt_prune_store && self.opts.use_tt {
+                    self.store(self.tt_key(pos), depth, beta, Flag::Lower, None);
+                }
                 return beta;
             }
         }
@@ -950,6 +1194,9 @@ impl Searcher {
             self.tel.null_attempts += 1;
             let null_r = if depth >= 6 { 3 } else { 2 };
             let undo = pos.make_null();
+            if let Some(slot) = self.prev_moves.get_mut((ply + 1) as usize) {
+                *slot = None; // null subtrees must not key counters on a stale move
+            }
             let score = -self.negamax(pos, depth - 1 - null_r, -beta, -beta + 1, ply + 1, false);
             pos.unmake_null(undo);
             if self.aborted {
@@ -962,7 +1209,7 @@ impl Searcher {
         }
 
         self.order_moves(pos, legal.as_mut_slice(), tt_move, ply);
-        let key = pos.hash;
+        let key = self.tt_key(pos);
         let side = pos.stm.index();
         let mut best = -INF;
         let mut best_move: Option<Move> = None;
@@ -978,7 +1225,13 @@ impl Searcher {
         // Late-move pruning budget (Patch 7): after ordering has surfaced the
         // TT move, killers, and history leaders, the quiet tail at shallow
         // depth is almost never the refutation.
-        let lmp_budget = (4 + depth * depth) as usize;
+        // v2 budget (v1 = 4+d² screened RED 37.5% while skipping 83% of
+        // attempted quiets — standard budgets assume 85-95% first-move
+        // cutoffs; ours is ~35%, so the tail still matters): doubled.
+        let lmp_budget = (8 + 2 * depth * depth) as usize;
+        // --histmalus: quiets actually searched at this node, so a quiet
+        // cutoff can penalize everything ordered (wrongly) ahead of it.
+        let mut tried_quiets = MoveList::new();
         for move_index in 0..legal.len() {
             let mv = legal.get(move_index);
             // Patch 7 skips. All require one searched move already (best is
@@ -996,11 +1249,13 @@ impl Searcher {
                             continue;
                         }
                     }
-                    if futile && !gives_check(pos, mv) {
+                    if futile {
                         self.tel.futility_attempts += 1;
-                        self.tel.futility_skips += 1;
-                        self.tel.pruned_moves += 1;
-                        continue;
+                        if !gives_check(pos, mv) {
+                            self.tel.futility_skips += 1;
+                            self.tel.pruned_moves += 1;
+                            continue;
+                        }
                     }
                 } else if self.opts.see_prune
                     && mv.flag.is_capture()
@@ -1030,14 +1285,35 @@ impl Searcher {
                 && Some(mv) != tt_move
                 && !killer_pair.contains(&Some(mv))
                 && !gives_check(pos, mv);
+            // --histlmr (research 2026-06-12): the history table is consumed,
+            // not just sorted on — strong-history quiets escape the reduction,
+            // proven-bad ones (negative entries exist only under --histmalus)
+            // are reduced an extra ply. SF: r -= statScore*445/4096.
+            let mut lmr_r: i32 = i32::from(reduce);
+            if reduce && self.opts.hist_lmr {
+                let h = self.history[Self::history_idx(side, mv)];
+                if h > 2048 {
+                    lmr_r = 0;
+                } else if h < -2048 {
+                    lmr_r = 2;
+                }
+            }
+            // --improving: a non-improving node is going the wrong way, so its
+            // late quiets are even less likely to matter — reduce one more ply.
+            if reduce && self.opts.improving && !improving && lmr_r > 0 {
+                lmr_r += 1;
+            }
             self.acc_make(pos, mv);
             self.tel.searched_moves += 1;
             self.tel.ply_child_searches[ply_bucket] += 1;
             pos.make(mv);
+            if let Some(slot) = self.prev_moves.get_mut((ply + 1) as usize) {
+                *slot = Some(mv);
+            }
             let mut score;
-            if reduce {
+            if lmr_r > 0 {
                 self.tel.lmr_reductions += 1;
-                score = -self.negamax(pos, depth - 2, -alpha - 1, -alpha, ply + 1, true);
+                score = -self.negamax(pos, depth - 1 - lmr_r, -alpha - 1, -alpha, ply + 1, true);
                 if score > alpha && !self.aborted {
                     self.tel.lmr_researches += 1;
                     score = -self.negamax(pos, depth - 1, -beta, -alpha, ply + 1, true);
@@ -1057,6 +1333,9 @@ impl Searcher {
             self.acc_unmake();
             if self.aborted {
                 return if best > -INF { best } else { score };
+            }
+            if self.opts.hist_malus && !mv.flag.is_capture() && mv.flag.promo_piece().is_none() {
+                tried_quiets.push(mv);
             }
             if score > best {
                 best = score;
@@ -1086,7 +1365,12 @@ impl Searcher {
                     } else if self.history[Self::history_idx(side, mv)] > 0 {
                         self.tel.history_cutoffs += 1;
                     }
-                    self.record_quiet_cutoff(side, mv, depth, ply);
+                    self.record_quiet_cutoff(pos, side, mv, depth, ply);
+                    if self.opts.hist_malus {
+                        let tried: Vec<Move> =
+                            (0..tried_quiets.len()).map(|i| tried_quiets.get(i)).collect();
+                        self.punish_tried_quiets(side, &tried, mv, depth);
+                    }
                 }
                 if self.opts.use_tt {
                     self.store(key, depth, best, Flag::Lower, best_move);
@@ -1138,6 +1422,36 @@ impl Searcher {
             return self.quiesce_moves(pos, legal, true, alpha_in, beta, ply, q_depth);
         }
 
+        // --qtt: q-nodes are 55-62% of the tree and were table-blind. Probe
+        // before the (more expensive) noisy movegen + NNUE eval; depth-0
+        // entries from sibling q-trees cut re-searches. Mate-scale scores are
+        // excluded both ways (no ply normalization in the table); evasion
+        // nodes above keep their exact-mate logic table-free.
+        let qkey = self.tt_key(pos);
+        if self.opts.qsearch_tt && self.opts.use_tt {
+            self.tel.tt_probes += 1;
+            if let Some(e) = self.tt_probe(qkey) {
+                self.tel.tt_entries += 1;
+                if e.score.abs() < MATE_THRESHOLD {
+                    match e.flag {
+                        Flag::Exact => {
+                            self.tel.tt_cutoffs += 1;
+                            return e.score;
+                        }
+                        Flag::Lower if e.score >= beta => {
+                            self.tel.tt_cutoffs += 1;
+                            return e.score;
+                        }
+                        Flag::Upper if e.score <= alpha_in => {
+                            self.tel.tt_cutoffs += 1;
+                            return e.score;
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
+
         let mut noisy = generate_legal_noisy_list(pos);
         let mut alpha = alpha_in;
         if noisy.is_empty() && !has_legal_move(pos) {
@@ -1145,6 +1459,9 @@ impl Searcher {
         }
         let stand = self.leaf_eval(pos, false, false);
         if stand >= beta {
+            if self.opts.qsearch_tt && self.opts.use_tt && beta.abs() < MATE_THRESHOLD {
+                self.store(qkey, 0, beta, Flag::Lower, None);
+            }
             return beta; // fail-hard stand-pat, like the TS reference
         }
         if stand > alpha {
@@ -1200,7 +1517,19 @@ impl Searcher {
                 noisy.push(quiet_checks.get(i));
             }
         }
-        self.quiesce_moves(pos, noisy, false, alpha, beta, ply, q_depth)
+        let score = self.quiesce_moves(pos, noisy, false, alpha, beta, ply, q_depth);
+        if self.opts.qsearch_tt && self.opts.use_tt && !self.aborted && score.abs() < MATE_THRESHOLD
+        {
+            let flag = if score >= beta {
+                Flag::Lower
+            } else if score <= alpha_in {
+                Flag::Upper
+            } else {
+                Flag::Exact
+            };
+            self.store(qkey, 0, score, flag, None);
+        }
+        score
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -1305,6 +1634,33 @@ impl Searcher {
     fn order_moves(&self, pos: &Position, moves: &mut [Move], tt_move: Option<Move>, ply: u32) {
         let side = pos.stm.index();
         let killers = self.killers.get(ply as usize).copied().unwrap_or([None; 2]);
+        // Countermove: the stored refutation of the opponent's previous move,
+        // ordered just below the killers (killers carry sibling-position
+        // evidence at this ply; the countermove carries move-pair evidence).
+        let counter = if self.opts.countermove {
+            self.prev_moves
+                .get(ply as usize)
+                .copied()
+                .flatten()
+                .and_then(|prev| {
+                    pos.piece_at(prev.to)
+                        .map(|(_, pp)| self.counters[Self::counter_idx(side ^ 1, pp, prev.to)])
+                })
+                .flatten()
+        } else {
+            None
+        };
+        // Continuation-history key: the opponent piece that just moved and its
+        // square. Resolved once per node; each quiet adds its pair counter.
+        let ch_key = if self.opts.conthist {
+            self.prev_moves
+                .get(ply as usize)
+                .copied()
+                .flatten()
+                .and_then(|prev| pos.piece_at(prev.to).map(|(_, pp)| (pp, prev.to)))
+        } else {
+            None
+        };
         let score_of = |m: &Move| -> i32 {
             if Some(*m) == tt_move {
                 return 1_000_000_000;
@@ -1327,7 +1683,16 @@ impl Searcher {
             if killers[1] == Some(*m) {
                 return 699_999 + self.lane_bonus(pos, *m, ply);
             }
-            self.history[Self::history_idx(side, *m)] + self.lane_bonus(pos, *m, ply)
+            if counter == Some(*m) {
+                return 650_000 + self.lane_bonus(pos, *m, ply);
+            }
+            let mut s = self.history[Self::history_idx(side, *m)] + self.lane_bonus(pos, *m, ply);
+            if let Some((pp, pt)) = ch_key {
+                if let Some((_, cp)) = pos.piece_at(m.from) {
+                    s += self.conthist[Self::conthist_idx(pp, pt, cp, m.to)];
+                }
+            }
+            s
         };
         Self::sort_by_key_desc(moves, score_of);
     }
@@ -1485,19 +1850,20 @@ impl Searcher {
 
     #[inline]
     fn tt_probe(&self, key: u64) -> Option<TtEntry> {
-        self.tt.probe(key)
+        if self.opts.tt2 {
+            self.tt.probe2(key)
+        } else {
+            self.tt.probe(key)
+        }
     }
 
     fn store(&mut self, key: u64, depth: i32, score: i32, flag: Flag, mv: Option<Move>) {
-        self.tt.store(
-            key,
-            depth,
-            score,
-            flag,
-            mv,
-            self.tt_generation,
-            self.opts.lane.id(),
-        );
+        let (gen, lane) = (self.tt_generation, self.opts.lane.id());
+        if self.opts.tt2 {
+            self.tt.store2(key, depth, score, flag, mv, gen, lane);
+        } else {
+            self.tt.store(key, depth, score, flag, mv, gen, lane);
+        }
     }
 
     /// Walk the TT from the root following stored moves (the TS PV extraction).
@@ -1525,7 +1891,7 @@ impl Searcher {
             if !seen.insert(pos.hash) {
                 break;
             }
-            let Some(entry) = self.tt_probe(pos.hash) else {
+            let Some(entry) = self.tt_probe(self.tt_key(pos)) else {
                 break;
             };
             let Some(mv) = entry.mv else { break };

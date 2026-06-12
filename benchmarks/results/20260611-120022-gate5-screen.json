@@ -1,0 +1,33 @@
+{
+ "provenance": {
+  "date": "2026-06-11T19:00:22+00:00",
+  "git_commit": "c47f7b6",
+  "git_describe": "snapshot/gen7-acc-futility-2026-06-11-2-gc47f7b6-dirty",
+  "machine": "DESKTOP-KF0SM7V",
+  "engine_exe": "f:/tools/cvs-baselines/uci-gen7-acc-futility.exe",
+  "engine_sha": "d5233c075af3cb1b",
+  "net": "f:/tools/cvs-baselines/raw-nnue-h256-sf-d12-v3.json",
+  "net_sha": "4cc9765c35c92d51",
+  "futility": true,
+  "extra_flags": [],
+  "threads": 1,
+  "depth": 30,
+  "baseline_ref": "snapshot/gen7-acc-futility-2026-06-11"
+ },
+ "cand_args": [
+  "--futility"
+ ],
+ "base_args": [
+  "--futility"
+ ],
+ "tc": "5+0.05",
+ "conc": "1",
+ "wld": [
+  9,
+  8,
+  3
+ ],
+ "score_pct": 52.5,
+ "label": "NEUTRAL",
+ "pgn": "f:/tools/screen-selfcal.pgn"
+}

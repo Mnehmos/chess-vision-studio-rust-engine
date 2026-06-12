@@ -20,10 +20,11 @@ depths = [int(d) for d in arg('--depths', '6,7,8').split(',')]
 canon = json.load(open(f'{B.SUITES}/canonical.json'))['positions']
 
 configs = [B.engine_cfg('baseline')]
-if '--exe' in sys.argv or '--net' in sys.argv or '--no-futility' in sys.argv:
+if any(fl in sys.argv for fl in ('--exe', '--net', '--no-futility', '--extra')):
     configs.append(B.engine_cfg(
         arg('--name', 'candidate'), exe=arg('--exe'), net=arg('--net'),
-        futility=False if '--no-futility' in sys.argv else None))
+        futility=False if '--no-futility' in sys.argv else None,
+        extra=arg('--extra', '').split()))
 
 rows = {c['name']: {} for c in configs}
 for cfg in configs:

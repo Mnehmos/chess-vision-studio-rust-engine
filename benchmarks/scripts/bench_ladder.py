@@ -22,10 +22,11 @@ canon = json.load(open(f'{B.SUITES}/canonical.json'))
 positions = [p for p in canon['positions'] if p['name'] in canon['ladder_subset']]
 
 configs = [B.engine_cfg('baseline')]
-if '--exe' in sys.argv or '--net' in sys.argv or '--no-futility' in sys.argv:
+if any(fl in sys.argv for fl in ('--exe', '--net', '--no-futility', '--extra')):
     configs.append(B.engine_cfg(
         arg('--name', 'candidate'), exe=arg('--exe'), net=arg('--net'),
-        futility=False if '--no-futility' in sys.argv else None))
+        futility=False if '--no-futility' in sys.argv else None,
+        extra=arg('--extra', '').split()))
 
 table = {}
 for cfg in configs:

@@ -1,0 +1,134 @@
+{
+ "provenance": [
+  {
+   "date": "2026-06-11T19:53:36+00:00",
+   "git_commit": "92b2190",
+   "git_describe": "snapshot/gen7-acc-futility-2026-06-11-3-g92b2190-dirty",
+   "machine": "DESKTOP-KF0SM7V",
+   "engine_exe": "f:/tools/cvs-baselines/analyze-gen7-acc-futility.exe",
+   "engine_sha": "3376c2ac434b1a71",
+   "net": "f:/tools/cvs-baselines/raw-nnue-h256-sf-d12-v3.json",
+   "net_sha": "4cc9765c35c92d51",
+   "futility": true,
+   "extra_flags": [],
+   "threads": 1,
+   "depth": 30,
+   "baseline_ref": "snapshot/gen7-acc-futility-2026-06-11"
+  },
+  {
+   "date": "2026-06-11T19:53:36+00:00",
+   "git_commit": "92b2190",
+   "git_describe": "snapshot/gen7-acc-futility-2026-06-11-3-g92b2190-dirty",
+   "machine": "DESKTOP-KF0SM7V",
+   "engine_exe": "f:/tools/cvs-baselines/analyze-gen7-acc-futility.exe",
+   "engine_sha": "3376c2ac434b1a71",
+   "net": "f:/tools/cvs-baselines/raw-nnue-h256-sf-d12-v3.json",
+   "net_sha": "4cc9765c35c92d51",
+   "futility": true,
+   "extra_flags": [
+    "--rfp"
+   ],
+   "threads": 1,
+   "depth": 30,
+   "baseline_ref": "snapshot/gen7-acc-futility-2026-06-11"
+  }
+ ],
+ "times_ms": [
+  50,
+  250,
+  1000,
+  5000
+ ],
+ "threads": [
+  1,
+  4
+ ],
+ "positions": [
+  "startpos",
+  "midgame-r1",
+  "preBd6-danger",
+  "tactical-wac001"
+ ],
+ "table": {
+  "baseline|1T|50ms": {
+   "avg_depth": 4.0,
+   "avg_mnps": 0.8678566666666666,
+   "nodes": 124911
+  },
+  "baseline|1T|250ms": {
+   "avg_depth": 5.25,
+   "avg_mnps": 0.892774,
+   "nodes": 642031
+  },
+  "baseline|1T|1000ms": {
+   "avg_depth": 6.75,
+   "avg_mnps": 0.9016030589410589,
+   "nodes": 2601967
+  },
+  "baseline|1T|5000ms": {
+   "avg_depth": 8.5,
+   "avg_mnps": 0.9025531999999999,
+   "nodes": 13017071
+  },
+  "baseline|4T|50ms": {
+   "avg_depth": 4.5,
+   "avg_mnps": 3.4501211764705886,
+   "nodes": 504582
+  },
+  "baseline|4T|250ms": {
+   "avg_depth": 6.0,
+   "avg_mnps": 3.575936071713147,
+   "nodes": 2613031
+  },
+  "baseline|4T|1000ms": {
+   "avg_depth": 7.0,
+   "avg_mnps": 3.5703305694305696,
+   "nodes": 10442506
+  },
+  "baseline|4T|5000ms": {
+   "avg_depth": 9.0,
+   "avg_mnps": 3.4930060000000003,
+   "nodes": 50568979
+  },
+  "rfp|1T|50ms": {
+   "avg_depth": 4.25,
+   "avg_mnps": 0.79447,
+   "nodes": 109551
+  },
+  "rfp|1T|250ms": {
+   "avg_depth": 6.0,
+   "avg_mnps": 0.9002602151394422,
+   "nodes": 650223
+  },
+  "rfp|1T|1000ms": {
+   "avg_depth": 7.0,
+   "avg_mnps": 0.9203913106893107,
+   "nodes": 2676719
+  },
+  "rfp|1T|5000ms": {
+   "avg_depth": 8.75,
+   "avg_mnps": 0.9058765826834633,
+   "nodes": 13084655
+  },
+  "rfp|4T|50ms": {
+   "avg_depth": 4.75,
+   "avg_mnps": 3.46542,
+   "nodes": 506590
+  },
+  "rfp|4T|250ms": {
+   "avg_depth": 6.5,
+   "avg_mnps": 3.567542948207171,
+   "nodes": 2626256
+  },
+  "rfp|4T|1000ms": {
+   "avg_depth": 8.0,
+   "avg_mnps": 3.5344124995004993,
+   "nodes": 10352336
+  },
+  "rfp|4T|5000ms": {
+   "avg_depth": 9.25,
+   "avg_mnps": 3.4187800430313935,
+   "nodes": 49425104
+  }
+ }
+}

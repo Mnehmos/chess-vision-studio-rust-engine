@@ -1,0 +1,82 @@
+{
+ "provenance": [
+  {
+   "date": "2026-06-11T20:08:56+00:00",
+   "git_commit": "92b2190",
+   "git_describe": "snapshot/gen7-acc-futility-2026-06-11-3-g92b2190-dirty",
+   "machine": "DESKTOP-KF0SM7V",
+   "engine_exe": "f:/tools/cvs-baselines/analyze-gen7-acc-futility.exe",
+   "engine_sha": "3376c2ac434b1a71",
+   "net": "f:/tools/cvs-baselines/raw-nnue-h256-sf-d12-v3.json",
+   "net_sha": "4cc9765c35c92d51",
+   "futility": true,
+   "extra_flags": [],
+   "threads": 1,
+   "depth": 30,
+   "baseline_ref": "snapshot/gen7-acc-futility-2026-06-11"
+  },
+  {
+   "date": "2026-06-11T20:08:56+00:00",
+   "git_commit": "92b2190",
+   "git_describe": "snapshot/gen7-acc-futility-2026-06-11-3-g92b2190-dirty",
+   "machine": "DESKTOP-KF0SM7V",
+   "engine_exe": "../../target-test/release/analyze.exe",
+   "engine_sha": "a9cf216ed52ac2fc",
+   "net": "f:/tools/cvs-baselines/raw-nnue-h256-sf-d12-v3.json",
+   "net_sha": "4cc9765c35c92d51",
+   "futility": true,
+   "extra_flags": [
+    "--rfp"
+   ],
+   "threads": 1,
+   "depth": 30,
+   "baseline_ref": "snapshot/gen7-acc-futility-2026-06-11"
+  }
+ ],
+ "times_ms": [
+  250,
+  1000,
+  5000
+ ],
+ "threads": [
+  4
+ ],
+ "positions": [
+  "startpos",
+  "midgame-r1",
+  "preBd6-danger",
+  "tactical-wac001"
+ ],
+ "table": {
+  "baseline|4T|250ms": {
+   "avg_depth": 5.75,
+   "avg_mnps": 3.485744,
+   "nodes": 2467832
+  },
+  "baseline|4T|1000ms": {
+   "avg_depth": 7.0,
+   "avg_mnps": 3.4299623096903096,
+   "nodes": 9849640
+  },
+  "baseline|4T|5000ms": {
+   "avg_depth": 8.75,
+   "avg_mnps": 3.3092676,
+   "nodes": 46824225
+  },
+  "rfp-v2|4T|250ms": {
+   "avg_depth": 6.5,
+   "avg_mnps": 3.330848,
+   "nodes": 2386640
+  },
+  "rfp-v2|4T|1000ms": {
+   "avg_depth": 7.75,
+   "avg_mnps": 3.376501674325674,
+   "nodes": 9720528
+  },
+  "rfp-v2|4T|5000ms": {
+   "avg_depth": 9.5,
+   "avg_mnps": 3.320057341491702,
+   "nodes": 47447760
+  }
+ }
+}

@@ -1,0 +1,676 @@
+{
+ "provenance": [
+  {
+   "date": "2026-06-11T22:14:25+00:00",
+   "git_commit": "75251c9",
+   "git_describe": "snapshot/gen7-acc-futility-2026-06-11-5-g75251c9-dirty",
+   "machine": "DESKTOP-KF0SM7V",
+   "engine_exe": "f:/tools/cvs-baselines/analyze-gen7-acc-futility.exe",
+   "engine_sha": "3376c2ac434b1a71",
+   "net": "f:/tools/cvs-baselines/raw-nnue-h256-sf-d12-v3.json",
+   "net_sha": "4cc9765c35c92d51",
+   "futility": true,
+   "extra_flags": [],
+   "threads": 1,
+   "depth": 30,
+   "baseline_ref": "snapshot/gen7-acc-futility-2026-06-11"
+  },
+  {
+   "date": "2026-06-11T22:14:25+00:00",
+   "git_commit": "75251c9",
+   "git_describe": "snapshot/gen7-acc-futility-2026-06-11-5-g75251c9-dirty",
+   "machine": "DESKTOP-KF0SM7V",
+   "engine_exe": "target\\release\\analyze.exe",
+   "engine_sha": "b2d7d290383af112",
+   "net": "f:/tools/cvs-baselines/raw-nnue-h256-sf-d12-v3.json",
+   "net_sha": "4cc9765c35c92d51",
+   "futility": true,
+   "extra_flags": [
+    "--rfp"
+   ],
+   "threads": 1,
+   "depth": 30,
+   "baseline_ref": "snapshot/gen7-acc-futility-2026-06-11"
+  }
+ ],
+ "depths": [
+  6,
+  7,
+  8
+ ],
+ "rows": {
+  "baseline": {
+   "startpos@d6": {
+    "uci": "e2e4",
+    "scoreCp": 40,
+    "mate": null,
+    "nodes": 32737,
+    "qNodes": 16745,
+    "ttHits": 902,
+    "timeMs": 28,
+    "pv": "e2e4 d7d5 e4d5 d8d5 d2d4 b8c6"
+   },
+   "kiwipete@d6": {
+    "uci": "e2a6",
+    "scoreCp": -69,
+    "mate": null,
+    "nodes": 139573,
+    "qNodes": 93222,
+    "ttHits": 5269,
+    "timeMs": 168,
+    "pv": "e2a6 b4c3 d2c3 e6d5 a6b7 f6e4"
+   },
+   "midgame-r1@d6": {
+    "uci": "g6e6",
+    "scoreCp": -27,
+    "mate": null,
+    "nodes": 116701,
+    "qNodes": 71446,
+    "ttHits": 2946,
+    "timeMs": 169,
+    "pv": "g6e6 h2h3 e5f5 b4b5 a6b5 c4a2"
+   },
+   "preBd6-danger@d6": {
+    "uci": "c8d7",
+    "scoreCp": -516,
+    "mate": null,
+    "nodes": 89408,
+    "qNodes": 59956,
+    "ttHits": 1667,
+    "timeMs": 117,
+    "pv": "c8d7 g2c6 d7c6 a3e7 b5d5 f2f3"
+   },
+   "549-d4d5-blunder@d6": {
+    "uci": "h7f7",
+    "scoreCp": 468,
+    "mate": null,
+    "nodes": 11295,
+    "qNodes": 6261,
+    "ttHits": 735,
+    "timeMs": 13,
+    "pv": "h7f7 f8f7 b3f7 g5d2 f7g6 a7a5"
+   },
+   "tactical-wac001@d6": {
+    "uci": "g3g6",
+    "scoreCp": 999997,
+    "mate": 3,
+    "nodes": 1007,
+    "qNodes": 795,
+    "ttHits": 0,
+    "timeMs": 1,
+    "pv": "g3g6 f7g6"
+   },
+   "endgame-lucena@d6": {
+    "uci": "c1d1",
+    "scoreCp": 402,
+    "mate": null,
+    "nodes": 7839,
+    "qNodes": 4947,
+    "ttHits": 330,
+    "timeMs": 5,
+    "pv": "c1d1 d8e7 b8c7 a2b2 d1g1 b2c2"
+   },
+   "castling-both@d6": {
+    "uci": "h1h8",
+    "scoreCp": 1086,
+    "mate": null,
+    "nodes": 9420,
+    "qNodes": 6249,
+    "ttHits": 310,
+    "timeMs": 8,
+    "pv": "h1h8 e8d7 a1a8 d7d6 h8c8 d6d5"
+   },
+   "en-passant@d6": {
+    "uci": "d2d4",
+    "scoreCp": 107,
+    "mate": null,
+    "nodes": 76403,
+    "qNodes": 43742,
+    "ttHits": 1108,
+    "timeMs": 69,
+    "pv": "d2d4 c7c5 d4c5 b8c6 c1e3 d5d4"
+   },
+   "promotion-race@d6": {
+    "uci": "h2g3",
+    "scoreCp": 910,
+    "mate": null,
+    "nodes": 9969,
+    "qNodes": 6919,
+    "ttHits": 416,
+    "timeMs": 7,
+    "pv": "h2g3 a2b1 a7a8q b1b2 a8e4 b2a3"
+   },
+   "startpos@d7": {
+    "uci": "e2e4",
+    "scoreCp": 52,
+    "mate": null,
+    "nodes": 78459,
+    "qNodes": 40837,
+    "ttHits": 2495,
+    "timeMs": 121,
+    "pv": "e2e4 c7c5 b1c3 b8c6 g1f3 a7a6"
+   },
+   "kiwipete@d7": {
+    "uci": "e2a6",
+    "scoreCp": -170,
+    "mate": null,
+    "nodes": 593476,
+    "qNodes": 402085,
+    "ttHits": 25329,
+    "timeMs": 1369,
+    "pv": "e2a6 b4c3 d2c3 e6d5 e5g4 h3g2"
+   },
+   "midgame-r1@d7": {
+    "uci": "g6e6",
+    "scoreCp": -46,
+    "mate": null,
+    "nodes": 188601,
+    "qNodes": 112406,
+    "ttHits": 4936,
+    "timeMs": 512,
+    "pv": "g6e6 c4a2 d5c3 a2e6 e5c5 e6f7"
+   },
+   "preBd6-danger@d7": {
+    "uci": "f5f4",
+    "scoreCp": -506,
+    "mate": null,
+    "nodes": 208867,
+    "qNodes": 143868,
+    "ttHits": 3644,
+    "timeMs": 513,
+    "pv": "f5f4 e3f4 b5f5 f4e3 e7a3 b1a3"
+   },
+   "549-d4d5-blunder@d7": {
+    "uci": "h7f7",
+    "scoreCp": 394,
+    "mate": null,
+    "nodes": 27428,
+    "qNodes": 15606,
+    "ttHits": 2188,
+    "timeMs": 54,
+    "pv": "h7f7 f8f7 b3f7 g5d2 f7g6 b6c7"
+   },
+   "tactical-wac001@d7": {
+    "uci": "g3g6",
+    "scoreCp": 999997,
+    "mate": 3,
+    "nodes": 1007,
+    "qNodes": 795,
+    "ttHits": 0,
+    "timeMs": 2,
+    "pv": "g3g6 f7g6"
+   },
+   "endgame-lucena@d7": {
+    "uci": "c1d1",
+    "scoreCp": 420,
+    "mate": null,
+    "nodes": 12369,
+    "qNodes": 7989,
+    "ttHits": 503,
+    "timeMs": 17,
+    "pv": "c1d1 d8e7 b8c7 a2c2 c7b6 c2b2"
+   },
+   "castling-both@d7": {
+    "uci": "h1h8",
+    "scoreCp": 1089,
+    "mate": null,
+    "nodes": 13994,
+    "qNodes": 9110,
+    "ttHits": 498,
+    "timeMs": 27,
+    "pv": "h1h8 e8d7 a1a8 d7e6 a8d8 e6e5"
+   },
+   "en-passant@d7": {
+    "uci": "d2d4",
+    "scoreCp": 102,
+    "mate": null,
+    "nodes": 168306,
+    "qNodes": 101321,
+    "ttHits": 4920,
+    "timeMs": 303,
+    "pv": "d2d4 c7c5 d4c5 b8c6 b1c3 e7e6"
+   },
+   "promotion-race@d7": {
+    "uci": "h2g3",
+    "scoreCp": 913,
+    "mate": null,
+    "nodes": 17055,
+    "qNodes": 11279,
+    "ttHits": 1054,
+    "timeMs": 26,
+    "pv": "h2g3 a2b1 a7a8q b1b2 a8e4 b2a2"
+   },
+   "startpos@d8": {
+    "uci": "c2c4",
+    "scoreCp": 23,
+    "mate": null,
+    "nodes": 309168,
+    "qNodes": 164225,
+    "ttHits": 7733,
+    "timeMs": 542,
+    "pv": "c2c4 b8c6 e2e4 e7e5 b1c3 g8f6"
+   },
+   "kiwipete@d8": {
+    "uci": "e2a6",
+    "scoreCp": -170,
+    "mate": null,
+    "nodes": 1037053,
+    "qNodes": 678950,
+    "ttHits": 34424,
+    "timeMs": 2053,
+    "pv": "e2a6 b4c3 d2c3 e6d5 e5g4 h3g2"
+   },
+   "midgame-r1@d8": {
+    "uci": "e5e4",
+    "scoreCp": 4,
+    "mate": null,
+    "nodes": 412975,
+    "qNodes": 245096,
+    "ttHits": 11860,
+    "timeMs": 989,
+    "pv": "e5e4 g2g3 g6g5 d1d4 e4f3 h2h3"
+   },
+   "preBd6-danger@d8": {
+    "uci": "f5f4",
+    "scoreCp": -606,
+    "mate": null,
+    "nodes": 927099,
+    "qNodes": 600745,
+    "ttHits": 30606,
+    "timeMs": 1968,
+    "pv": "f5f4 d3f4 c8d7 d4d5 g7g5 f4e6"
+   },
+   "549-d4d5-blunder@d8": {
+    "uci": "h7f7",
+    "scoreCp": 448,
+    "mate": null,
+    "nodes": 62030,
+    "qNodes": 32635,
+    "ttHits": 5783,
+    "timeMs": 115,
+    "pv": "h7f7 g5h6 h2h4 b6c5 f7f8 h6f8"
+   },
+   "tactical-wac001@d8": {
+    "uci": "g3g6",
+    "scoreCp": 999997,
+    "mate": 3,
+    "nodes": 1007,
+    "qNodes": 795,
+    "ttHits": 0,
+    "timeMs": 3,
+    "pv": "g3g6 f7g6"
+   },
+   "endgame-lucena@d8": {
+    "uci": "c1d1",
+    "scoreCp": 378,
+    "mate": null,
+    "nodes": 24654,
+    "qNodes": 15671,
+    "ttHits": 1018,
+    "timeMs": 33,
+    "pv": "c1d1 d8e7 b8c7 a2c2 c7b6 c2b2"
+   },
+   "castling-both@d8": {
+    "uci": "h1h8",
+    "scoreCp": 1127,
+    "mate": null,
+    "nodes": 31882,
+    "qNodes": 21094,
+    "ttHits": 692,
+    "timeMs": 45,
+    "pv": "h1h8 e8d7 a1a8 d7e6 h8d8 e6e5"
+   },
+   "en-passant@d8": {
+    "uci": "d2d4",
+    "scoreCp": 109,
+    "mate": null,
+    "nodes": 399956,
+    "qNodes": 227000,
+    "ttHits": 10532,
+    "timeMs": 594,
+    "pv": "d2d4 c7c5 d4c5 b8c6 b1c3 e7e6"
+   },
+   "promotion-race@d8": {
+    "uci": "a7a8q",
+    "scoreCp": 930,
+    "mate": null,
+    "nodes": 113895,
+    "qNodes": 77255,
+    "ttHits": 7811,
+    "timeMs": 130,
+    "pv": "a7a8q a2b2 a8g2 b2b1 g2h1 b1c2"
+   }
+  },
+  "rfp-only": {
+   "startpos@d6": {
+    "uci": "e2e4",
+    "scoreCp": 40,
+    "mate": null,
+    "nodes": 28725,
+    "qNodes": 13979,
+    "ttHits": 628,
+    "timeMs": 34,
+    "pv": "e2e4 d7d5 e4d5 d8d5 d2d4 b8c6"
+   },
+   "kiwipete@d6": {
+    "uci": "e2a6",
+    "scoreCp": -69,
+    "mate": null,
+    "nodes": 45051,
+    "qNodes": 22658,
+    "ttHits": 1303,
+    "timeMs": 93,
+    "pv": "e2a6 b4c3 d2c3 e6d5 a6b7 f6e4"
+   },
+   "midgame-r1@d6": {
+    "uci": "e5h5",
+    "scoreCp": -40,
+    "mate": null,
+    "nodes": 74582,
+    "qNodes": 43075,
+    "ttHits": 1742,
+    "timeMs": 197,
+    "pv": "e5h5 c4d5 c6d5 c5d5 h5h3 d5b7"
+   },
+   "preBd6-danger@d6": {
+    "uci": "c8d7",
+    "scoreCp": -516,
+    "mate": null,
+    "nodes": 52600,
+    "qNodes": 33035,
+    "ttHits": 1130,
+    "timeMs": 120,
+    "pv": "c8d7 g2c6 d7c6 a3e7 b5d5 f2f3"
+   },
+   "549-d4d5-blunder@d6": {
+    "uci": "h7f7",
+    "scoreCp": 468,
+    "mate": null,
+    "nodes": 7680,
+    "qNodes": 3715,
+    "ttHits": 487,
+    "timeMs": 13,
+    "pv": "h7f7 f8f7 b3f7 g5d2 f7g6 a7a5"
+   },
+   "tactical-wac001@d6": {
+    "uci": "g3g6",
+    "scoreCp": 999997,
+    "mate": 3,
+    "nodes": 1007,
+    "qNodes": 795,
+    "ttHits": 0,
+    "timeMs": 2,
+    "pv": "g3g6 f7g6"
+   },
+   "endgame-lucena@d6": {
+    "uci": "c1d1",
+    "scoreCp": 402,
+    "mate": null,
+    "nodes": 6630,
+    "qNodes": 4039,
+    "ttHits": 263,
+    "timeMs": 8,
+    "pv": "c1d1 d8e7 b8c7 a2b2 d1g1 b2c2"
+   },
+   "castling-both@d6": {
+    "uci": "h1h8",
+    "scoreCp": 1056,
+    "mate": null,
+    "nodes": 3437,
+    "qNodes": 1944,
+    "ttHits": 74,
+    "timeMs": 5,
+    "pv": "h1h8 e8f7 a1a8 f7g6 e1d2 g6f6"
+   },
+   "en-passant@d6": {
+    "uci": "d2d4",
+    "scoreCp": 107,
+    "mate": null,
+    "nodes": 58194,
+    "qNodes": 30365,
+    "ttHits": 611,
+    "timeMs": 89,
+    "pv": "d2d4 c7c5 d4c5 b8c6 c1e3 d5d4"
+   },
+   "promotion-race@d6": {
+    "uci": "h2g2",
+    "scoreCp": 884,
+    "mate": null,
+    "nodes": 5931,
+    "qNodes": 3921,
+    "ttHits": 198,
+    "timeMs": 8,
+    "pv": "h2g2 a2b2 a7a8q b2b1 a8e4 b1b2"
+   },
+   "startpos@d7": {
+    "uci": "e2e4",
+    "scoreCp": 52,
+    "mate": null,
+    "nodes": 67340,
+    "qNodes": 33359,
+    "ttHits": 1377,
+    "timeMs": 102,
+    "pv": "e2e4 c7c5 g1f3 b8c6 b1c3 a7a6"
+   },
+   "kiwipete@d7": {
+    "uci": "e2a6",
+    "scoreCp": -141,
+    "mate": null,
+    "nodes": 165522,
+    "qNodes": 89679,
+    "ttHits": 5852,
+    "timeMs": 235,
+    "pv": "e2a6 b4c3 d2c3 e6d5 e4d5 h3g2"
+   },
+   "midgame-r1@d7": {
+    "uci": "e5h5",
+    "scoreCp": -7,
+    "mate": null,
+    "nodes": 103629,
+    "qNodes": 58417,
+    "ttHits": 2440,
+    "timeMs": 154,
+    "pv": "e5h5 c4d3 g6g5 f2f3 d5e3 f1e1"
+   },
+   "preBd6-danger@d7": {
+    "uci": "f5f4",
+    "scoreCp": -506,
+    "mate": null,
+    "nodes": 130885,
+    "qNodes": 82971,
+    "ttHits": 1803,
+    "timeMs": 212,
+    "pv": "f5f4 e3f4 b5f5 f4e3 e7a3 b1a3"
+   },
+   "549-d4d5-blunder@d7": {
+    "uci": "h7f7",
+    "scoreCp": 394,
+    "mate": null,
+    "nodes": 13997,
+    "qNodes": 6211,
+    "ttHits": 972,
+    "timeMs": 17,
+    "pv": "h7f7 f8f7 b3f7 g5d2 f7g6 b6c7"
+   },
+   "tactical-wac001@d7": {
+    "uci": "g3g6",
+    "scoreCp": 999997,
+    "mate": 3,
+    "nodes": 1007,
+    "qNodes": 795,
+    "ttHits": 0,
+    "timeMs": 1,
+    "pv": "g3g6 f7g6"
+   },
+   "endgame-lucena@d7": {
+    "uci": "c1d1",
+    "scoreCp": 420,
+    "mate": null,
+    "nodes": 10506,
+    "qNodes": 6594,
+    "ttHits": 380,
+    "timeMs": 8,
+    "pv": "c1d1 d8e7 b8c7 a2c2 c7b6 c2b2"
+   },
+   "castling-both@d7": {
+    "uci": "h1h8",
+    "scoreCp": 1045,
+    "mate": null,
+    "nodes": 6023,
+    "qNodes": 3490,
+    "ttHits": 171,
+    "timeMs": 5,
+    "pv": "h1h8 e8f7 a1a8 f7e6 h8e8 e6f5"
+   },
+   "en-passant@d7": {
+    "uci": "d2d4",
+    "scoreCp": 102,
+    "mate": null,
+    "nodes": 108343,
+    "qNodes": 54324,
+    "ttHits": 1491,
+    "timeMs": 119,
+    "pv": "d2d4 c7c5 d4c5 b8c6 b1c3 e7e6"
+   },
+   "promotion-race@d7": {
+    "uci": "h2g3",
+    "scoreCp": 910,
+    "mate": null,
+    "nodes": 15842,
+    "qNodes": 10325,
+    "ttHits": 424,
+    "timeMs": 11,
+    "pv": "h2g3 a2b2 a7a8q b2b1 a8e4 b1b2"
+   },
+   "startpos@d8": {
+    "uci": "c2c4",
+    "scoreCp": 23,
+    "mate": null,
+    "nodes": 267765,
+    "qNodes": 136080,
+    "ttHits": 4133,
+    "timeMs": 238,
+    "pv": "c2c4 b8c6 e2e4 e7e5 b1c3 g8f6"
+   },
+   "kiwipete@d8": {
+    "uci": "e2a6",
+    "scoreCp": -162,
+    "mate": null,
+    "nodes": 302499,
+    "qNodes": 158768,
+    "ttHits": 8107,
+    "timeMs": 409,
+    "pv": "e2a6 b4c3 d2c3 e6d5 a6b7 h3g2"
+   },
+   "midgame-r1@d8": {
+    "uci": "e5e4",
+    "scoreCp": 5,
+    "mate": null,
+    "nodes": 197263,
+    "qNodes": 106292,
+    "ttHits": 4966,
+    "timeMs": 306,
+    "pv": "e5e4 g2g3 g6g5 d1d4 e4f3 f1e1"
+   },
+   "preBd6-danger@d8": {
+    "uci": "f5f4",
+    "scoreCp": -592,
+    "mate": null,
+    "nodes": 584571,
+    "qNodes": 355067,
+    "ttHits": 12363,
+    "timeMs": 892,
+    "pv": "f5f4 d3f4 c8d7 g2c6 b5c6 a3e7"
+   },
+   "549-d4d5-blunder@d8": {
+    "uci": "h7f7",
+    "scoreCp": 448,
+    "mate": null,
+    "nodes": 31349,
+    "qNodes": 13026,
+    "ttHits": 1729,
+    "timeMs": 39,
+    "pv": "h7f7 g5h6 h2h4 b6c5 f7f8 h6f8"
+   },
+   "tactical-wac001@d8": {
+    "uci": "g3g6",
+    "scoreCp": 999997,
+    "mate": 3,
+    "nodes": 1007,
+    "qNodes": 795,
+    "ttHits": 0,
+    "timeMs": 1,
+    "pv": "g3g6 f7g6"
+   },
+   "endgame-lucena@d8": {
+    "uci": "c1d1",
+    "scoreCp": 378,
+    "mate": null,
+    "nodes": 19569,
+    "qNodes": 11955,
+    "ttHits": 761,
+    "timeMs": 17,
+    "pv": "c1d1 d8e7 b8c7 a2c2 c7b6 c2b2"
+   },
+   "castling-both@d8": {
+    "uci": "h1h8",
+    "scoreCp": 1090,
+    "mate": null,
+    "nodes": 11853,
+    "qNodes": 6206,
+    "ttHits": 379,
+    "timeMs": 12,
+    "pv": "h1h8 e8e7 a1a8 e7d6 h8d8 d6e7"
+   },
+   "en-passant@d8": {
+    "uci": "d2d4",
+    "scoreCp": 109,
+    "mate": null,
+    "nodes": 271265,
+    "qNodes": 134061,
+    "ttHits": 2995,
+    "timeMs": 236,
+    "pv": "d2d4 c7c5 d4c5 b8c6 b1c3 e7e6"
+   },
+   "promotion-race@d8": {
+    "uci": "h2g3",
+    "scoreCp": 910,
+    "mate": null,
+    "nodes": 25063,
+    "qNodes": 15042,
+    "ttHits": 820,
+    "timeMs": 19,
+    "pv": "h2g3 a2b2 a7a8q b2b1 a8e4 b1b2"
+   }
+  }
+ },
+ "mismatches": [
+  "startpos@d6",
+  "kiwipete@d6",
+  "midgame-r1@d6",
+  "preBd6-danger@d6",
+  "549-d4d5-blunder@d6",
+  "endgame-lucena@d6",
+  "castling-both@d6",
+  "en-passant@d6",
+  "promotion-race@d6",
+  "startpos@d7",
+  "kiwipete@d7",
+  "midgame-r1@d7",
+  "preBd6-danger@d7",
+  "549-d4d5-blunder@d7",
+  "endgame-lucena@d7",
+  "castling-both@d7",
+  "en-passant@d7",
+  "promotion-race@d7",
+  "startpos@d8",
+  "kiwipete@d8",
+  "midgame-r1@d8",
+  "preBd6-danger@d8",
+  "549-d4d5-blunder@d8",
+  "endgame-lucena@d8",
+  "castling-both@d8",
+  "en-passant@d8",
+  "promotion-race@d8"
+ ]
+}

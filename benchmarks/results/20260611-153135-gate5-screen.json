@@ -1,0 +1,34 @@
+{
+ "provenance": {
+  "date": "2026-06-11T22:31:34+00:00",
+  "git_commit": "75251c9",
+  "git_describe": "snapshot/gen7-acc-futility-2026-06-11-5-g75251c9-dirty",
+  "machine": "DESKTOP-KF0SM7V",
+  "engine_exe": "target\\release\\uci.exe",
+  "engine_sha": "cf8d1c11f42e4fec",
+  "net": "f:/tools/cvs-baselines/raw-nnue-h256-sf-d12-v3.json",
+  "net_sha": "4cc9765c35c92d51",
+  "futility": true,
+  "extra_flags": [],
+  "threads": 1,
+  "depth": 30,
+  "baseline_ref": "snapshot/gen7-acc-futility-2026-06-11"
+ },
+ "cand_args": [
+  "--futility",
+  "--rfp"
+ ],
+ "base_args": [
+  "--futility"
+ ],
+ "tc": "5+0.05",
+ "conc": "4",
+ "wld": [
+  6,
+  8,
+  6
+ ],
+ "score_pct": 45.0,
+ "label": "SUSPICIOUS",
+ "pgn": "f:/tools/screen-rfp-current-gate-20260611.pgn"
+}

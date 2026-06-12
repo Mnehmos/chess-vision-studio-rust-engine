@@ -23,10 +23,11 @@ depth = int(arg('--depth', '9'))
 movetime = arg('--movetime')
 
 configs = [B.engine_cfg('baseline', depth=depth)]
-if '--exe' in sys.argv or '--net' in sys.argv or '--no-futility' in sys.argv:
+if any(fl in sys.argv for fl in ('--exe', '--net', '--no-futility', '--extra')):
     configs.append(B.engine_cfg(
         arg('--name', 'candidate'), exe=arg('--exe'), net=arg('--net'),
-        futility=False if '--no-futility' in sys.argv else None, depth=depth))
+        futility=False if '--no-futility' in sys.argv else None,
+        extra=arg('--extra', '').split(), depth=depth))
 
 sf = B.Stockfish(depth=12)
 fens, orc, danger = suite['fens'], suite['oracle'], suite['danger'] or [False] * len(suite['fens'])

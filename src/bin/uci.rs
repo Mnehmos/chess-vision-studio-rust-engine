@@ -36,7 +36,7 @@ struct Ponder {
     budget: u64,
 }
 
-fn print_result(out: &mut impl Write, r: &SearchResult) {
+fn print_result(out: &mut impl Write, r: &SearchResult, pos: &Position) {
     let score = match r.mate {
         Some(m) => format!("mate {m}"),
         None => format!("cp {}", r.score_cp),
@@ -53,7 +53,23 @@ fn print_result(out: &mut impl Write, r: &SearchResult) {
     );
     match r.best_move {
         Some(m) => {
-            let hint = r.pv.get(1).map(|p| format!(" ponder {}", p.to_uci()));
+            // The PV comes from a TT walk, so pv[1] can be stale (an entry
+            // overwritten by a sibling search) and occasionally ILLEGAL after
+            // the best move — GUIs warn and skip the hint. Validate it.
+            let hint = r.pv.get(1).and_then(|p| {
+                let mut after = pos.clone();
+                let legal_best = generate_legal(&mut after)
+                    .iter()
+                    .any(|mv| mv.to_uci() == m.to_uci());
+                if !legal_best {
+                    return None;
+                }
+                after.make(m);
+                generate_legal(&mut after)
+                    .iter()
+                    .find(|mv| mv.to_uci() == p.to_uci())
+                    .map(|_| format!(" ponder {}", p.to_uci()))
+            });
             let _ = writeln!(out, "bestmove {}{}", m.to_uci(), hint.unwrap_or_default());
         }
         None => {
@@ -227,6 +243,16 @@ fn main() {
                     lmp: args.iter().any(|a| a == "--lmp"),
                     see_prune: args.iter().any(|a| a == "--seeprune"),
                     delta_prune: args.iter().any(|a| a == "--delta"),
+                    countermove: args.iter().any(|a| a == "--countermove"),
+                    conthist: args.iter().any(|a| a == "--conthist"),
+                    tt_prune_store: args.iter().any(|a| a == "--tt-prune-store"),
+                    rule50_scale: args.iter().any(|a| a == "--rule50"),
+                    qsearch_tt: args.iter().any(|a| a == "--qtt"),
+                    hist_malus: args.iter().any(|a| a == "--histmalus"),
+                    hist_lmr: args.iter().any(|a| a == "--histlmr"),
+                    tt2: args.iter().any(|a| a == "--tt2"),
+                    improving: args.iter().any(|a| a == "--improving"),
+                    king_activity: args.iter().any(|a| a == "--king-activity"),
                     threads: get("--threads").and_then(|s| s.parse().ok()).unwrap_or(1),
                     ..Default::default()
                 };
@@ -252,7 +278,7 @@ fn main() {
                 } else {
                     let s = searcher.as_mut().expect("searcher");
                     let r = s.search(&mut pos, opts);
-                    print_result(&mut out, &r);
+                    print_result(&mut out, &r, &pos);
                 }
             }
             Some("ponderhit") => {
@@ -266,7 +292,7 @@ fn main() {
                     });
                     if let Ok((r, s)) = p.handle.join() {
                         searcher = Some(s);
-                        print_result(&mut out, &r);
+                        print_result(&mut out, &r, &pos);
                     }
                 }
             }
@@ -276,7 +302,7 @@ fn main() {
                     if let Ok((r, s)) = p.handle.join() {
                         searcher = Some(s);
                         // Protocol requires a bestmove even on ponder miss.
-                        print_result(&mut out, &r);
+                        print_result(&mut out, &r, &pos);
                     }
                 }
                 // Non-ponder searches are synchronous and bounded; nothing to stop.

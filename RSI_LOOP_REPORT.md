@@ -477,3 +477,298 @@ opponent-clock settings). Frozen: uci-gen7-acc-fut-rfp.exe (452c12cc),
 analyze-gen7-acc-fut-rfp.exe (a9cf216e). Rollback: snapshot f07caae binaries.
 Selectivity tally on gen7: futility +34 (fixed-N), RFP +69 (formal).
 Next per roadmap: external rung screen -> smarttime gate -> telemetry -> LMP.
+
+## 2026-06-11 — RFP HOLD reconciliation (suspicious screen resolved as noise)
+
+User-corrected Gate-5 screen (current target/release/uci.exe both sides,
+--futility --rfp vs --futility, 5+0.05) scored 45.0% (+6 -8 =6) — SUSPICIOUS,
+HOLD declared. Investigation per gate doctrine ("inspect PGNs"):
+
+1. PGNs clean: 20/20 normal terminations, zero time forfeits/crashes/illegal
+   moves; losses were long fully-played games (6 as white, 2 as black).
+2. Build exonerated: true parity, SPRT-era champion artifact (452c12cc-era
+   analyze a9cf216e) vs current build (cf8d1c11-era analyze), identical flags,
+   d8, all 10 canonical positions: 0 differences — moves, scores, and node
+   counts identical. Telemetry + parallel edits confirmed observation-only.
+3. Screen extended to 100 games, same config, same TC:
+   **+50 -23 =27, 63.5% — GREEN** (cutechess +96.2 +/-60.2, LOS 99.9%,
+   PGN screen-rfp-ext100-20260611.pgn). The 45% start was a cold 20-game
+   sample of the same effect (P(<=45% | true +69) ~ 6-8%).
+
+Verdict: the formal SPRT (+68.8, llr 2.97, 220 games @10+0.1) stands and now
+has an independent 100-game GREEN confirmation at 5+0.05 hyperblitz on the
+current build. RECOMMENDATION: lift HOLD, promote RFP into the champion
+stack (user's call per gate discipline). Bot restart with --rfp unblocks on
+that decision.
+
+## 2026-06-11 — RFP ruling: ACCEPTED WITH NOTE (user), promoted to live bot
+
+User ruling on RFP-v2: **ACCEPTED WITH NOTE** — standard engine practice,
+not degrading; treated as a solid but not headline gain. Supporting record:
+formal SPRT bound crossing (+68.8, llr 2.97, 220 games @10+0.1) and the
+100-game GREEN screen (63.5% @5+0.05); operative label is the user's.
+
+Live bot restarted on the consolidated stack: frozen
+analyze-gen7-acc-fut-rfp.exe (a9cf216e) + gen7 net, CVS_RUST_FUTILITY=1 +
+CVS_RUST_RFP=1 (backend flag wired in rust-backend.ts), ponder picker k3.
+Previous bot build (target-cand, futility-only) retired.
+
+Smarttime SPRT continues in parallel (interim ~185 games, llr ~0.4,
++19 +/-43 — trending fixed-N positive / inconclusive).
+
+## 2026-06-11 — Smarttime SPRT stopped by user at 215 games
+
+--smarttime (soft/hard split) vs flat budget, both sides current build with
+--futility --rfp, 10+0.1: **+83 -70 =62 (215 games), 53.0%,
+Elo +19.9 +/-39.6, LOS 83.8%, llr 0.484 — bound NOT crossed.**
+Label: **fixed-N positive / inconclusive.** Do NOT cite as SPRT pass.
+20-game screen @5+0.05 was GREEN (60%). Status: live-dev only pending a
+future gate; flag stays off by default. PGN: sprt-smarttime.pgn.
+
+## 2026-06-11 — Countermove (roadmap item 7): implemented, weak standalone
+
+--countermove (refutation of opponent's previous move, ordered below killers;
+per-ply prev-move stack, null subtrees excluded). Flag OFF byte-identical to
+champion (node-exact on canonical). Telemetry @d8: first-move cutoff
+34.4%->36.6%, cutIdx 1.48->1.44, ttHit 12.2%->14.1% — but EBF 2.68->2.82
+(two openings grew) and equal-movetime depth flat (93 vs 92).
+Gate-5 screen: +6 -8 =6 (45.0%) SUSPICIOUS with no positive prior.
+Decision: NOT promoted; flag stays off; revisit paired with continuation
+history. Next: continuation history (item 8) as its own gate.
+
+## 2026-06-11 — Conthist neutral; TT leak found; tt-prune-store patch
+
+Continuation history (--conthist, 1-ply pair table): flag-off byte-identical,
+telemetry flat (1st-cut 34.2% vs 34.4%), nodes -0.6%, screen +6 -6 =8 (50.0%)
+NEUTRAL. Not promoted; table too sparse to reorder the quiet tier as built.
+
+TT investigation (the audit's 12.2% "hit rate"): raw counters show only ~20%
+of probed nodes even FIND an entry at d8 — yet the 2M-slot table sits at ~2%
+load. Cause: RFP cuts ~60% of shallow non-PV nodes and returned WITHOUT
+storing, so every ID iteration re-probes those nodes empty and recomputes the
+NNUE static eval. (Also found: bench_telemetry hashMoveCutoffPct denominator
+bug — prints >100%.)
+
+Patch: --tt-prune-store stores Lower(beta) at depth on RFP cutoff (position-
+only bound, unlike null — safe). Measured: any-entry 21.9%->43.0%, fixed-depth
+nodes +0.2% (same tree), equal-movetime depth +3 summed (92->95; two suites
++2 ply each). First patch tonight with a real same-budget depth gain.
+Screen running.
+
+## 2026-06-11 — tt-prune-store screen GREEN, SPRT launched
+
+Gate-5 screen (--tt-prune-store vs base, both --futility --rfp, 5+0.05):
+**+12 -5 =3 (67.5%) GREEN** — strongest screen of the night, consistent with
+the +3 summed equal-movetime depth. SPRT running: 10+0.1, elo0=0 elo1=20,
+max 400 (sprt-ttprunestore.pgn). One variable.
+
+## 2026-06-11 — rule50 eval scaling REJECTED (v1)
+
+--rule50 (eval × (256−hm)/256 at static/leaf eval): flag-off byte-identical;
+screen +5 -7 =8 (45.0%) SUSPICIOUS; PGN inspection shows the TARGET metric
+regressed — cand drew from peaks +9.31 (50-move), +3.91 (rep @56 plies!),
++3.49, +2.07. Mechanism: Zobrist excludes the halfmove counter, so scaled
+scores contaminate the TT across hm contexts (same trap as storing null
+cutoffs), and high-hm scaling flattens move gradients exactly when technique
+needs them. Decision: REJECT; conversion pressure must be POSITION-ONLY.
+Next: king-activity-when-ahead (TT-safe), its own gate.
+
+## 2026-06-11 — king-activity v1: NEUTRAL at 100, conversion leak persists
+
+20-game screen GREEN (60%) did not hold: 100 games +38 -32 =30 (53.0%)
+NEUTRAL, and cand still drew from +11.57 / +6.50 / +6.27 (13/30 draws peaked
+>=+1.5). Diagnosis: proximity+centralization gives no gradient in trivially
+won endings — the winner shuffles between eval-equal moves. v2 adds the
+classic mop-up term (drive the LOSING king to the edge), same flag.
+
+## 2026-06-11 — king-activity v2 NEUTRAL; conversion lane shelved
+
+v2 (mop-up: drive losing king to edge, 8x weight + proximity): 100 games
++37 -31 =32 (53.0%) NEUTRAL, draw-peak profile unchanged (22/32 >= +1.5,
+still drew from +7.3/+5.8). SF-d22 ground truth on six peak positions:
+4 REAL wins unconverted (incl. +8.2, up a bishop in a pawn ending) and
+2 eval fictions (+3.6 claimed in a +0.2 KRB-vs-KR fortress).
+
+Verdict: conversion failures are real but NOT eval-gradient-limited — two
+independent formulations moved nothing at 5+0.05. Hypothesis: depth-limited
+(zugzwang/pawn-race lines). The pending tt-prune-store depth gain is the
+likelier cure; revisit conversion AFTER it lands, measured at 10+0.1.
+Both terms stay flag-gated off (king-activity, rule50). Eval-fiction note
+filed for gen8 training (endgame labels thin in gen7 data).
+
+## 2026-06-11 — tt-prune-store SPRT: fixed-N positive / inconclusive @400
+
+--tt-prune-store vs base (both --futility --rfp), 10+0.1, elo0=0 elo1=20:
+**+151 -133 =116 (400 games), 52.2%, Elo +15.6 +/-28.7, LOS 85.7%,
+llr 0.52 — NO bound crossed.** Label: fixed-N positive / inconclusive.
+Supporting record: screen 67.5% GREEN, ttEntry 22%->43%, fixed-depth tree
+identical (+0.2% nodes), equal-movetime depth +3 summed. Mechanically sound
+and cheap; promotion label is the user's call (futility precedent:
+accepted-with-note). Flag stays off pending ruling.
+
+## 2026-06-11 — LMP shelved (v1 RED, v2 suspicious)
+
+LMP v1 (4+d², depth<=4): screen +4 -9 =7 (37.5%) RED — telemetry showed 83%
+of attempted quiets skipped, -55% nodes; budgets assume 85-95% first-move
+cutoff ordering, ours is ~35%. v2 (8+2d²): +6 -8 =6 (45.0%) SUSPICIOUS.
+Shelved pending ordering improvements — third data point (after countermove,
+conthist) that ORDERING QUALITY is the binding constraint on the pruning
+roadmap. Next: qsearch TT (55-62% of nodes, currently table-blind).
+
+## 2026-06-11 evening session synthesis (post-RFP)
+
+Gates run (one variable each, all flag-gated off by default, all flag-off
+byte-identical): smarttime (fixed-N inconclusive @215, user-dropped),
+countermove (45% susp), conthist (50% neutral), tt-prune-store (67.5% GREEN
+screen -> fixed-N +15.6 @400, NO bound), rule50 (REJECTED, TT contamination),
+king-activity v1/v2 (53% neutral x2), LMP v1/v2 (RED 37.5% / susp 45%),
+qtt (-7.4% nodes, 0 move changes; 45% @20, 100-game ext running).
+
+The evening's three structural findings:
+1. ORDERING QUALITY BINDS THE PRUNING ROADMAP. ~35% first-move cutoff means
+   every quiet-tail trick (countermove/conthist/LMP) underperforms its
+   textbook value. The fix order is hash-move coverage (TT work) before more
+   ordering heuristics, before any more pruning.
+2. RFP-CUT NODES WERE TT-INVISIBLE (fixed by tt-prune-store, pending label).
+   Same class of finding as the q-node table-blindness (qtt, pending).
+3. GEN7 ENDGAME EVAL FICTION measured: fortress +0.2 scored +3.6; deep
+   endgame labels thin in SF-d12-quiet training diet. Gen8 training note.
+   Real unconverted wins are depth-limited at hyperblitz, not gradient-
+   limited (two eval-term formulations moved nothing).
+
+## 2026-06-11 — qtt: NEUTRAL at 100 (fixed-N positive-leaning)
+
+--qtt 100 games: +39 -34 =27 (52.5%), +17.4 +/-58.7. Same band and same
+shape as tt-prune-store: mechanically clean (-7.4% nodes, zero move changes
+at fixed depth), too small to prove at this sample. Both TT patches pending
+user label; complementary but must be accepted individually (never bundle).
+
+## 2026-06-12 — USER RULINGS: tt-prune-store + qtt both ACCEPTED WITH NOTE
+
+Both TT patches accepted with note (fixed-N positive, no SPRT bound; cite
+accordingly). Pair-confirmation screen launched (--tt-prune-store --qtt
+together vs champion base — each was gated solo; this checks interaction
+only). On clean screen: freeze new champion stack
+gen7+acc+futility+rfp+ttps+qtt and restart bot on it.
+
+## 2026-06-12 — TT pair CONFIRMED; new champion frozen; bot on full stack
+
+Pair confirmation (--tt-prune-store --qtt vs champion base, 100 games):
+**+41 -29 =30 (56.0%)** — no interaction; pair estimate ~= sum of parts.
+NEW CHAMPION STACK: gen7 + acc + futility + RFP + tt-prune-store + qtt.
+Frozen: uci-gen7-acc-fut-rfp-tt.exe (c6fe4d1e),
+analyze-gen7-acc-fut-rfp-tt.exe (4b27f67e). Rollback: the -rfp pair.
+Bot restarted on it (CVS_RUST_TTPS/CVS_RUST_QTT wired in rust-backend.ts;
+orphan-kill discipline applied, 0 stragglers verified).
+
+histmalus v1 screen: +5 -7 =8 (45.0%) suspicious standalone — consistent
+with research: history pays when CONSUMED (history-aware LMR / continuation
+pruning), not as pure reordering. Label: FOUNDATION, neutral standalone.
+Next gate: history-informed LMR (one mechanism = malus substrate + LMR
+consumption; explicitly noted as a dependent chain, not a bundle).
+
+## 2026-06-12 — histmalus+histlmr screen GREEN; SPRT launched vs new champion
+
+History mechanism complete (maluses+gravity substrate, LMR consumption):
+d8 nodes -23.1%, +3 summed depth @500ms, screen +11 -6 =3 (62.5%) GREEN.
+SPRT running: 10+0.1, elo0=0 elo1=20, max 400, base = NEW champion stack
+(futility+rfp+ttps+qtt), cand adds --histmalus --histlmr. One mechanism,
+dependent chain (substrate + consumer), explicitly not a bundle of
+independents. PGN: sprt-histlmr.pgn.
+
+## 2026-06-12 — rule50-v2 REJECTED; conversion lane CLOSED (eval-side)
+
+v2 (damp + SF adjust_key50 bucketing + hm>=96 cutoff guard): 100 games
++29 -41 =30 (44.0%), draw-peak profile UNCHANGED (21/30 draws peaked >=+1.5;
+still drew from +9.37/+8.01/+6.42). The bucketing fixed v1's TT poisoning,
+but at our depths the damp's horizon gradient is a few cp while it distorts
+all hm-20..40 middlegame evals by 10-15%. Conclusion: eval-side conversion
+pressure REJECTED twice with mechanisms; the lane closes. Conversion path =
+depth (TT patches, histlmr) + gen8 endgame training data + (later) Syzygy.
+Both rule50 and king-activity remain flag-gated negatives in the source.
+
+## 2026-06-12 — Two-bucket TT (--tt2): bench-NEUTRAL, important negative
+
+Built depth-preferred + always-replace buckets (flag-off byte-identical,
+verified). Fixed-depth d8: nodes -0.1%, ttHit 13.8%->13.7%, movetime depth
+-2 summed. CONCLUSION: eviction is NOT the cause of our low (~14%) TT-hit
+rate — the research's #1 TT hypothesis (replacement policy) is falsified for
+our engine. The low hit rate is intrinsic: either we genuinely revisit few
+transpositions at our pruning widths, or probes miss for a different reason
+(qsearch store coverage, generation aging too aggressive, or a key issue).
+tt2 SHELVED (no bench signal; do not spend SPRT cores). NEXT TT step is
+DIAGNOSTIC not corrective: instrument probe misses by cause (never-stored vs
+evicted vs fresh-position) before any more TT code. Search-track lesson:
+measure the actual failure before applying the textbook fix.
+
+## 2026-06-12 — TT probe-miss DIAGNOSTIC: low hit rate is intrinsic, not fixable via TT
+
+Instrumented probe misses (d11, 3 middlegames, 2.08M probes):
+  any-entry 14% | depth-hit 8% | **miss-COLD 82%** | miss-contended 3% |
+  entry-but-shallow 5%.
+82% of misses are COLD (index never written) vs 3% contention. The table is
+UNDER-filled, not churning. Low hit rate = heavily-pruned search over mostly-
+UNIQUE positions, not eviction (confirms tt2 neutral). VERDICT: TT is NOT a
+search-leverage point; the audit's "pathological 12% hit" framing was wrong.
+The only lever that raises hit rate is MOVE ORDERING (better ordering -> PV
+re-convergence across ID iterations -> transposition hits). Redirects the
+search track fully back to ordering/history (the live SPRT) + capture history
++ cheap ordering wins. Drop TT from the roadmap. Diagnostic counters kept
+(observation-only, search-identical).
+
+## 2026-06-12 — "improving" flag (--improving): positive bench, screen-queued
+
+Eval-trajectory primitive: per-ply static-eval stack; a node is "improving"
+if its static eval exceeds the same side's eval two plies back. Currently
+consumed by LMR (one extra reduction ply when NOT improving). Flag-off
+byte-identical. Bench: d8 nodes -8.4%, movetime depth +2 summed. Clean
+positive (contrast tt2 neutral). Independent of histlmr. SCREEN-QUEUED for
+when SPRT frees cores. Next consumers if it lands: improving-gated futility
+margin + the viable-LMP budget split (4+d² vs (3+d²)/2).
+
+## 2026-06-12 — gen8-raw-h256-d20 v1: REJECTED (regressed on fresh-100)
+
+Eval-only A/B (same frozen gen7 exe, swap net), fresh-100, d9, SF-d12:
+  gen7  match 60.0% avgCP 11.6 p90 50  bl200 0.0% danger 13.5
+  gen8  match 52.0% avgCP 23.4 p90 94  bl200 2.0% danger 23.3   GATE 3 FAIL (all 4).
+
+Diagnosis (two compounding causes, both my process errors):
+1. NO QUIET FILTER. gen7 trained on 4.78M QUIET positions (filtered from
+   7.43M). I trained gen8 on RAW public Lichess positions incl. mid-tactic /
+   in-check / unstable nodes -> the net learned noise. Quiet filtering is a
+   core NNUE training principle; I skipped it for the public data.
+2. DISTRIBUTION SHIFT. Public-as-BROAD replaced our-engine's distribution with
+   Lichess user-analysis positions (opening/middlegame heavy, different from
+   what our search reaches). gen7's edge was OUR-distribution calibration; gen8
+   threw that away. The danger (middlegame) regression is the fingerprint.
+
+Lesson: public data should SUPPLEMENT (fill endgame gaps), not SUPPLANT the
+broad base. The real gen8 control is OUR 4.78M quiet corpus relabeled d12->d20
+(distribution held constant, label depth isolated) -- the expensive relabel I
+dodged by using public data. Corrected recipe options below.
+
+## 2026-06-12 — gen8-v2 (corrected recipe): recovers, but cp-loss gate LEAKED
+
+v2 corpus = our quiet d12 (83%, distribution restored) + quiet endgame (14%)
++ booster (3%); maxlen 32 (v1 was 64 -> v1 also had malformed public FENs
+doubling features, a 3rd v1 bug). v2 holdout 0.012 (v1 0.025).
+cp-loss gate fresh-100: gen8v2 match 66% avgCP 6.7 danger 7.5 vs gen7 60%/
+11.6/13.5 -- PASS all 4, danger ~halved. BUT leakage check: 47/100 fresh-100
+positions are IN v2's training corpus -> cp-loss INFLATED by memorization.
+fresh-100 is NOT held-out from our-corpus-trained nets (benchmark hygiene
+finding). Clean verdict = head-to-head GAME screen (swap net only, immune to
+cp-loss leakage). Running now.
+
+## 2026-06-12 — gen8-v2 head-to-head: +115 Elo over gen7 (clean, leakage-immune)
+
+Game screen (swap NNUE only, same champion search, 5+0.05, 100g):
+**gen8v2 vs gen7 +55 -23 =22, 66.0%, Elo +115.2 +/-63.3, LOS 100.0%.**
+A game screen is immune to the cp-loss training leakage, so this is a REAL
+eval gain ~ the gen6->gen7 magnitude. Recipe = our quiet d12 distribution
+(83%) + public-endgame d20 (14%) + our-weakpoint d20 booster (3%), lambda 1.0.
+Achieved on d12 BROAD labels -> the 67cp d20 signal is still UNSPENT (d20
+relabel of our corpus now running, 12 cores).
+
+STATUS: strong new-champion EVAL candidate, screen-positive @100, LOS 100%.
+Promotion path = full gate ladder (cp-loss on a NON-leaked suite + blunder/
+danger sanity) -> SPRT vs gen7 stack -> user ruling. Not yet promoted.

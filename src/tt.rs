@@ -101,8 +101,12 @@ fn unpack(d: u64) -> TtEntry {
 }
 
 pub struct SharedTt {
-    /// (hash ^ data, data) per slot.
+    /// (hash ^ data, data) per slot. `slots` is the depth-preferred bucket;
+    /// `slots2` is the always-replace bucket used only when two-bucket mode is
+    /// enabled (--tt2). With it off, slots2 is never read or written and the
+    /// table behaves byte-for-byte like the original single-slot table.
     slots: Vec<[AtomicU64; 2]>,
+    slots2: Vec<[AtomicU64; 2]>,
     mask: u64,
     generation: AtomicU8,
 }
@@ -112,8 +116,11 @@ impl SharedTt {
         let size = 1usize << bits;
         let mut slots = Vec::with_capacity(size);
         slots.resize_with(size, || [AtomicU64::new(0), AtomicU64::new(0)]);
+        let mut slots2 = Vec::with_capacity(size);
+        slots2.resize_with(size, || [AtomicU64::new(0), AtomicU64::new(0)]);
         SharedTt {
             slots,
+            slots2,
             mask: (size as u64) - 1,
             generation: AtomicU8::new(0),
         }
@@ -128,13 +135,43 @@ impl SharedTt {
     }
 
     pub fn probe(&self, hash: u64) -> Option<TtEntry> {
-        let s = &self.slots[(hash & self.mask) as usize];
+        let i = (hash & self.mask) as usize;
+        let s = &self.slots[i];
         let key = s[0].load(Ordering::Relaxed);
         let data = s[1].load(Ordering::Relaxed);
         if data != 0 && key ^ data == hash {
             Some(unpack(data))
         } else {
             None
+        }
+    }
+
+    /// Diagnostic: on a probe miss, was the (bucket-1) slot empty (cold — this
+    /// index never written) or occupied by a different position (contended —
+    /// table pressure / collision)? Distinguishes "we don't revisit" from
+    /// "the table is too small" for the low-hit-rate investigation.
+    pub fn slot_occupied(&self, hash: u64) -> bool {
+        self.slots[(hash & self.mask) as usize][1].load(Ordering::Relaxed) != 0
+    }
+
+    /// Two-bucket probe (--tt2): try the depth-preferred bucket, then the
+    /// always-replace bucket; return the deeper of any two hits.
+    pub fn probe2(&self, hash: u64) -> Option<TtEntry> {
+        let i = (hash & self.mask) as usize;
+        let a = {
+            let s = &self.slots[i];
+            let (k, d) = (s[0].load(Ordering::Relaxed), s[1].load(Ordering::Relaxed));
+            (d != 0 && k ^ d == hash).then(|| unpack(d))
+        };
+        let b = {
+            let s = &self.slots2[i];
+            let (k, d) = (s[0].load(Ordering::Relaxed), s[1].load(Ordering::Relaxed));
+            (d != 0 && k ^ d == hash).then(|| unpack(d))
+        };
+        match (a, b) {
+            (Some(x), Some(y)) => Some(if x.depth >= y.depth { x } else { y }),
+            (Some(x), None) => Some(x),
+            (None, b) => b,
         }
     }
 
@@ -176,6 +213,42 @@ impl SharedTt {
         });
         s[1].store(data, Ordering::Relaxed);
         s[0].store(hash ^ data, Ordering::Relaxed);
+    }
+
+    /// Two-bucket store (--tt2): bucket 1 is depth-preferred (protect deep
+    /// entries — only overwrite on same position, stale generation, or equal/
+    /// greater depth); if bucket 1 declines, the entry still lands in the
+    /// always-replace bucket 2, so the work is never simply discarded.
+    #[allow(clippy::too_many_arguments)]
+    pub fn store2(
+        &self,
+        hash: u64,
+        depth: i32,
+        score: i32,
+        flag: Flag,
+        mv: Option<Move>,
+        generation: u8,
+        lane: u8,
+    ) {
+        let i = (hash & self.mask) as usize;
+        let data = pack(&TtEntry { depth, score, flag, mv, generation, lane });
+        let s = &self.slots[i];
+        let cur_data = s[1].load(Ordering::Relaxed);
+        let take_depth = if cur_data == 0 {
+            true
+        } else {
+            let cur = unpack(cur_data);
+            let same = s[0].load(Ordering::Relaxed) ^ cur_data == hash;
+            same || cur.generation != generation || depth >= cur.depth
+        };
+        if take_depth {
+            s[1].store(data, Ordering::Relaxed);
+            s[0].store(hash ^ data, Ordering::Relaxed);
+        } else {
+            let s2 = &self.slots2[i];
+            s2[1].store(data, Ordering::Relaxed);
+            s2[0].store(hash ^ data, Ordering::Relaxed);
+        }
     }
 }
 

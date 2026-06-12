@@ -7,7 +7,7 @@
 //!   analyze (--fens <file> | --serve) --depth N [--base w.json --rung2 r.json]
 //!           [--no-quiet-checks] [--no-tt]
 use cvs_bitboard_core::eval::{evaluate_white, Nnue, Rung2Weights, ValueWeights};
-use cvs_bitboard_core::search::{SearchOptions, Searcher};
+use cvs_bitboard_core::search::{SearchOptions, Searcher, Telemetry};
 use cvs_bitboard_core::Position;
 use std::io::{BufRead, Write};
 
@@ -22,6 +22,131 @@ struct ServeJsonRequest {
     initial_fen: Option<String>,
     moves: Option<Vec<String>>,
     budget_ms: Option<u64>,
+}
+
+fn pct(num: u64, den: u64) -> f64 {
+    if den == 0 {
+        0.0
+    } else {
+        (num as f64) * 100.0 / (den as f64)
+    }
+}
+
+fn avg(num: u64, den: u64) -> f64 {
+    if den == 0 {
+        0.0
+    } else {
+        (num as f64) / (den as f64)
+    }
+}
+
+fn telemetry_json(t: &Telemetry) -> serde_json::Value {
+    let mut branching_by_ply = Vec::new();
+    for (ply, (&nodes, &children)) in t
+        .ply_nodes
+        .iter()
+        .zip(t.ply_child_searches.iter())
+        .enumerate()
+    {
+        if nodes == 0 && children == 0 {
+            continue;
+        }
+        branching_by_ply.push(serde_json::json!({
+            "ply": ply,
+            "nodes": nodes,
+            "childSearches": children,
+            "effectiveBranching": avg(children, nodes),
+        }));
+    }
+
+    let mut out = serde_json::Map::new();
+    macro_rules! field {
+        ($key:literal, $value:expr) => {
+            out.insert($key.to_string(), serde_json::json!($value));
+        };
+    }
+
+    field!("nodes", t.nodes);
+    field!("mainNodes", t.main_nodes);
+    field!("qNodes", t.q_nodes);
+    field!("qNodePct", pct(t.q_nodes, t.nodes));
+    field!("qCaptures", t.q_capture_nodes);
+    field!("qSeeSkips", t.q_see_skips);
+    field!("quietExt", t.quiet_check_extensions);
+    field!("maxQDepth", t.max_q_depth);
+    field!("ttProbes", t.tt_probes);
+    field!("ttEntries", t.tt_entries);
+    field!("ttHits", t.tt_hits);
+    field!("ttMissCold", t.tt_miss_cold);
+    field!("ttMissContended", t.tt_miss_contended);
+    field!("ttHitPct", pct(t.tt_hits, t.tt_probes));
+    field!("ttEntryPct", pct(t.tt_entries, t.tt_probes));
+    field!("ttCutoffs", t.tt_cutoffs);
+    field!("ttCutoffPct", pct(t.tt_cutoffs, t.tt_probes));
+    field!("cutoffs", t.beta_cutoffs);
+    field!("hashMoveCutoffs", t.hash_move_cutoffs);
+    field!(
+        "hashMoveCutoffPct",
+        pct(t.hash_move_cutoffs, t.beta_cutoffs)
+    );
+    field!("firstMoveCutoffs", t.first_move_cutoffs);
+    field!(
+        "firstMoveCutoffPct",
+        pct(t.first_move_cutoffs, t.beta_cutoffs)
+    );
+    field!("killerCutoffs", t.killer_cutoffs);
+    field!("historyCutoffs", t.history_cutoffs);
+    field!("cutoffMoveIndexSum", t.cutoff_move_index_sum);
+    field!("cutoffMoveIndexCount", t.cutoff_move_index_count);
+    field!(
+        "avgCutoffMoveIndex",
+        avg(t.cutoff_move_index_sum, t.cutoff_move_index_count)
+    );
+    field!("legalMoveNodes", t.legal_move_nodes);
+    field!("legalMoveSum", t.legal_move_sum);
+    field!("avgLegalMoves", avg(t.legal_move_sum, t.legal_move_nodes));
+    field!("searchedMoves", t.searched_moves);
+    field!("prunedMoves", t.pruned_moves);
+    field!(
+        "searchedEffectiveBranching",
+        avg(t.searched_moves, t.legal_move_nodes)
+    );
+    field!("nullAttempts", t.null_attempts);
+    field!("nullCutoffs", t.null_cutoffs);
+    field!("nullCutoffPct", pct(t.null_cutoffs, t.null_attempts));
+    field!("rfpAttempts", t.rfp_attempts);
+    field!("rfpCutoffs", t.rfp_cutoffs);
+    field!("rfpCutoffPct", pct(t.rfp_cutoffs, t.rfp_attempts));
+    field!("futilityAttempts", t.futility_attempts);
+    field!("futilitySkips", t.futility_skips);
+    field!(
+        "futilitySkipPct",
+        pct(t.futility_skips, t.futility_attempts)
+    );
+    field!("lmpAttempts", t.lmp_attempts);
+    field!("lmpSkips", t.lmp_skips);
+    field!("lmpSkipPct", pct(t.lmp_skips, t.lmp_attempts));
+    field!("seePruneAttempts", t.see_prune_attempts);
+    field!("seePruneSkips", t.see_prune_skips);
+    field!(
+        "seePruneSkipPct",
+        pct(t.see_prune_skips, t.see_prune_attempts)
+    );
+    field!("deltaAttempts", t.delta_attempts);
+    field!("deltaSkips", t.delta_skips);
+    field!("deltaSkipPct", pct(t.delta_skips, t.delta_attempts));
+    field!("lmrReductions", t.lmr_reductions);
+    field!("lmrResearches", t.lmr_researches);
+    field!("lmrResearchPct", pct(t.lmr_researches, t.lmr_reductions));
+    field!("pvsResearches", t.pvs_researches);
+    field!("aspirationResearches", t.aspiration_researches);
+    field!("dangerExtensionPlies", t.danger_extension_plies);
+    field!("foreignHints", t.foreign_tt_hints);
+    field!("foreignCutoffs", t.foreign_tt_cutoffs);
+    field!("branchingByPly", branching_by_ply);
+    field!("timeMs", t.elapsed_ms);
+
+    serde_json::Value::Object(out)
 }
 
 fn main() {
@@ -53,10 +178,23 @@ fn main() {
             .expect("parse rung2")
     });
     let nnue: Option<Nnue> = get("--nnue").map(|p| Nnue::load(&p).expect("load nnue"));
+    let helper_nnue: Option<Nnue> =
+        get("--helper-nnue").map(|p| Nnue::load(&p).expect("load helper nnue"));
+    let make_searcher = |base: ValueWeights, rung2: Option<Rung2Weights>| {
+        let mut searcher = match &nnue {
+            Some(n) => Searcher::with_nnue(base, rung2, n.clone()),
+            None => Searcher::new(base, rung2),
+        };
+        if let Some(n) = &helper_nnue {
+            searcher.set_helper_nnue(Some(n.clone()));
+        }
+        searcher
+    };
     let opts = SearchOptions {
         depth,
         // --movetime <ms>: wall-clock cap for equal-clock matches (R4 fairness run).
         max_time_ms: get("--movetime").and_then(|s| s.parse().ok()),
+        soft_time_ms: None,
         quiet_checks: !args.iter().any(|a| a == "--no-quiet-checks"),
         use_tt: !args.iter().any(|a| a == "--no-tt"),
         // --danger: danger-triggered root depth extension (RSI loop 1, gated).
@@ -70,6 +208,16 @@ fn main() {
         lmp: args.iter().any(|a| a == "--lmp"),
         see_prune: args.iter().any(|a| a == "--seeprune"),
         delta_prune: args.iter().any(|a| a == "--delta"),
+        countermove: args.iter().any(|a| a == "--countermove"),
+        conthist: args.iter().any(|a| a == "--conthist"),
+        tt_prune_store: args.iter().any(|a| a == "--tt-prune-store"),
+        rule50_scale: args.iter().any(|a| a == "--rule50"),
+        qsearch_tt: args.iter().any(|a| a == "--qtt"),
+        hist_malus: args.iter().any(|a| a == "--histmalus"),
+        hist_lmr: args.iter().any(|a| a == "--histlmr"),
+        tt2: args.iter().any(|a| a == "--tt2"),
+        improving: args.iter().any(|a| a == "--improving"),
+        king_activity: args.iter().any(|a| a == "--king-activity"),
         threads: get("--threads").and_then(|s| s.parse().ok()).unwrap_or(1),
         cvs_trace: args.iter().any(|a| a == "--cvs-trace"),
         cvs_helpers: get("--cvs-helpers")
@@ -151,10 +299,7 @@ fn main() {
                 return serde_json::json!({ "fen": fen, "error": e }).to_string();
             }
         };
-        let mut searcher = match &nnue {
-            Some(n) => Searcher::with_nnue(base, rung2, n.clone()),
-            None => Searcher::new(base, rung2),
-        };
+        let mut searcher = make_searcher(base, rung2);
         let r = searcher.search(&mut pos, opts);
         let t = r.telemetry;
         let uci = r.best_move.map(|m| m.to_uci());
@@ -175,6 +320,7 @@ fn main() {
             "killerCutoffs": t.killer_cutoffs,
             "historyCutoffs": t.history_cutoffs,
             "nullCutoffs": t.null_cutoffs,
+            "telemetry": telemetry_json(&t),
             "timeMs": t.elapsed_ms,
         })
         .to_string()
@@ -188,10 +334,7 @@ fn main() {
         // Shared search-and-emit for prebuilt positions (JSON requests carry
         // move history so the root sees repetitions).
         let search_pos = |mut pos: Position, echo: &str, timed_ms: Option<u64>| -> String {
-            let mut searcher = match &nnue {
-                Some(n) => Searcher::with_nnue(base, rung2, n.clone()),
-                None => Searcher::new(base, rung2),
-            };
+            let mut searcher = make_searcher(base, rung2);
             let search_opts = match timed_ms {
                 Some(ms) => SearchOptions {
                     max_time_ms: Some(ms),
@@ -212,6 +355,7 @@ fn main() {
                 "qNodes": t.q_nodes,
                 "ttHits": t.tt_hits,
                 "timeMs": t.elapsed_ms,
+                "telemetry": telemetry_json(&t),
                 "foreignHints": t.foreign_tt_hints,
                 "foreignCutoffs": t.foreign_tt_cutoffs,
             })
@@ -281,10 +425,7 @@ fn main() {
                 let gfen = it.next().unwrap_or("").trim();
                 match Position::from_fen(gfen) {
                     Ok(mut pos) => {
-                        let mut searcher = match &nnue {
-                            Some(n) => Searcher::with_nnue(base, rung2, n.clone()),
-                            None => Searcher::new(base, rung2),
-                        };
+                        let mut searcher = make_searcher(base, rung2);
                         let timed = SearchOptions {
                             max_time_ms: Some(ms),
                             ..opts
@@ -302,6 +443,7 @@ fn main() {
                             "qNodes": t.q_nodes,
                             "ttHits": t.tt_hits,
                             "timeMs": t.elapsed_ms,
+                            "telemetry": telemetry_json(&t),
                             "foreignHints": t.foreign_tt_hints,
                             "foreignCutoffs": t.foreign_tt_cutoffs,
                         })
