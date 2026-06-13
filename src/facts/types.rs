@@ -246,7 +246,22 @@ pub struct CaptureOpportunity {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MotifOpportunity {
+    /// Motif family — currently always "fork".
+    pub kind: String,
+    /// Validator that proved it — "fork_validation".
     pub validator: String,
+    /// The single move that creates the motif (long UCI).
+    pub move_uci: String,
+    /// The piece that delivers the motif, referenced at its post-move square.
+    pub forking_piece: PieceRef,
+    /// The enemy pieces the motif piece attacks (sorted by id).
+    pub targets: Vec<PieceRef>,
+    /// Whether the motif move gives check.
+    pub gives_check: bool,
+    /// Whether one of the targets is the enemy king.
+    pub king_target: bool,
+    /// Estimated forced/likely material consequence in centipawns.
+    pub material_gain: i32,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]

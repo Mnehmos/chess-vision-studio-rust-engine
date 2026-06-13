@@ -1,5 +1,6 @@
 use cvs_bitboard_core::facts::{
-    build_teaching_fact_bundle, TeachingFactsRequestV1, TEACHING_FACTS_SCHEMA_VERSION,
+    build_teaching_fact_bundle, TeachingFactsOptionsV1, TeachingFactsRequestV1,
+    TEACHING_FACTS_SCHEMA_VERSION,
 };
 use serde_json::Value;
 use std::io::Write;
@@ -23,15 +24,32 @@ fn request(
     }
 }
 
+fn request_with_motifs(
+    fen: &str,
+    played: &str,
+    best: Option<&str>,
+    refutation: Option<&str>,
+) -> TeachingFactsRequestV1 {
+    TeachingFactsRequestV1 {
+        options: Some(TeachingFactsOptionsV1 {
+            include_motif_opportunities: true,
+            include_counterfactual: true,
+        }),
+        ..request(fen, played, best, refutation)
+    }
+}
+
 fn fixtures() -> Vec<(&'static str, TeachingFactsRequestV1)> {
     vec![
         (
+            // White's Kg1/Re1 are forkable by Black's knight: after the quiet e2e4,
+            // Black plays g5f3+ forking king and rook. Kg1-h1 (best) sidesteps it.
             "allowed-fork.json",
-            request(
-                "4k3/8/8/8/8/2n5/4P3/4K3 w - - 0 1",
+            request_with_motifs(
+                "6k1/8/8/6n1/8/8/4P3/4R1K1 w - - 0 1",
                 "e2e4",
-                Some("e1f2"),
-                Some("c3e4"),
+                Some("g1h1"),
+                Some("g5f3"),
             ),
         ),
         (

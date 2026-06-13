@@ -1,9 +1,19 @@
+use crate::facts::motifs::motif_opportunities;
 use crate::facts::pawn_structure::structure_deltas;
 use crate::facts::position::{position_facts, square_name};
 use crate::facts::types::*;
 use crate::facts::{FACTS_REGISTRY_VERSION, TEACHING_FACTS_SCHEMA_VERSION};
 use crate::movegen::generate_legal;
 use crate::{Move, Position};
+
+/// Position facts, with validated fork motifs layered on only when requested.
+fn facts_for(pos: &Position, include_motifs: bool) -> PositionFacts {
+    let mut facts = position_facts(pos);
+    if include_motifs {
+        facts.available_motifs = motif_opportunities(pos);
+    }
+    facts
+}
 
 pub fn build_teaching_fact_bundle(
     request: &TeachingFactsRequestV1,
@@ -14,9 +24,15 @@ pub fn build_teaching_fact_bundle(
             request.schema_version, TEACHING_FACTS_SCHEMA_VERSION
         ));
     }
+    let include_motifs = request
+        .options
+        .as_ref()
+        .is_some_and(|options| options.include_motif_opportunities);
+
     let before_pos = Position::from_fen(&request.fen_before)?;
-    let before = position_facts(&before_pos);
-    let (played, played_pos) = apply_branch(&before_pos, &request.played_move_uci, &before)?;
+    let before = facts_for(&before_pos, include_motifs);
+    let (played, played_pos) =
+        apply_branch(&before_pos, &request.played_move_uci, &before, include_motifs)?;
     let mut errors = Vec::new();
 
     let include_counterfactual = request
@@ -29,33 +45,34 @@ pub fn build_teaching_fact_bundle(
             request.best_move_uci.as_deref(),
             &before,
             "bestMoveUci",
+            include_motifs,
             &mut errors,
         )
     } else {
         None
     };
-    let refutation_before = position_facts(&played_pos);
+    let refutation_before = facts_for(&played_pos, include_motifs);
     let refutation = optional_branch(
         &played_pos,
         request.refutation_uci.as_deref(),
         &refutation_before,
         "refutationUci",
+        include_motifs,
         &mut errors,
     );
 
     if let Some(line) = &request.principal_variation_uci {
         validate_line(&before_pos, line, &mut errors);
     }
-    if request
-        .options
-        .as_ref()
-        .is_some_and(|options| options.include_motif_opportunities)
-    {
-        errors.push(FactError {
-            code: "fact_uncomputed".into(),
-            message: "motif opportunities are not implemented in milestone 1".into(),
-            field: Some("options.includeMotifOpportunities".into()),
-        });
+
+    let mut validators = vec![
+        "legal_move_generation".to_string(),
+        "attack_map".to_string(),
+        "see".to_string(),
+        "pawn_structure".to_string(),
+    ];
+    if include_motifs {
+        validators.push("fork_validation".to_string());
     }
 
     Ok(TeachingFactBundleV1 {
@@ -69,12 +86,7 @@ pub fn build_teaching_fact_bundle(
             engine: "cvs-bitboard-core".into(),
             engine_commit: option_env!("CVS_ENGINE_COMMIT").map(str::to_string),
             facts_registry_version: FACTS_REGISTRY_VERSION,
-            validators: vec![
-                "legal_move_generation".into(),
-                "attack_map".into(),
-                "see".into(),
-                "pawn_structure".into(),
-            ],
+            validators,
         },
         errors,
     })
@@ -85,10 +97,11 @@ fn optional_branch(
     uci: Option<&str>,
     before: &PositionFacts,
     field: &str,
+    include_motifs: bool,
     errors: &mut Vec<FactError>,
 ) -> Option<MoveStateFacts> {
     let uci = uci?;
-    match apply_branch(start, uci, before) {
+    match apply_branch(start, uci, before, include_motifs) {
         Ok((facts, _)) => Some(facts),
         Err(message) => {
             errors.push(FactError {
@@ -105,11 +118,12 @@ fn apply_branch(
     start: &Position,
     uci: &str,
     before: &PositionFacts,
+    include_motifs: bool,
 ) -> Result<(MoveStateFacts, Position), String> {
     let mut pos = start.clone();
     let mv = legal_uci(&mut pos, uci)?;
     pos.make(mv);
-    let after = position_facts(&pos);
+    let after = facts_for(&pos, include_motifs);
     let (created_structures, removed_structures) =
         structure_deltas(&before.pawn_structure, &after.pawn_structure);
     let facts = MoveStateFacts {

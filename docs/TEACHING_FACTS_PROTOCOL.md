@@ -110,16 +110,44 @@ A scalar fact uses the equivalent `FactValue<T>` union. A boolean inside a
 
 ## Proof and Validators
 
-V1 validator names are:
+Validator names are:
 
 - `legal_move_generation`: branch and PV move legality.
 - `attack_map`: attackers, defenders, loose pieces, and only defenders.
 - `see`: legal capture material consequence, in centipawns.
 - `pawn_structure`: doubled, isolated, passed, and island facts.
+- `fork_validation` (registry v2): validated fork opportunities, listed in
+  `availableMotifs` only when the request sets `options.includeMotifOpportunities`.
 
 The engine returns validator provenance but no causal attribution. Future teaching
 events may reference these facts as evidence; they may not claim a named tactic
 unless the corresponding Rust validator exists.
+
+## Motif Opportunities (registry v2)
+
+When `options.includeMotifOpportunities` is true, every position view's
+`availableMotifs` is a `computed` list of validated forks for that position's side
+to move. A fork is emitted only when a single legal move's piece attacks two or
+more winnable targets (the enemy king, a piece worth more than the forker, or an
+undefended piece) and the forking piece is not itself capturable for material gain.
+
+```ts
+interface MotifOpportunity {
+  kind: 'fork';
+  validator: 'fork_validation';
+  moveUci: string;
+  forkingPiece: PieceRef; // referenced at its post-move square
+  targets: PieceRef[]; // sorted by id
+  givesCheck: boolean;
+  kingTarget: boolean;
+  materialGain: number; // estimated forced consequence, centipawns
+}
+```
+
+When the option is absent or false, `availableMotifs` is `uncomputed` with reason
+`not_requested` — never an empty list (unknown ≠ none). Adding this validator
+bumps `factsRegistryVersion` to 2; the JSON schema is additive so `schemaVersion`
+stays 1.
 
 ## Responsibility Boundary
 
