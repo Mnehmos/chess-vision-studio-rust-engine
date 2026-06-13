@@ -225,6 +225,7 @@ fn main() {
         qsearch_tt: args.iter().any(|a| a == "--qtt"),
         hist_malus: args.iter().any(|a| a == "--histmalus"),
         hist_lmr: args.iter().any(|a| a == "--histlmr"),
+        caphist: args.iter().any(|a| a == "--caphist"),
         tt2: args.iter().any(|a| a == "--tt2"),
         improving: args.iter().any(|a| a == "--improving"),
         king_activity: args.iter().any(|a| a == "--king-activity"),

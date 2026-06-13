@@ -772,3 +772,31 @@ relabel of our corpus now running, 12 cores).
 STATUS: strong new-champion EVAL candidate, screen-positive @100, LOS 100%.
 Promotion path = full gate ladder (cp-loss on a NON-leaked suite + blunder/
 danger sanity) -> SPRT vs gen7 stack -> user ruling. Not yet promoted.
+
+## 2026-06-12 — improving-into-LMR: REJECTED on games (bench-positive trap)
+
+--improving (extra LMR reduction ply when not improving) vs gen8v2 champion:
+14-17-9 (40g) 46.3%, -26 Elo. Bench was +ve (-8.4% nodes, +2 depth) but did
+NOT convert -- the extra reduction costs more accuracy than the depth buys.
+Third reduction-based patch to disappoint (histlmr marginal, improving neg):
+our search is at diminishing returns on REDUCTIONS. Eval-stack infra kept
+(could feed futility margin later). PIVOT: pure ORDERING wins (capture
+history, safe-check bonus, threat-escape) sharpen hit quality WITHOUT the
+accuracy/depth tradeoff that reductions pay.
+
+## 2026-06-12 — caphist REJECTED; SEARCH track at diminishing returns vs strong eval
+
+--caphist vs gen8v2 champion: 16-23-21 (60g) 44.2%, -41 Elo (LOS 13%).
+Telemetry was +ve (1st-cut 40.2->40.9%, cutIdx down) but did NOT convert —
+captures were already near-optimally ordered by MVV-LVA+SEE; the learned
+table added variance.
+
+PATTERN (4 patches on the gen8-v2 champion): histlmr marginal (accepted as
+substrate only), improving -26, caphist -41, [countermove/conthist/LMP earlier
+on gen7 also failed]. CONCLUSION: with a much STRONGER eval (gen8-v2 +115),
+the search already finds good moves, so ordering/selectivity tweaks have less
+room and are not converting. The measured Elo is now coming from EVAL, not
+search. STRATEGIC PIVOT: focus compute on the eval track — gen8-v3 (d20
+relabel, running) + self-play corpus growth — not more search grinding.
+Remaining cheap search items (safe-check bonus, threat-escape) are low-
+priority; shelve caphist + improving behind flags.

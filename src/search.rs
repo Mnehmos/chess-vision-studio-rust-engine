@@ -181,6 +181,8 @@ pub struct SearchOptions {
     /// History-informed LMR (consumes hist_malus's signed entries): strong
     /// history escapes reduction, proven-bad history reduces an extra ply.
     pub hist_lmr: bool,
+    /// Capture history ordering (--caphist): learned capture-cutoff bonus.
+    pub caphist: bool,
     /// Two-bucket TT (--tt2): depth-preferred + always-replace buckets, so a
     /// shallow store no longer evicts a deep entry at the same index.
     pub tt2: bool,
@@ -242,6 +244,7 @@ impl Default for SearchOptions {
             qsearch_tt: false,
             hist_malus: false,
             hist_lmr: false,
+            caphist: false,
             tt2: false,
             improving: false,
             threads: 1,
@@ -414,6 +417,10 @@ pub struct Searcher {
     /// depth²-weighted quiet-cutoff counts for the move PAIR — the table that
     /// usually closes the first-move-cutoff gap butterfly history can't.
     conthist: Vec<i32>, // 6*64*6*64
+    /// Capture history (--caphist): [side][piece][to][victim] gravity-weighted
+    /// capture-cutoff counts. Pure ordering — captures were MVV-LVA only, so
+    /// cutoffs taught nothing. Sharpens hit quality with no reduction tradeoff.
+    caphist: Vec<i32>, // 2*6*64*6
     /// prev_moves[ply] = the move that led to the node at `ply` (None at the
     /// root and after a null move — a null subtree must not teach or consult
     /// counters keyed to a move the opponent never answered).
@@ -460,6 +467,7 @@ impl Searcher {
             history: vec![0; 2 * 64 * 64],
             counters: vec![None; 2 * 6 * 64],
             conthist: vec![0; 6 * 64 * 6 * 64],
+            caphist: vec![0; 2 * 6 * 64 * 6],
             prev_moves: vec![None; MAX_KILLER_PLY],
             eval_stack: vec![i32::MIN; MAX_KILLER_PLY + 2],
             nnue: None,
@@ -503,6 +511,24 @@ impl Searcher {
     #[inline]
     fn conthist_idx(prev_piece: Piece, prev_to: u8, piece: Piece, to: u8) -> usize {
         ((prev_piece as usize * 64 + prev_to as usize) * 6 + piece as usize) * 64 + to as usize
+    }
+
+    #[inline]
+    fn caphist_idx(side: usize, piece: Piece, to: u8, victim: Piece) -> usize {
+        ((side * 6 + piece as usize) * 64 + to as usize) * 6 + victim as usize
+    }
+
+    /// Capture-history gravity update for one (piece,to,victim) at `pos`.
+    fn caphist_update(&mut self, pos: &Position, side: usize, mv: Move, delta: i32) {
+        let Some((_, piece)) = pos.piece_at(mv.from) else { return; };
+        let victim = if mv.flag == MoveFlag::EnPassant {
+            Piece::Pawn
+        } else {
+            match pos.piece_at(mv.to) { Some((_, v)) => v, None => return }
+        };
+        let i = Self::caphist_idx(side, piece, mv.to, victim);
+        const D: i32 = 8192;
+        self.caphist[i] += delta - self.caphist[i] * delta.abs() / D;
     }
 
     /// Gravity-form history update: entry += delta − entry·|delta|/D, which
@@ -680,6 +706,7 @@ impl Searcher {
         self.history.iter_mut().for_each(|h| *h = 0);
         self.counters.iter_mut().for_each(|c| *c = None);
         self.conthist.iter_mut().for_each(|h| *h = 0);
+        self.caphist.iter_mut().for_each(|h| *h = 0);
         self.prev_moves.iter_mut().for_each(|m| *m = None);
         self.tel = Telemetry::default();
         self.tel.danger_extension_plies = danger_plies;
@@ -1232,6 +1259,7 @@ impl Searcher {
         // --histmalus: quiets actually searched at this node, so a quiet
         // cutoff can penalize everything ordered (wrongly) ahead of it.
         let mut tried_quiets = MoveList::new();
+        let mut tried_caps = MoveList::new();
         for move_index in 0..legal.len() {
             let mv = legal.get(move_index);
             // Patch 7 skips. All require one searched move already (best is
@@ -1337,6 +1365,9 @@ impl Searcher {
             if self.opts.hist_malus && !mv.flag.is_capture() && mv.flag.promo_piece().is_none() {
                 tried_quiets.push(mv);
             }
+            if self.opts.caphist && mv.flag.is_capture() {
+                tried_caps.push(mv);
+            }
             if score > best {
                 best = score;
                 best_move = Some(mv);
@@ -1370,6 +1401,18 @@ impl Searcher {
                         let tried: Vec<Move> =
                             (0..tried_quiets.len()).map(|i| tried_quiets.get(i)).collect();
                         self.punish_tried_quiets(side, &tried, mv, depth);
+                    }
+                } else if self.opts.caphist && mv.flag.is_capture() {
+                    // Capture cutoff: reward the cutter, penalize captures tried
+                    // before it (ordered too high). pos is at the cutoff node.
+                    let bonus = (150 * depth).min(1500);
+                    self.caphist_update(pos, side, mv, bonus);
+                    let malus = (150 * depth).min(1500);
+                    for i in 0..tried_caps.len() {
+                        let c = tried_caps.get(i);
+                        if c != mv {
+                            self.caphist_update(pos, side, c, -malus);
+                        }
                     }
                 }
                 if self.opts.use_tt {
@@ -1600,7 +1643,18 @@ impl Searcher {
         } else {
             0
         };
-        victim_value * 16 - SEE_VALUE[attacker.index()]
+        let mut score = victim_value * 16 - SEE_VALUE[attacker.index()];
+        if self.opts.caphist && mv.flag.is_capture() {
+            let victim = if mv.flag == MoveFlag::EnPassant {
+                Piece::Pawn
+            } else {
+                pos.piece_at(mv.to).map(|(_, v)| v).unwrap_or(Piece::Pawn)
+            };
+            // caphist (±8192)/16 ≈ ±512 — reorders within an equal-victim band
+            // without crossing the winning/losing-capture tiers.
+            score += self.caphist[Self::caphist_idx(pos.stm.index(), attacker, mv.to, victim)] / 16;
+        }
+        score
     }
 
     fn sort_by_key_desc<F>(moves: &mut [Move], mut key_of: F)
