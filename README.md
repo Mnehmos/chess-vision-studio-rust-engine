@@ -13,9 +13,16 @@ launch `analyze --serve` as a localhost-only engine bridge.
 ## Teaching Facts Protocol
 
 `analyze --serve` accepts a distinct `{"cmd":"facts", ...}` JSON request for
-deterministic teaching facts. V1 returns legal played/best/refutation branches,
-piece relationships, SEE status, and named pawn-structure facts without topic
-classification or coaching prose. See
+deterministic teaching facts — this engine is the **truth layer** of Chess Vision
+Studio's "Control Lens" teaching contract: it emits facts, never grades or prose.
+
+The `TeachingFactBundleV1` protocol (facts registry **v5**) returns legal
+played/best/refutation branches, each with full position facts: per-piece
+attackers/defenders and SEE, named pawn-structure facts, king safety, available and
+opponent-available motifs and pins, and deterministic position **hazards**
+(losing-material, fork-threat, pin-constraint, king-pressure, mate-threat) with
+move-to-move deltas. No topic classification or coaching prose — the app's teaching
+compiler owns that. Validators live in `src/facts/`. See
 [docs/TEACHING_FACTS_PROTOCOL.md](docs/TEACHING_FACTS_PROTOCOL.md).
 
 ## What It Provides
@@ -25,6 +32,8 @@ classification or coaching prose. See
 - Iterative deepening alpha-beta search.
 - UCI frontend for cutechess and external harnesses.
 - JSON-line `analyze --serve` mode for the Chess Vision Studio app.
+- Deterministic teaching-facts validators (`TeachingFactBundleV1`, registry v5):
+  SEE, attackers/defenders, motifs/pins, pawn structure, king safety, hazards.
 - Search telemetry for pruning, move ordering, TT, qsearch, and branching.
 - NNUE and CVS feature experiments behind explicit gates.
 
@@ -112,8 +121,10 @@ CVS_RUST_FUTILITY=1
 CVS_RUST_RFP=0
 ```
 
-The app labels this native path as **CVS Engine**. Browser Stockfish remains
-labeled **Stockfish** and continues to power move grading and dataset analysis.
+The app labels this native path as **CVS Engine**. Move grading and dataset
+analysis are powered by **native Stockfish** (a pooled UCI subprocess, labeled
+**Stockfish · native** in the app; WASM is an automatic fallback when no binary is
+present).
 
 ## Binaries
 
