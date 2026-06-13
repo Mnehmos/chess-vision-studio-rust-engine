@@ -49,6 +49,7 @@ pub struct PositionFacts {
     pub king_safety: FactCollection<KingSafetyFact>,
     pub available_captures: FactCollection<CaptureOpportunity>,
     pub available_motifs: FactCollection<MotifOpportunity>,
+    pub available_pins: FactCollection<PinOpportunity>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
@@ -262,6 +263,29 @@ pub struct MotifOpportunity {
     pub king_target: bool,
     /// Estimated forced/likely material consequence in centipawns.
     pub material_gain: i32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PinOpportunity {
+    /// "absolute" (pinned to the king) or "relative" (pinned to a higher-value piece).
+    pub kind: String,
+    /// Validator that proved it — "pin_validation".
+    pub validator: String,
+    /// The single move that creates the pin (long UCI).
+    pub move_uci: String,
+    /// The pinning piece, referenced at its post-move square.
+    pub pinner: PieceRef,
+    /// The pinned enemy piece.
+    pub pinned: PieceRef,
+    /// The piece behind the pinned one (the king for an absolute pin).
+    pub anchor: PieceRef,
+    /// Squares between pinner and anchor along the pin line (includes the pinned square).
+    pub ray: Vec<String>,
+    /// Whether the pinning move gives check.
+    pub gives_check: bool,
+    /// Whether the pinned piece is legally immobile (true for an absolute pin).
+    pub pinned_immobile: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]

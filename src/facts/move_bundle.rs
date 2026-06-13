@@ -1,4 +1,4 @@
-use crate::facts::motifs::motif_opportunities;
+use crate::facts::motifs::{motif_opportunities, pin_opportunities};
 use crate::facts::pawn_structure::structure_deltas;
 use crate::facts::position::{position_facts, square_name};
 use crate::facts::types::*;
@@ -6,11 +6,12 @@ use crate::facts::{FACTS_REGISTRY_VERSION, TEACHING_FACTS_SCHEMA_VERSION};
 use crate::movegen::generate_legal;
 use crate::{Move, Position};
 
-/// Position facts, with validated fork motifs layered on only when requested.
+/// Position facts, with validated fork + pin motifs layered on only when requested.
 fn facts_for(pos: &Position, include_motifs: bool) -> PositionFacts {
     let mut facts = position_facts(pos);
     if include_motifs {
         facts.available_motifs = motif_opportunities(pos);
+        facts.available_pins = pin_opportunities(pos);
     }
     facts
 }
@@ -73,6 +74,7 @@ pub fn build_teaching_fact_bundle(
     ];
     if include_motifs {
         validators.push("fork_validation".to_string());
+        validators.push("pin_validation".to_string());
     }
 
     Ok(TeachingFactBundleV1 {

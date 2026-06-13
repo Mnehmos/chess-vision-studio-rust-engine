@@ -118,6 +118,8 @@ Validator names are:
 - `pawn_structure`: doubled, isolated, passed, and island facts.
 - `fork_validation` (registry v2): validated fork opportunities, listed in
   `availableMotifs` only when the request sets `options.includeMotifOpportunities`.
+- `pin_validation` (registry v3): validated pin opportunities, listed in
+  `availablePins` under the same `options.includeMotifOpportunities` gate.
 
 The engine returns validator provenance but no causal attribution. Future teaching
 events may reference these facts as evidence; they may not claim a named tactic
@@ -148,6 +150,32 @@ When the option is absent or false, `availableMotifs` is `uncomputed` with reaso
 `not_requested` — never an empty list (unknown ≠ none). Adding this validator
 bumps `factsRegistryVersion` to 2; the JSON schema is additive so `schemaVersion`
 stays 1.
+
+## Pin Opportunities (registry v3)
+
+Under the same `options.includeMotifOpportunities` gate, every position's
+`availablePins` is a `computed` list of validated pins for the side to move. A pin
+is emitted when a slider move attacks an enemy piece with a more valuable enemy
+piece — or the king — directly behind it on the same line, and the pinning piece is
+not itself capturable for material gain.
+
+```ts
+interface PinOpportunity {
+  kind: 'absolute' | 'relative'; // absolute = pinned to the king
+  validator: 'pin_validation';
+  moveUci: string;
+  pinner: PieceRef;
+  pinned: PieceRef;
+  anchor: PieceRef; // the piece behind (king for absolute)
+  ray: string[]; // squares between pinner and anchor, incl. the pinned square
+  givesCheck: boolean;
+  pinnedImmobile: boolean; // true for an absolute pin
+}
+```
+
+`availablePins` follows the same `uncomputed`/`not_requested` discipline as
+`availableMotifs`. This validator bumps `factsRegistryVersion` to 3 (additive
+schema, so `schemaVersion` stays 1).
 
 ## Responsibility Boundary
 

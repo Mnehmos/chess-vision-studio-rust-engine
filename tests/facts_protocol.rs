@@ -53,12 +53,14 @@ fn fixtures() -> Vec<(&'static str, TeachingFactsRequestV1)> {
             ),
         ),
         (
+            // White's Kd1/Nf3 share the g4-d1 diagonal: after the neutral a1b1,
+            // Black's Bc8-g4 pins the knight to the king. h2h3 (best) covers g4.
             "allowed-pin.json",
-            request(
-                "4k3/8/8/8/8/8/2B1P3/4K3 w - - 0 1",
-                "e2e3",
-                Some("c2d3"),
-                Some("e8f7"),
+            request_with_motifs(
+                "2b1k3/8/8/8/8/5N2/7P/R2K4 w - - 0 1",
+                "a1b1",
+                Some("h2h3"),
+                Some("c8g4"),
             ),
         ),
         (

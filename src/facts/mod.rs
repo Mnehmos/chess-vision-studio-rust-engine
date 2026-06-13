@@ -15,7 +15,8 @@ pub use move_bundle::build_teaching_fact_bundle;
 pub use types::*;
 
 pub const TEACHING_FACTS_SCHEMA_VERSION: u32 = 1;
-// v2: adds validated fork motif enumeration (available_motifs, gated by
-// options.includeMotifOpportunities). Schema is additive, so SCHEMA_VERSION
-// stays 1; the registry version bumps because a new validator now produces facts.
-pub const FACTS_REGISTRY_VERSION: u32 = 2;
+// v2: validated fork motif enumeration (available_motifs).
+// v3: validated pin enumeration (available_pins), same includeMotifOpportunities gate.
+// Schema stays additive at v1; the registry version bumps when a new validator
+// produces facts.
+pub const FACTS_REGISTRY_VERSION: u32 = 3;

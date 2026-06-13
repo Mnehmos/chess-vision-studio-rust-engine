@@ -5,12 +5,13 @@
 //! more winnable enemy targets, where the moved piece is not itself simply lost.
 //! Rust validates the geometry and material; the application names the topic.
 
-use crate::attacks::attackers_of;
+use crate::attacks::{attackers_of, bishop_attacks, queen_attacks, rook_attacks};
 use crate::facts::piece_safety::piece_ref;
-use crate::facts::types::{FactCollection, MotifOpportunity, PieceRef};
+use crate::facts::position::square_name;
+use crate::facts::types::{FactCollection, MotifOpportunity, PieceRef, PinOpportunity};
 use crate::movegen::{generate_legal, gives_check};
 use crate::see::see;
-use crate::{Color, Move, Piece, Position};
+use crate::{file_of, rank_of, Color, Move, Piece, Position};
 
 /// Centipawn values for fork bookkeeping. The king is a sentinel 0 — it is never
 /// "won", only forced to respond.
@@ -152,4 +153,137 @@ fn forker_capturable_for_gain(after: &mut Position, sq: u8) -> bool {
 fn is_undefended(pos: &Position, sq: u8, owner: Color) -> bool {
     let defenders = attackers_of(&pos.pieces, sq, owner, pos.all) & !(1u64 << sq);
     defenders == 0
+}
+
+// ── Pin opportunities ───────────────────────────────────────────────────────
+// A pin is created when a slider moves so it attacks an enemy piece P with a more
+// valuable enemy piece (or the king) directly behind P on the same line. Detected
+// by removing P from occupancy and checking whether the slider then reaches an
+// enemy anchor it could not see before.
+
+/// Validated pin opportunities for the side to move, sorted by move then pinned id.
+pub fn pin_opportunities(pos: &Position) -> FactCollection<PinOpportunity> {
+    let pinner_color = pos.stm;
+    let mut probe = pos.clone();
+    let legal = generate_legal(&mut probe);
+    let mut out = Vec::new();
+    for mv in legal {
+        if let Some(pin) = pin_after_move(pos, mv, pinner_color) {
+            out.push(pin);
+        }
+    }
+    out.sort_by(|a, b| a.move_uci.cmp(&b.move_uci).then_with(|| a.pinned.id.cmp(&b.pinned.id)));
+    FactCollection::computed(out)
+}
+
+fn slider_attacks(piece: Piece, sq: u8, occ: u64) -> Option<u64> {
+    match piece {
+        Piece::Bishop => Some(bishop_attacks(sq, occ)),
+        Piece::Rook => Some(rook_attacks(sq, occ)),
+        Piece::Queen => Some(queen_attacks(sq, occ)),
+        _ => None,
+    }
+}
+
+fn pin_after_move(pos: &Position, mv: Move, pinner_color: Color) -> Option<PinOpportunity> {
+    let (_, moving_piece) = pos.piece_at(mv.from)?;
+    let pinner_piece = mv.flag.promo_piece().unwrap_or(moving_piece);
+    // Only sliders pin.
+    if slider_attacks(pinner_piece, mv.to, 0).is_none() {
+        return None;
+    }
+
+    let mut check_probe = pos.clone();
+    let gives_check_flag = gives_check(&mut check_probe, mv);
+
+    let mut after = pos.clone();
+    after.make(mv);
+    let enemy = pinner_color.flip();
+    let s = mv.to;
+
+    let atk = slider_attacks(pinner_piece, s, after.all)?;
+    let enemy_occ = enemy_occupancy(&after, enemy);
+
+    // A pinner that is simply captured is not a real pin.
+    if forker_capturable_for_gain(&mut after.clone(), s) {
+        return None;
+    }
+
+    let mut relative_pin: Option<PinOpportunity> = None;
+    let mut pinned_bb = atk & enemy_occ;
+    while pinned_bb != 0 {
+        let p_sq = pinned_bb.trailing_zeros() as u8;
+        pinned_bb &= pinned_bb - 1;
+        let occ2 = after.all & !(1u64 << p_sq);
+        let atk2 = match slider_attacks(pinner_piece, s, occ2) {
+            Some(a) => a,
+            None => continue,
+        };
+        // The first enemy piece newly exposed past P is the anchor.
+        let behind = atk2 & !atk & enemy_occ;
+        if behind == 0 {
+            continue;
+        }
+        let q_sq = behind.trailing_zeros() as u8;
+        let (_, p_piece) = match after.piece_at(p_sq) {
+            Some(x) => x,
+            None => continue,
+        };
+        let (_, q_piece) = match after.piece_at(q_sq) {
+            Some(x) => x,
+            None => continue,
+        };
+        let absolute = q_piece == Piece::King;
+        let relative = VALUE[q_piece.index()] > VALUE[p_piece.index()];
+        if !absolute && !relative {
+            continue;
+        }
+        let ray: Vec<String> = squares_between(s, q_sq).into_iter().map(square_name).collect();
+        let pin = PinOpportunity {
+            kind: if absolute { "absolute" } else { "relative" }.to_string(),
+            validator: "pin_validation".to_string(),
+            move_uci: mv.to_uci(),
+            pinner: piece_ref(pinner_color, pinner_piece, s),
+            pinned: piece_ref(enemy, p_piece, p_sq),
+            anchor: piece_ref(enemy, q_piece, q_sq),
+            ray,
+            gives_check: gives_check_flag,
+            pinned_immobile: absolute,
+        };
+        // Absolute pins are strongest — return the first one immediately.
+        if absolute {
+            return Some(pin);
+        }
+        if relative_pin.is_none() {
+            relative_pin = Some(pin);
+        }
+    }
+    relative_pin
+}
+
+fn enemy_occupancy(pos: &Position, enemy: Color) -> u64 {
+    let mut bb = 0u64;
+    for piece in Piece::ALL {
+        bb |= pos.pieces[enemy.index()][piece.index()];
+    }
+    bb
+}
+
+/// Squares strictly between two colinear squares (exclusive of both endpoints).
+fn squares_between(a: u8, b: u8) -> Vec<u8> {
+    let (fa, ra) = (file_of(a) as i8, rank_of(a) as i8);
+    let (fb, rb) = (file_of(b) as i8, rank_of(b) as i8);
+    let df = (fb - fa).signum();
+    let dr = (rb - ra).signum();
+    let mut out = Vec::new();
+    let (mut f, mut r) = (fa + df, ra + dr);
+    while (f, r) != (fb, rb) {
+        if !(0..8).contains(&f) || !(0..8).contains(&r) {
+            break;
+        }
+        out.push((r * 8 + f) as u8);
+        f += df;
+        r += dr;
+    }
+    out
 }

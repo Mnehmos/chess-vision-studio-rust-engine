@@ -10,9 +10,10 @@ pub fn position_facts(pos: &Position) -> PositionFacts {
         pawn_structure: pawn_structure_facts(pos),
         king_safety: FactCollection::uncomputed("not_in_milestone_1"),
         available_captures: FactCollection::uncomputed("not_in_milestone_1"),
-        // Motifs are gated by options.includeMotifOpportunities and layered on in
-        // move_bundle when requested; the bare position view leaves them unasked.
+        // Motifs and pins are gated by options.includeMotifOpportunities and layered
+        // on in move_bundle when requested; the bare view leaves them unasked.
         available_motifs: FactCollection::uncomputed("not_requested"),
+        available_pins: FactCollection::uncomputed("not_requested"),
     }
 }
 
