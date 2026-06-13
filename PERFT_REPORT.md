@@ -1,8 +1,14 @@
 # CVS Bitboard Core v0 — perft correctness + speed report
 
+> **Historical note — v0 movegen anchor.** This report covers the original v0 seed:
+> legal move generation + perft. The engine has since gained SEE, NNUE/static eval,
+> alpha-beta search + TT, and the teaching-facts validators, and it is now the native
+> CVS Engine (the chess.js path is legacy/reference). The perft numbers below remain
+> the movegen baseline; the "future"/"not in v0" notes are kept for history.
+
 **Goal of v0:** prove a *correct* and *fast* legal move generator + perft as the Rust
-engine-core seed for Chess Vision Studio. It does **not** replace the current
-chess.js-based TS engine — it's the foundation for a future Rust search/SEE/eval.
+engine-core seed for Chess Vision Studio. (At the time it did not replace the
+chess.js TS engine, and search/SEE/eval were future rungs — all since landed.)
 
 ## Status: ✅ correct, ~1000× faster movegen than chess.js
 
@@ -73,13 +79,13 @@ without sacrificing capability.
 - Perft + perft-divide.
 - Perft test suite (6 canonical positions) + nodes/sec benchmark binary.
 
-## Not in v0 (deliberately)
+## Not in v0 (as of this report — most have since landed)
 
-- Search, SEE, eval (next Rust rungs).
+- ~~Search, SEE, eval~~ — **all implemented since this report**: iterative-deepening
+  alpha-beta + TT, SEE, and NNUE/static eval. This is now the native CVS Engine.
 - Magic bitboards (classical ray attacks for now — already ~30M nps; magics would
   push higher when search needs it).
 - Pin-aware legal generation (make/unmake legality is correct and fast enough here).
-- **No change to the current CVS (chess.js) engine or its search path.**
 
 ## Try it
 

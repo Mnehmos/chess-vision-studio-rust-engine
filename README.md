@@ -37,13 +37,17 @@ compiler owns that. Validators live in `src/facts/`. See
 - Search telemetry for pruning, move ordering, TT, qsearch, and branching.
 - NNUE and CVS feature experiments behind explicit gates.
 
-## Engine Strength & Stack (2026-06-12)
+## Engine-development benchmarks (2026-06-12)
 
-Measured ~2525–2535 blitz vs native Stockfish rungs (bare gen7 eval ≈ 2375;
-the full stack added ≈ +150 external Elo). Every layer below was validated
-one-variable-at-a-time through the `benchmarks/` gate ladder — flag-off is
-byte-identical to the prior champion, and nothing is called an "SPRT pass"
-unless the bound was crossed.
+These are **controlled engineering benchmarks against fixed native-Stockfish
+settings — not human, FIDE, or otherwise transferable ratings.** Against pinned
+Stockfish rungs the champion stack scores in the **~2525–2535 blitz band** (bare
+gen7 eval ≈ 2375; the full stack added ≈ +150 Elo over the prior champion in
+controlled self-play gates). Every layer below was validated one-variable-at-a-time
+through the `benchmarks/` gate ladder — flag-off is byte-identical to the prior
+champion, and nothing is called an "SPRT pass" unless the bound was crossed. See
+**Claim Discipline** at the bottom; the band is an engineering anchor for tracking
+progress, not a rating to advertise.
 
 **Champion stack:** gen8-v2 NNUE eval · incremental accumulator · futility ·
 reverse futility (RFP) · TT-prune-store · qsearch-TT · history maluses +

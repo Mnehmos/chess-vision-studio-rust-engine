@@ -1,9 +1,12 @@
-//! CVS Bitboard Core v0.
+//! CVS Bitboard Core — the native chess engine for Chess Vision Studio.
 //!
-//! A from-scratch bitboard chess core focused on **correct legal move generation**
-//! and **perft**. This is the Rust engine-core seed for Chess Vision Studio; it does
-//! NOT replace the current chess.js-based engine — it exists to prove a fast, correct
-//! movegen foundation (later: search, SEE, eval).
+//! A from-scratch bitboard core: correct legal move generation and perft (the
+//! original v0 foundation), plus SEE, NNUE/static evaluation, iterative-deepening
+//! alpha-beta search with a transposition table, and deterministic teaching-facts
+//! validators. Frontends: a UCI engine (`uci`) and a JSON-line analysis server
+//! (`analyze`) used by the app and arena harnesses. Search, SEE, eval, and facts
+//! have landed since the movegen-only seed — see PERFT_REPORT.md for the original
+//! perft anchor.
 //!
 //! Board convention: Little-Endian Rank-File (LERF). Square index `s = rank*8 + file`,
 //! so a1=0, b1=1, …, h1=7, a2=8, …, h8=63. Bit `s` of a `u64` bitboard = that square.
