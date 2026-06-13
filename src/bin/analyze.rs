@@ -7,6 +7,9 @@
 //!   analyze (--fens <file> | --serve) --depth N [--base w.json --rung2 r.json]
 //!           [--no-quiet-checks] [--no-tt]
 use cvs_bitboard_core::eval::{evaluate_white, Nnue, Rung2Weights, ValueWeights};
+use cvs_bitboard_core::facts::{
+    build_teaching_fact_bundle, TeachingFactsOptionsV1, TeachingFactsRequestV1,
+};
 use cvs_bitboard_core::search::{SearchOptions, Searcher, Telemetry};
 use cvs_bitboard_core::Position;
 use std::io::{BufRead, Write};
@@ -22,6 +25,13 @@ struct ServeJsonRequest {
     initial_fen: Option<String>,
     moves: Option<Vec<String>>,
     budget_ms: Option<u64>,
+    schema_version: Option<u32>,
+    fen_before: Option<String>,
+    played_move_uci: Option<String>,
+    best_move_uci: Option<String>,
+    refutation_uci: Option<String>,
+    principal_variation_uci: Option<Vec<String>>,
+    options: Option<TeachingFactsOptionsV1>,
 }
 
 fn pct(num: u64, den: u64) -> f64 {
@@ -394,6 +404,41 @@ fn main() {
             // {"cmd":"go","budgetMs":500,"fen":"...","initialFen":"...","moves":[...]}
             let out = if fen.starts_with('{') {
                 match serde_json::from_str::<ServeJsonRequest>(fen) {
+                    Ok(req) if req.cmd.as_deref() == Some("facts") => {
+                        let facts_request = match (
+                            req.schema_version,
+                            req.fen_before.clone(),
+                            req.played_move_uci.clone(),
+                        ) {
+                            (Some(schema_version), Some(fen_before), Some(played_move_uci)) => {
+                                Ok(TeachingFactsRequestV1 {
+                                    schema_version,
+                                    fen_before,
+                                    played_move_uci,
+                                    best_move_uci: req.best_move_uci.clone(),
+                                    refutation_uci: req.refutation_uci.clone(),
+                                    principal_variation_uci: req.principal_variation_uci.clone(),
+                                    options: req.options.clone(),
+                                })
+                            }
+                            _ => Err(
+                                "facts requires schemaVersion, fenBefore, and playedMoveUci"
+                                    .to_string(),
+                            ),
+                        };
+                        match facts_request.and_then(|request| {
+                            build_teaching_fact_bundle(&request)
+                                .and_then(|bundle| serde_json::to_string(&bundle).map_err(|e| e.to_string()))
+                        }) {
+                            Ok(json) => json,
+                            Err(error) => serde_json::json!({
+                                "schemaVersion": req.schema_version,
+                                "fenBefore": req.fen_before,
+                                "error": error,
+                            })
+                            .to_string(),
+                        }
+                    }
                     Ok(req) => match request_position(&req) {
                         Ok((mut pos, echo)) => match req.cmd.as_deref().unwrap_or("analyze") {
                             "eval" => {

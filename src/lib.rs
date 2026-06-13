@@ -10,6 +10,7 @@
 
 pub mod attacks;
 pub mod eval;
+pub mod facts;
 pub mod movegen;
 pub mod perft;
 pub mod position;

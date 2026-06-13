@@ -10,6 +10,14 @@ It is intentionally local-first right now: clone it beside
 `chess-vision-studio`, build it with Cargo, and the app's Vite dev server can
 launch `analyze --serve` as a localhost-only engine bridge.
 
+## Teaching Facts Protocol
+
+`analyze --serve` accepts a distinct `{"cmd":"facts", ...}` JSON request for
+deterministic teaching facts. V1 returns legal played/best/refutation branches,
+piece relationships, SEE status, and named pawn-structure facts without topic
+classification or coaching prose. See
+[docs/TEACHING_FACTS_PROTOCOL.md](docs/TEACHING_FACTS_PROTOCOL.md).
+
 ## What It Provides
 
 - Bitboard move generation and make/unmake.
