@@ -7,7 +7,7 @@
 
 use crate::attacks::{attackers_of, bishop_attacks, queen_attacks, rook_attacks};
 use crate::facts::piece_safety::piece_ref;
-use crate::facts::position::square_name;
+use crate::facts::position::{position_for_analysis_side, square_name};
 use crate::facts::types::{FactCollection, MotifOpportunity, PieceRef, PinOpportunity};
 use crate::movegen::{generate_legal, gives_check};
 use crate::see::see;
@@ -22,6 +22,19 @@ pub fn motif_opportunities(pos: &Position) -> FactCollection<MotifOpportunity> {
     let mut forks = enumerate_forks(pos);
     forks.sort_by(|a, b| a.move_uci.cmp(&b.move_uci));
     FactCollection::computed(forks)
+}
+
+/// Validated forks for a requested side, including the non-moving side. The
+/// latter is a counterfactual analysis probe, so en-passant rights are cleared:
+/// they belong only to the actual side to move in the source position.
+pub fn motif_opportunities_for(
+    pos: &Position,
+    side: Color,
+) -> FactCollection<MotifOpportunity> {
+    match position_for_analysis_side(pos, side) {
+        Ok(probe) => motif_opportunities(&probe),
+        Err(reason) => FactCollection::unavailable(reason),
+    }
 }
 
 fn enumerate_forks(pos: &Position) -> Vec<MotifOpportunity> {
@@ -174,6 +187,15 @@ pub fn pin_opportunities(pos: &Position) -> FactCollection<PinOpportunity> {
     }
     out.sort_by(|a, b| a.move_uci.cmp(&b.move_uci).then_with(|| a.pinned.id.cmp(&b.pinned.id)));
     FactCollection::computed(out)
+}
+
+/// Validated pins for a requested side. See `motif_opportunities_for` for the
+/// counterfactual side-to-move semantics.
+pub fn pin_opportunities_for(pos: &Position, side: Color) -> FactCollection<PinOpportunity> {
+    match position_for_analysis_side(pos, side) {
+        Ok(probe) => pin_opportunities(&probe),
+        Err(reason) => FactCollection::unavailable(reason),
+    }
 }
 
 fn slider_attacks(piece: Piece, sq: u8, occ: u64) -> Option<u64> {

@@ -1,4 +1,7 @@
-use crate::facts::motifs::{motif_opportunities, pin_opportunities};
+use crate::facts::motifs::{
+    motif_opportunities, motif_opportunities_for, pin_opportunities, pin_opportunities_for,
+};
+use crate::facts::hazards::{hazard_deltas, position_hazards};
 use crate::facts::pawn_structure::structure_deltas;
 use crate::facts::position::{position_facts, square_name};
 use crate::facts::types::*;
@@ -12,6 +15,9 @@ fn facts_for(pos: &Position, include_motifs: bool) -> PositionFacts {
     if include_motifs {
         facts.available_motifs = motif_opportunities(pos);
         facts.available_pins = pin_opportunities(pos);
+        facts.opponent_available_motifs = motif_opportunities_for(pos, pos.stm.flip());
+        facts.opponent_available_pins = pin_opportunities_for(pos, pos.stm.flip());
+        facts.hazards = position_hazards(pos, &facts);
     }
     facts
 }
@@ -70,6 +76,8 @@ pub fn build_teaching_fact_bundle(
         "legal_move_generation".to_string(),
         "attack_map".to_string(),
         "see".to_string(),
+        "capture_opportunities".to_string(),
+        "king_safety".to_string(),
         "pawn_structure".to_string(),
     ];
     if include_motifs {
@@ -128,14 +136,16 @@ fn apply_branch(
     let after = facts_for(&pos, include_motifs);
     let (created_structures, removed_structures) =
         structure_deltas(&before.pawn_structure, &after.pawn_structure);
+    let (created_hazards, removed_hazards, worsened_hazards) =
+        hazard_deltas(&before.hazards, &after.hazards);
     let facts = MoveStateFacts {
         r#move: move_fact(mv),
         fen_after: pos.to_fen(),
         position: after,
         deltas: MoveFactDeltas {
-            created_hazards: FactCollection::uncomputed("not_in_milestone_1"),
-            removed_hazards: FactCollection::uncomputed("not_in_milestone_1"),
-            worsened_hazards: FactCollection::uncomputed("not_in_milestone_1"),
+            created_hazards,
+            removed_hazards,
+            worsened_hazards,
             created_structures: FactCollection::computed(created_structures),
             removed_structures: FactCollection::computed(removed_structures),
         },

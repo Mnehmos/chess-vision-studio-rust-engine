@@ -1,5 +1,6 @@
 use crate::facts::pawn_structure::pawn_structure_facts;
-use crate::facts::piece_safety::piece_facts;
+use crate::attacks::attackers_of;
+use crate::facts::piece_safety::{capture_opportunities, piece_facts};
 use crate::facts::types::{FactCollection, PositionFacts, Side};
 use crate::{Color, Position};
 
@@ -8,13 +9,40 @@ pub fn position_facts(pos: &Position) -> PositionFacts {
         side_to_move: side(pos.stm),
         pieces: piece_facts(pos),
         pawn_structure: pawn_structure_facts(pos),
-        king_safety: FactCollection::uncomputed("not_in_milestone_1"),
-        available_captures: FactCollection::uncomputed("not_in_milestone_1"),
+        king_safety: crate::facts::piece_safety::king_safety_facts(pos),
+        available_captures: capture_opportunities(pos),
+        opponent_available_captures: match position_for_analysis_side(pos, pos.stm.flip()) {
+            Ok(probe) => capture_opportunities(&probe),
+            Err(reason) => FactCollection::unavailable(reason),
+        },
         // Motifs and pins are gated by options.includeMotifOpportunities and layered
         // on in move_bundle when requested; the bare view leaves them unasked.
         available_motifs: FactCollection::uncomputed("not_requested"),
         available_pins: FactCollection::uncomputed("not_requested"),
+        opponent_available_motifs: FactCollection::uncomputed("not_requested"),
+        opponent_available_pins: FactCollection::uncomputed("not_requested"),
+        hazards: FactCollection::uncomputed("motifs_not_requested"),
     }
+}
+
+/// Build a legal-move probe for either color without changing the source board.
+/// Opposite-side probes are unavailable when the actual side to move is in check:
+/// granting the checking side another turn would create an illegal king-capture
+/// state. En-passant is also cleared because it belongs only to the actual turn.
+pub fn position_for_analysis_side(
+    pos: &Position,
+    requested: Color,
+) -> Result<Position, &'static str> {
+    let mut probe = pos.clone();
+    if probe.stm != requested {
+        let checked_king = probe.king_sq(probe.stm);
+        if attackers_of(&probe.pieces, checked_king, requested, probe.all) != 0 {
+            return Err("opposite_side_probe_while_in_check");
+        }
+        probe.stm = requested;
+        probe.ep = None;
+    }
+    Ok(probe)
 }
 
 pub fn side(color: Color) -> Side {

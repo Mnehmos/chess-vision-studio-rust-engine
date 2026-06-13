@@ -1,9 +1,14 @@
 use crate::attacks::attackers_of;
 use crate::facts::position::{side, square_name};
-use crate::facts::types::{FactValue, PieceFact, PieceRef, PieceType, SeeLosingFact};
-use crate::movegen::generate_legal;
+use crate::facts::types::{
+    CaptureOpportunity, FactCollection, FactValue, KingSafetyFact, PieceFact, PieceRef,
+    PieceType, SeeLosingFact,
+};
+use crate::movegen::{generate_legal, gives_check};
 use crate::see::see;
-use crate::{Color, Piece, Position};
+use crate::{Color, MoveFlag, Piece, Position};
+
+const PIECE_VALUE: [i32; 6] = [100, 300, 300, 500, 900, 0];
 
 pub fn piece_facts(pos: &Position) -> Vec<PieceFact> {
     let mut facts = Vec::new();
@@ -46,6 +51,139 @@ pub fn piece_facts(pos: &Position) -> Vec<PieceFact> {
     }
     facts.sort_by(|a, b| a.piece.id.cmp(&b.piece.id));
     facts
+}
+
+pub fn capture_opportunities(pos: &Position) -> FactCollection<CaptureOpportunity> {
+    let mut legal_probe = pos.clone();
+    let captures: Vec<_> = generate_legal(&mut legal_probe)
+        .into_iter()
+        .filter(|mv| mv.flag.is_capture())
+        .collect();
+    let mut out = Vec::with_capacity(captures.len());
+
+    for mv in captures {
+        let Some((attacker_color, attacker_piece)) = pos.piece_at(mv.from) else {
+            continue;
+        };
+        let victim_square = if mv.flag == MoveFlag::EnPassant {
+            if attacker_color == Color::White {
+                mv.to - 8
+            } else {
+                mv.to + 8
+            }
+        } else {
+            mv.to
+        };
+        let Some((victim_color, victim_piece)) = pos.piece_at(victim_square) else {
+            continue;
+        };
+        let mut check_probe = pos.clone();
+        let gives_check_flag = gives_check(&mut check_probe, mv);
+        let see_cp = see(pos, mv.from, mv.to);
+        let mut after = pos.clone();
+        after.make(mv);
+        let survives = !capturable_for_gain(&mut after, mv.to);
+        out.push(CaptureOpportunity {
+            move_uci: mv.to_uci(),
+            attacker: piece_ref(attacker_color, attacker_piece, mv.from),
+            victim: piece_ref(victim_color, victim_piece, victim_square),
+            victim_square: square_name(victim_square),
+            see_cp,
+            gives_check: gives_check_flag,
+            capturing_piece_survives: survives,
+            highest_value_safe_capture: false,
+        });
+    }
+
+    let best_safe = out
+        .iter()
+        .filter(|capture| capture.see_cp > 0 && capture.capturing_piece_survives)
+        .max_by_key(|capture| {
+            (
+                PIECE_VALUE[piece_type_index(capture.victim.piece_type)],
+                capture.see_cp,
+            )
+        })
+        .map(|capture| capture.move_uci.clone());
+    for capture in &mut out {
+        capture.highest_value_safe_capture = best_safe.as_deref() == Some(&capture.move_uci);
+    }
+    out.sort_by(|a, b| a.move_uci.cmp(&b.move_uci));
+    FactCollection::computed(out)
+}
+
+pub fn king_safety_facts(pos: &Position) -> FactCollection<KingSafetyFact> {
+    let mut facts = Vec::new();
+    for color in [Color::White, Color::Black] {
+        let king_square = pos.king_sq(color);
+        let attackers = refs_from_bitboard(
+            pos,
+            attackers_of(&pos.pieces, king_square, color.flip(), pos.all),
+        );
+        let mut pressured_squares = Vec::new();
+        for square in king_zone(king_square) {
+            if attackers_of(&pos.pieces, square, color.flip(), pos.all) != 0 {
+                pressured_squares.push(square_name(square));
+            }
+        }
+        pressured_squares.sort();
+        let legal_escape_squares = match crate::facts::position::position_for_analysis_side(pos, color) {
+            Ok(mut probe) => {
+                let mut squares = generate_legal(&mut probe)
+                    .iter()
+                    .filter(|mv| mv.from == king_square)
+                    .map(|mv| square_name(mv.to))
+                    .collect::<Vec<_>>();
+                squares.sort();
+                squares.dedup();
+                FactCollection::computed(squares)
+            }
+            Err(reason) => FactCollection::unavailable(reason),
+        };
+        facts.push(KingSafetyFact {
+            side: crate::facts::position::side(color),
+            king_square: square_name(king_square),
+            in_check: !attackers.is_empty(),
+            attackers,
+            pressured_squares,
+            legal_escape_squares,
+        });
+    }
+    FactCollection::computed(facts)
+}
+
+fn capturable_for_gain(pos: &mut Position, square: u8) -> bool {
+    generate_legal(pos)
+        .into_iter()
+        .filter(|mv| mv.to == square && mv.flag.is_capture())
+        .any(|mv| see(pos, mv.from, mv.to) > 0)
+}
+
+fn king_zone(square: u8) -> Vec<u8> {
+    let file = (square % 8) as i8;
+    let rank = (square / 8) as i8;
+    let mut zone = Vec::new();
+    for df in -1..=1 {
+        for dr in -1..=1 {
+            let f = file + df;
+            let r = rank + dr;
+            if (0..8).contains(&f) && (0..8).contains(&r) {
+                zone.push((r * 8 + f) as u8);
+            }
+        }
+    }
+    zone
+}
+
+fn piece_type_index(piece: PieceType) -> usize {
+    match piece {
+        PieceType::Pawn => Piece::Pawn.index(),
+        PieceType::Knight => Piece::Knight.index(),
+        PieceType::Bishop => Piece::Bishop.index(),
+        PieceType::Rook => Piece::Rook.index(),
+        PieceType::Queen => Piece::Queen.index(),
+        PieceType::King => Piece::King.index(),
+    }
 }
 
 fn see_losing_for_target(pos: &Position, target: u8) -> SeeLosingFact {

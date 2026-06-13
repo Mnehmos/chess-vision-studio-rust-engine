@@ -1,6 +1,6 @@
 use cvs_bitboard_core::facts::{
-    build_teaching_fact_bundle, TeachingFactsOptionsV1, TeachingFactsRequestV1,
-    TEACHING_FACTS_SCHEMA_VERSION,
+    build_teaching_fact_bundle, FactCollection, TeachingFactsOptionsV1, TeachingFactsRequestV1,
+    FACTS_REGISTRY_VERSION, TEACHING_FACTS_SCHEMA_VERSION,
 };
 use serde_json::Value;
 use std::io::Write;
@@ -42,23 +42,23 @@ fn request_with_motifs(
 fn fixtures() -> Vec<(&'static str, TeachingFactsRequestV1)> {
     vec![
         (
-            // White's Kg1/Re1 are forkable by Black's knight: after the quiet e2e4,
-            // Black plays g5f3+ forking king and rook. Kg1-h1 (best) sidesteps it.
+            // Ra1-e1 places the rook on the knight's second target. Before the
+            // move, Ng5-f3+ attacks only Kg1; afterward it forks Kg1/Re1.
             "allowed-fork.json",
             request_with_motifs(
-                "6k1/8/8/6n1/8/8/4P3/4R1K1 w - - 0 1",
-                "e2e4",
+                "6k1/8/8/6n1/8/8/8/R5K1 w - - 0 1",
+                "a1e1",
                 Some("g1h1"),
                 Some("g5f3"),
             ),
         ),
         (
-            // White's Kd1/Nf3 share the g4-d1 diagonal: after the neutral a1b1,
-            // Black's Bc8-g4 pins the knight to the king. h2h3 (best) covers g4.
+            // Ke1-d1 steps onto the line behind Nf3, newly allowing Bc8-g4 to
+            // pin the knight to the king. h2-h3 prevents the pin.
             "allowed-pin.json",
             request_with_motifs(
-                "2b1k3/8/8/8/8/5N2/7P/R2K4 w - - 0 1",
-                "a1b1",
+                "2b1k3/8/8/8/8/5N2/7P/4K3 w - - 0 1",
+                "e1d1",
                 Some("h2h3"),
                 Some("c8g4"),
             ),
@@ -66,15 +66,15 @@ fn fixtures() -> Vec<(&'static str, TeachingFactsRequestV1)> {
         (
             "missed-hanging-piece.json",
             request(
-                "4k3/8/8/8/4q3/8/4R3/4K3 w - - 0 1",
+                "6k1/8/8/4q3/8/5N2/8/4K3 w - - 0 1",
                 "e1f1",
-                Some("e2e4"),
-                Some("e4e2"),
+                Some("f3e5"),
+                Some("e5b2"),
             ),
         ),
         (
             "failed-defense.json",
-            request(
+            request_with_motifs(
                 "4k3/8/8/8/8/1b6/2R5/4K3 w - - 0 1",
                 "e1f2",
                 Some("c2c3"),
@@ -117,6 +117,32 @@ fn golden_fixtures_are_byte_stable() {
 }
 
 #[test]
+fn registry_v5_provenance_lists_every_active_validator() {
+    let bundle = build_teaching_fact_bundle(&request_with_motifs(
+        "4k3/8/8/8/8/8/4P3/4K3 w - - 0 1",
+        "e2e4",
+        None,
+        None,
+    ))
+    .unwrap();
+
+    assert_eq!(bundle.provenance.facts_registry_version, FACTS_REGISTRY_VERSION);
+    assert_eq!(
+        bundle.provenance.validators,
+        vec![
+            "legal_move_generation",
+            "attack_map",
+            "see",
+            "capture_opportunities",
+            "king_safety",
+            "pawn_structure",
+            "fork_validation",
+            "pin_validation",
+        ]
+    );
+}
+
+#[test]
 fn optional_illegal_moves_are_reported_without_destroying_played_facts() {
     let mut req = request(
         "4k3/8/8/8/8/8/4P3/4K3 w - - 0 1",
@@ -129,6 +155,33 @@ fn optional_illegal_moves_are_reported_without_destroying_played_facts() {
     assert_eq!(bundle.played.r#move.uci, "e2e4");
     assert!(bundle.best.is_none());
     assert_eq!(bundle.errors.len(), 2);
+}
+
+#[test]
+fn non_moving_side_motif_probe_proves_new_opportunities_without_faking_check_states() {
+    let bundle = build_teaching_fact_bundle(&request_with_motifs(
+        "6k1/8/8/6n1/8/8/8/R5K1 w - - 0 1",
+        "a1e1",
+        Some("g1h1"),
+        Some("g5f3"),
+    ))
+    .unwrap();
+
+    let FactCollection::Computed { items: before } = bundle.before.opponent_available_motifs else {
+        panic!("before opponent motif probe should be computed");
+    };
+    assert!(before.is_empty(), "the fork must not pre-exist");
+
+    let FactCollection::Computed { items: played } = bundle.played.position.available_motifs else {
+        panic!("played motifs should be computed");
+    };
+    assert!(played.iter().any(|fork| fork.move_uci == "g5f3"));
+
+    let refutation = bundle.refutation.expect("refutation facts");
+    assert!(matches!(
+        refutation.position.opponent_available_motifs,
+        FactCollection::Unavailable { .. }
+    ));
 }
 
 #[test]

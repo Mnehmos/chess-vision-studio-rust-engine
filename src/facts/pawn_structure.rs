@@ -1,7 +1,8 @@
 use crate::facts::piece_safety::piece_ref;
 use crate::facts::position::{side, square_name};
 use crate::facts::types::{
-    DoubledPawnFact, FactCollection, PawnIslandFact, PawnStructureFacts, StructureDelta,
+    DoubledPawnFact, FactCollection, KingShieldFact, PawnIslandFact, PawnStructureFacts,
+    StructureDelta,
 };
 use crate::{file_of, rank_of, Color, Piece, Position};
 use std::collections::BTreeMap;
@@ -102,9 +103,44 @@ pub fn pawn_structure_facts(pos: &Position) -> PawnStructureFacts {
         connected_passed: FactCollection::uncomputed("not_in_milestone_1"),
         open_files: FactCollection::uncomputed("not_in_milestone_1"),
         semi_open_files: FactCollection::uncomputed("not_in_milestone_1"),
-        king_shield_missing: FactCollection::uncomputed("not_in_milestone_1"),
+        king_shield_missing: FactCollection::computed(king_shield_missing(pos)),
         pawn_chains: FactCollection::uncomputed("not_in_milestone_1"),
     }
+}
+
+fn king_shield_missing(pos: &Position) -> Vec<KingShieldFact> {
+    let mut out = Vec::new();
+    for color in [Color::White, Color::Black] {
+        let king = pos.king_sq(color);
+        let file = file_of(king) as i8;
+        let rank = rank_of(king) as i8;
+        let shield_rank = match color {
+            Color::White => rank + 1,
+            Color::Black => rank - 1,
+        };
+        if !(0..8).contains(&shield_rank) {
+            continue;
+        }
+        let pawns = pos.pieces[color.index()][Piece::Pawn.index()];
+        let mut missing = Vec::new();
+        for shield_file in (file - 1)..=(file + 1) {
+            if !(0..8).contains(&shield_file) {
+                continue;
+            }
+            let square = (shield_rank * 8 + shield_file) as u8;
+            if pawns & (1u64 << square) == 0 {
+                missing.push(square_name(square));
+            }
+        }
+        if !missing.is_empty() {
+            out.push(KingShieldFact {
+                side: side(color),
+                king_square: square_name(king),
+                missing_squares: missing,
+            });
+        }
+    }
+    out
 }
 
 pub fn structure_deltas(

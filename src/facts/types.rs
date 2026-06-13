@@ -48,8 +48,14 @@ pub struct PositionFacts {
     pub pawn_structure: PawnStructureFacts,
     pub king_safety: FactCollection<KingSafetyFact>,
     pub available_captures: FactCollection<CaptureOpportunity>,
+    pub opponent_available_captures: FactCollection<CaptureOpportunity>,
     pub available_motifs: FactCollection<MotifOpportunity>,
     pub available_pins: FactCollection<PinOpportunity>,
+    /// Analysis-only legal opportunities for the side that is not to move.
+    /// These let the application prove a motif was newly allowed by a move.
+    pub opponent_available_motifs: FactCollection<MotifOpportunity>,
+    pub opponent_available_pins: FactCollection<PinOpportunity>,
+    pub hazards: FactCollection<HazardFact>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
@@ -231,17 +237,28 @@ pub struct PawnChainFact {
     pub squares: Vec<String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct KingSafetyFact {
     pub side: Side,
     pub king_square: String,
+    pub in_check: bool,
+    pub attackers: Vec<PieceRef>,
+    pub pressured_squares: Vec<String>,
+    pub legal_escape_squares: FactCollection<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CaptureOpportunity {
     pub move_uci: String,
+    pub attacker: PieceRef,
+    pub victim: PieceRef,
+    pub victim_square: String,
+    pub see_cp: i32,
+    pub gives_check: bool,
+    pub capturing_piece_survives: bool,
+    pub highest_value_safe_capture: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -295,6 +312,10 @@ pub struct HazardFact {
     pub kind: String,
     pub side: Side,
     pub squares: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub magnitude_cp: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub move_uci: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
