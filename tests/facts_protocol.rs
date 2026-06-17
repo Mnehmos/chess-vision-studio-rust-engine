@@ -126,7 +126,10 @@ fn registry_v5_provenance_lists_every_active_validator() {
     ))
     .unwrap();
 
-    assert_eq!(bundle.provenance.facts_registry_version, FACTS_REGISTRY_VERSION);
+    assert_eq!(
+        bundle.provenance.facts_registry_version,
+        FACTS_REGISTRY_VERSION
+    );
     assert_eq!(
         bundle.provenance.validators,
         vec![

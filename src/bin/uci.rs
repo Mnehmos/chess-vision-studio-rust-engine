@@ -236,7 +236,11 @@ fn main() {
                     } else {
                         hard
                     },
-                    soft_time_ms: if depth.is_some() || pondering { None } else { soft },
+                    soft_time_ms: if depth.is_some() || pondering {
+                        None
+                    } else {
+                        soft
+                    },
                     // Patch 7 kill switches, mirrored from analyze for A/B gates.
                     rfp: args.iter().any(|a| a == "--rfp"),
                     futility: args.iter().any(|a| a == "--futility"),

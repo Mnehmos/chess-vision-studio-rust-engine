@@ -27,10 +27,7 @@ pub fn motif_opportunities(pos: &Position) -> FactCollection<MotifOpportunity> {
 /// Validated forks for a requested side, including the non-moving side. The
 /// latter is a counterfactual analysis probe, so en-passant rights are cleared:
 /// they belong only to the actual side to move in the source position.
-pub fn motif_opportunities_for(
-    pos: &Position,
-    side: Color,
-) -> FactCollection<MotifOpportunity> {
+pub fn motif_opportunities_for(pos: &Position, side: Color) -> FactCollection<MotifOpportunity> {
     match position_for_analysis_side(pos, side) {
         Ok(probe) => motif_opportunities(&probe),
         Err(reason) => FactCollection::unavailable(reason),
@@ -105,8 +102,11 @@ fn fork_after_move(pos: &Position, mv: Move, forker_color: Color) -> Option<Moti
                 || is_undefended(&after, *sq, enemy)
         })
         .collect();
-    let winnable_non_king: Vec<(Piece, u8)> =
-        winnable.iter().copied().filter(|(p, _)| *p != Piece::King).collect();
+    let winnable_non_king: Vec<(Piece, u8)> = winnable
+        .iter()
+        .copied()
+        .filter(|(p, _)| *p != Piece::King)
+        .collect();
 
     let valid = if king_target {
         !winnable_non_king.is_empty()
@@ -131,8 +131,10 @@ fn fork_after_move(pos: &Position, mv: Move, forker_color: Color) -> Option<Moti
         vals.get(1).copied().unwrap_or(0)
     };
 
-    let mut target_refs: Vec<PieceRef> =
-        targets.iter().map(|(p, sq)| piece_ref(enemy, *p, *sq)).collect();
+    let mut target_refs: Vec<PieceRef> = targets
+        .iter()
+        .map(|(p, sq)| piece_ref(enemy, *p, *sq))
+        .collect();
     target_refs.sort_by(|a, b| a.id.cmp(&b.id));
 
     Some(MotifOpportunity {
@@ -185,7 +187,11 @@ pub fn pin_opportunities(pos: &Position) -> FactCollection<PinOpportunity> {
             out.push(pin);
         }
     }
-    out.sort_by(|a, b| a.move_uci.cmp(&b.move_uci).then_with(|| a.pinned.id.cmp(&b.pinned.id)));
+    out.sort_by(|a, b| {
+        a.move_uci
+            .cmp(&b.move_uci)
+            .then_with(|| a.pinned.id.cmp(&b.pinned.id))
+    });
     FactCollection::computed(out)
 }
 
@@ -260,7 +266,10 @@ fn pin_after_move(pos: &Position, mv: Move, pinner_color: Color) -> Option<PinOp
         if !absolute && !relative {
             continue;
         }
-        let ray: Vec<String> = squares_between(s, q_sq).into_iter().map(square_name).collect();
+        let ray: Vec<String> = squares_between(s, q_sq)
+            .into_iter()
+            .map(square_name)
+            .collect();
         let pin = PinOpportunity {
             kind: if absolute { "absolute" } else { "relative" }.to_string(),
             validator: "pin_validation".to_string(),

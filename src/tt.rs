@@ -231,7 +231,14 @@ impl SharedTt {
         lane: u8,
     ) {
         let i = (hash & self.mask) as usize;
-        let data = pack(&TtEntry { depth, score, flag, mv, generation, lane });
+        let data = pack(&TtEntry {
+            depth,
+            score,
+            flag,
+            mv,
+            generation,
+            lane,
+        });
         let s = &self.slots[i];
         let cur_data = s[1].load(Ordering::Relaxed);
         let take_depth = if cur_data == 0 {

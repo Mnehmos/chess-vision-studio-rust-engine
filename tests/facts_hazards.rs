@@ -1,7 +1,5 @@
 use cvs_bitboard_core::facts::move_bundle::build_teaching_fact_bundle;
-use cvs_bitboard_core::facts::{
-    FactCollection, TeachingFactsOptionsV1, TeachingFactsRequestV1,
-};
+use cvs_bitboard_core::facts::{FactCollection, TeachingFactsOptionsV1, TeachingFactsRequestV1};
 
 fn request(fen: &str, played: &str) -> TeachingFactsRequestV1 {
     TeachingFactsRequestV1 {
@@ -20,15 +18,15 @@ fn request(fen: &str, played: &str) -> TeachingFactsRequestV1 {
 
 #[test]
 fn emits_material_and_fork_hazards_with_stable_evidence() {
-    let bundle = build_teaching_fact_bundle(&request(
-        "6k1/8/8/6n1/8/8/8/R5K1 w - - 0 1",
-        "a1e1",
-    ))
-    .unwrap();
+    let bundle =
+        build_teaching_fact_bundle(&request("6k1/8/8/6n1/8/8/8/R5K1 w - - 0 1", "a1e1")).unwrap();
     let FactCollection::Computed { items } = bundle.played.position.hazards else {
         panic!("hazards should be computed");
     };
-    let fork = items.iter().find(|hazard| hazard.kind == "fork_threat").unwrap();
+    let fork = items
+        .iter()
+        .find(|hazard| hazard.kind == "fork_threat")
+        .unwrap();
     assert_eq!(fork.side, cvs_bitboard_core::facts::Side::White);
     assert_eq!(fork.move_uci.as_deref(), Some("g5f3"));
     assert_eq!(fork.magnitude_cp, Some(500));
@@ -36,11 +34,8 @@ fn emits_material_and_fork_hazards_with_stable_evidence() {
 
 #[test]
 fn move_bundle_reports_created_and_removed_hazard_deltas() {
-    let bundle = build_teaching_fact_bundle(&request(
-        "6k1/8/8/6n1/8/8/8/R5K1 w - - 0 1",
-        "a1e1",
-    ))
-    .unwrap();
+    let bundle =
+        build_teaching_fact_bundle(&request("6k1/8/8/6n1/8/8/8/R5K1 w - - 0 1", "a1e1")).unwrap();
     let FactCollection::Computed { items } = bundle.played.deltas.created_hazards else {
         panic!("created hazards should be computed");
     };

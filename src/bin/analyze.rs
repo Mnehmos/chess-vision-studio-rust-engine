@@ -10,9 +10,9 @@ use cvs_bitboard_core::eval::{evaluate_white, Nnue, Rung2Weights, ValueWeights};
 use cvs_bitboard_core::facts::{
     build_teaching_fact_bundle, TeachingFactsOptionsV1, TeachingFactsRequestV1,
 };
-use cvs_bitboard_core::search::{SearchOptions, Searcher, Telemetry, RootScope};
 use cvs_bitboard_core::movegen::generate_legal_list;
-use cvs_bitboard_core::{Position, Move};
+use cvs_bitboard_core::search::{RootScope, SearchOptions, Searcher, Telemetry};
+use cvs_bitboard_core::{Move, Position};
 use std::io::{BufRead, Write};
 
 /// Serve-mode JSON request — carries game history so the search root knows
@@ -346,7 +346,11 @@ fn main() {
         let mut stdout = std::io::stdout();
         // Shared search-and-emit for prebuilt positions (JSON requests carry
         // move history so the root sees repetitions).
-        let search_pos = |mut pos: Position, echo: &str, timed_ms: Option<u64>, forced_move: Option<Move>| -> String {
+        let search_pos = |mut pos: Position,
+                          echo: &str,
+                          timed_ms: Option<u64>,
+                          forced_move: Option<Move>|
+         -> String {
             let mut searcher = make_searcher(base, rung2);
             if let Some(mv) = forced_move {
                 searcher.root_scope = RootScope::Only(mv);
@@ -427,14 +431,13 @@ fn main() {
                                     options: req.options.clone(),
                                 })
                             }
-                            _ => Err(
-                                "facts requires schemaVersion, fenBefore, and playedMoveUci"
-                                    .to_string(),
-                            ),
+                            _ => Err("facts requires schemaVersion, fenBefore, and playedMoveUci"
+                                .to_string()),
                         };
                         match facts_request.and_then(|request| {
-                            build_teaching_fact_bundle(&request)
-                                .and_then(|bundle| serde_json::to_string(&bundle).map_err(|e| e.to_string()))
+                            build_teaching_fact_bundle(&request).and_then(|bundle| {
+                                serde_json::to_string(&bundle).map_err(|e| e.to_string())
+                            })
                         }) {
                             Ok(json) => json,
                             Err(error) => serde_json::json!({
@@ -447,10 +450,15 @@ fn main() {
                     }
                     Ok(req) => match request_position(&req) {
                         Ok((mut pos, echo)) => {
-                            let forced_move = if let Some(forced_uci) = req.forced_move_uci.as_ref() {
+                            let forced_move = if let Some(forced_uci) = req.forced_move_uci.as_ref()
+                            {
                                 let mut pos_clone = pos.clone();
                                 let legal = generate_legal_list(&mut pos_clone);
-                                if let Some(mv) = legal.as_slice().iter().find(|mv| mv.to_uci() == *forced_uci) {
+                                if let Some(mv) = legal
+                                    .as_slice()
+                                    .iter()
+                                    .find(|mv| mv.to_uci() == *forced_uci)
+                                {
                                     Some(*mv)
                                 } else {
                                     serde_json::json!({
@@ -459,7 +467,7 @@ fn main() {
                                     })
                                     .to_string();
                                     None // this won't be hit because we return early or handle it, but wait:
-                                    // Let's print the error JSON line directly and continue
+                                         // Let's print the error JSON line directly and continue
                                 }
                             } else {
                                 None
@@ -484,7 +492,12 @@ fn main() {
                                         }
                                         j.to_string()
                                     }
-                                    "go" => search_pos(pos, &echo, Some(req.budget_ms.unwrap_or(500)), forced_move),
+                                    "go" => search_pos(
+                                        pos,
+                                        &echo,
+                                        Some(req.budget_ms.unwrap_or(500)),
+                                        forced_move,
+                                    ),
                                     _ => search_pos(pos, &echo, None, forced_move),
                                 }
                             }

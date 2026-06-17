@@ -11,11 +11,20 @@ use std::collections::BTreeMap;
 
 pub fn position_hazards(pos: &Position, facts: &PositionFacts) -> FactCollection<HazardFact> {
     let collections_ready = matches!(facts.available_captures, FactCollection::Computed { .. })
-        && matches!(facts.opponent_available_captures, FactCollection::Computed { .. })
+        && matches!(
+            facts.opponent_available_captures,
+            FactCollection::Computed { .. }
+        )
         && matches!(facts.available_motifs, FactCollection::Computed { .. })
-        && matches!(facts.opponent_available_motifs, FactCollection::Computed { .. })
+        && matches!(
+            facts.opponent_available_motifs,
+            FactCollection::Computed { .. }
+        )
         && matches!(facts.available_pins, FactCollection::Computed { .. })
-        && matches!(facts.opponent_available_pins, FactCollection::Computed { .. });
+        && matches!(
+            facts.opponent_available_pins,
+            FactCollection::Computed { .. }
+        );
     if !collections_ready {
         return FactCollection::unavailable("symmetric_hazard_probe_unavailable");
     }
@@ -193,7 +202,11 @@ fn add_king_pressure(out: &mut BTreeMap<String, HazardFact>, facts: &PositionFac
         if !king.in_check && king.pressured_squares.len() < 2 {
             continue;
         }
-        let id = format!("king-pressure-{}-{}", side_name(king.side), king.king_square);
+        let id = format!(
+            "king-pressure-{}-{}",
+            side_name(king.side),
+            king.king_square
+        );
         let mut squares = vec![king.king_square.clone()];
         squares.extend(king.pressured_squares.iter().cloned());
         squares.sort();

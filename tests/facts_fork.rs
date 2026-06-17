@@ -48,7 +48,11 @@ fn enumeration_does_not_mutate_the_position() {
     let fen = "6k1/8/8/6n1/4P3/8/8/4R1K1 b - - 0 1";
     let pos = Position::from_fen(fen).unwrap();
     let _ = motif_opportunities(&pos);
-    assert_eq!(pos.to_fen(), fen, "fork enumeration must not mutate the board");
+    assert_eq!(
+        pos.to_fen(),
+        fen,
+        "fork enumeration must not mutate the board"
+    );
 }
 
 #[test]

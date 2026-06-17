@@ -1,5 +1,5 @@
-use crate::facts::pawn_structure::pawn_structure_facts;
 use crate::attacks::attackers_of;
+use crate::facts::pawn_structure::pawn_structure_facts;
 use crate::facts::piece_safety::{capture_opportunities, piece_facts};
 use crate::facts::types::{FactCollection, PositionFacts, Side};
 use crate::{Color, Position};

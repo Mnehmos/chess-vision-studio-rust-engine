@@ -61,11 +61,17 @@ fn incremental_matches_full_recompute_on_random_playouts() {
                 acc = stack.pop().unwrap();
                 let inc = net.eval_acc(&acc, pos.stm);
                 let full = net.eval_stm(&pos);
-                assert!((inc - full).abs() <= 1, "after unmake at game {game} ply {_ply}");
+                assert!(
+                    (inc - full).abs() <= 1,
+                    "after unmake at game {game} ply {_ply}"
+                );
             }
         }
     }
-    assert!(checked > 2000, "playouts too short: {checked} nodes checked");
+    assert!(
+        checked > 2000,
+        "playouts too short: {checked} nodes checked"
+    );
     // Drift should be rare rounding flips, not systematic error.
     assert!(
         exact * 100 >= checked * 99,

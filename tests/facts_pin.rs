@@ -46,5 +46,9 @@ fn enumeration_does_not_mutate_the_position() {
     let fen = "2b1k3/8/8/8/8/5N2/7P/1R1K4 b - - 0 1";
     let pos = Position::from_fen(fen).unwrap();
     let _ = pin_opportunities(&pos);
-    assert_eq!(pos.to_fen(), fen, "pin enumeration must not mutate the board");
+    assert_eq!(
+        pos.to_fen(),
+        fen,
+        "pin enumeration must not mutate the board"
+    );
 }

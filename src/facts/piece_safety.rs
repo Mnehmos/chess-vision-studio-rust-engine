@@ -1,8 +1,8 @@
 use crate::attacks::attackers_of;
 use crate::facts::position::{side, square_name};
 use crate::facts::types::{
-    CaptureOpportunity, FactCollection, FactValue, KingSafetyFact, PieceFact, PieceRef,
-    PieceType, SeeLosingFact,
+    CaptureOpportunity, FactCollection, FactValue, KingSafetyFact, PieceFact, PieceRef, PieceType,
+    SeeLosingFact,
 };
 use crate::movegen::{generate_legal, gives_check};
 use crate::see::see;
@@ -127,19 +127,20 @@ pub fn king_safety_facts(pos: &Position) -> FactCollection<KingSafetyFact> {
             }
         }
         pressured_squares.sort();
-        let legal_escape_squares = match crate::facts::position::position_for_analysis_side(pos, color) {
-            Ok(mut probe) => {
-                let mut squares = generate_legal(&mut probe)
-                    .iter()
-                    .filter(|mv| mv.from == king_square)
-                    .map(|mv| square_name(mv.to))
-                    .collect::<Vec<_>>();
-                squares.sort();
-                squares.dedup();
-                FactCollection::computed(squares)
-            }
-            Err(reason) => FactCollection::unavailable(reason),
-        };
+        let legal_escape_squares =
+            match crate::facts::position::position_for_analysis_side(pos, color) {
+                Ok(mut probe) => {
+                    let mut squares = generate_legal(&mut probe)
+                        .iter()
+                        .filter(|mv| mv.from == king_square)
+                        .map(|mv| square_name(mv.to))
+                        .collect::<Vec<_>>();
+                    squares.sort();
+                    squares.dedup();
+                    FactCollection::computed(squares)
+                }
+                Err(reason) => FactCollection::unavailable(reason),
+            };
         facts.push(KingSafetyFact {
             side: crate::facts::position::side(color),
             king_square: square_name(king_square),

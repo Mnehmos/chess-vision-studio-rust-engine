@@ -1,7 +1,7 @@
+use crate::facts::hazards::{hazard_deltas, position_hazards};
 use crate::facts::motifs::{
     motif_opportunities, motif_opportunities_for, pin_opportunities, pin_opportunities_for,
 };
-use crate::facts::hazards::{hazard_deltas, position_hazards};
 use crate::facts::pawn_structure::structure_deltas;
 use crate::facts::position::{position_facts, square_name};
 use crate::facts::types::*;
@@ -38,8 +38,12 @@ pub fn build_teaching_fact_bundle(
 
     let before_pos = Position::from_fen(&request.fen_before)?;
     let before = facts_for(&before_pos, include_motifs);
-    let (played, played_pos) =
-        apply_branch(&before_pos, &request.played_move_uci, &before, include_motifs)?;
+    let (played, played_pos) = apply_branch(
+        &before_pos,
+        &request.played_move_uci,
+        &before,
+        include_motifs,
+    )?;
     let mut errors = Vec::new();
 
     let include_counterfactual = request

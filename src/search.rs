@@ -523,11 +523,16 @@ impl Searcher {
 
     /// Capture-history gravity update for one (piece,to,victim) at `pos`.
     fn caphist_update(&mut self, pos: &Position, side: usize, mv: Move, delta: i32) {
-        let Some((_, piece)) = pos.piece_at(mv.from) else { return; };
+        let Some((_, piece)) = pos.piece_at(mv.from) else {
+            return;
+        };
         let victim = if mv.flag == MoveFlag::EnPassant {
             Piece::Pawn
         } else {
-            match pos.piece_at(mv.to) { Some((_, v)) => v, None => return }
+            match pos.piece_at(mv.to) {
+                Some((_, v)) => v,
+                None => return,
+            }
         };
         let i = Self::caphist_idx(side, piece, mv.to, victim);
         const D: i32 = 8192;
@@ -1024,7 +1029,10 @@ impl Searcher {
     fn static_eval(&self, pos: &mut Position) -> i32 {
         if let Some(n) = &self.nnue {
             if self.acc_top != usize::MAX {
-                return self.king_activity(pos, self.rule50_scale(pos, n.eval_acc(&self.acc_stack[self.acc_top], pos.stm)));
+                return self.king_activity(
+                    pos,
+                    self.rule50_scale(pos, n.eval_acc(&self.acc_stack[self.acc_top], pos.stm)),
+                );
             }
             return self.king_activity(pos, self.rule50_scale(pos, n.eval_stm(pos)));
         }
@@ -1045,7 +1053,10 @@ impl Searcher {
         }
         if let Some(n) = &self.nnue {
             if self.acc_top != usize::MAX {
-                return self.king_activity(pos, self.rule50_scale(pos, n.eval_acc(&self.acc_stack[self.acc_top], pos.stm)));
+                return self.king_activity(
+                    pos,
+                    self.rule50_scale(pos, n.eval_acc(&self.acc_stack[self.acc_top], pos.stm)),
+                );
             }
             return self.king_activity(pos, self.rule50_scale(pos, n.eval_stm(pos)));
         }
@@ -1054,7 +1065,17 @@ impl Searcher {
             &self.weights,
             self.rung2.as_ref(),
         ));
-        self.king_activity(pos, self.rule50_scale(pos, if pos.stm == Color::White { white } else { -white }))
+        self.king_activity(
+            pos,
+            self.rule50_scale(
+                pos,
+                if pos.stm == Color::White {
+                    white
+                } else {
+                    -white
+                },
+            ),
+        )
     }
 
     fn negamax(
@@ -1406,8 +1427,9 @@ impl Searcher {
                     }
                     self.record_quiet_cutoff(pos, side, mv, depth, ply);
                     if self.opts.hist_malus {
-                        let tried: Vec<Move> =
-                            (0..tried_quiets.len()).map(|i| tried_quiets.get(i)).collect();
+                        let tried: Vec<Move> = (0..tried_quiets.len())
+                            .map(|i| tried_quiets.get(i))
+                            .collect();
                         self.punish_tried_quiets(side, &tried, mv, depth);
                     }
                 } else if self.opts.caphist && mv.flag.is_capture() {
