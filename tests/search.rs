@@ -352,3 +352,16 @@ fn make_unmake_null_restores_position_exactly() {
     assert_eq!(p.halfmove, hm0);
     assert_eq!(p.stm, stm0);
 }
+
+#[test]
+fn forced_root_move_restricts_search() {
+    let mut p = pos("r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3");
+    let mut s = Searcher::new(ValueWeights::default(), None);
+    let mut p_clone = p.clone();
+    let legal = cvs_bitboard_core::movegen::generate_legal_list(&mut p_clone);
+    let a2a3_move = legal.as_slice().iter().find(|mv| mv.to_uci() == "a2a3").unwrap();
+    s.root_scope = cvs_bitboard_core::search::RootScope::Only(*a2a3_move);
+    let r = s.search(&mut p, opts(3, false, false));
+    assert_eq!(r.best_move.unwrap().to_uci(), "a2a3");
+}
+

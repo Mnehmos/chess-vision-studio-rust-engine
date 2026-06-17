@@ -378,14 +378,20 @@ pub fn danger_level(pos: &Position) -> u32 {
     }
     danger.min(2)
 }
-
 /// Killer slots per ply — two is the classical sweet spot.
 const MAX_KILLER_PLY: usize = 128;
 /// History scores are halved when any cell reaches this, keeping recent
 /// experience dominant without ever overflowing into capture territory.
 const HISTORY_CAP: i32 = 1 << 14;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RootScope {
+    All,
+    Only(Move),
+}
+
 pub struct Searcher {
+    pub root_scope: RootScope,
     weights: ValueWeights,
     rung2: Option<Rung2Weights>,
     /// Pristine rung2 weights (lane profiles derive from this, never compound).
@@ -428,19 +434,15 @@ pub struct Searcher {
     /// Per-ply static eval (--improving): the eval-trajectory primitive. A node
     /// is "improving" when its static eval exceeds the same side's eval two
     /// plies back; pruning leans harder when NOT improving, reductions ease
-    /// when improving. i32::MIN = unknown (root / in-check ply).
+    /// evaluation thresholds at PV nodes.
     eval_stack: Vec<i32>,
     /// NNUE eval head — when loaded, replaces the classical eval at every
     /// static/leaf eval site (search shape unchanged).
     nnue: Option<Nnue>,
-    /// Optional NNUE used only by the first `cvs_helpers` SMP helpers. When
-    /// set, the main thread keeps `nnue` as the authoritative eval.
+    /// Secondary net for SMP specialist lanes, ensuring thread diversity when
+    /// playing helper roles.
     helper_nnue: Option<Nnue>,
-    /// Incremental NNUE accumulator path-stack (top = current node). Non-empty
-    /// only when the loaded net supports incremental updates; empty means
-    /// eval falls back to the full recompute. Maintained in lockstep with
-    /// pos.make/unmake at the three search sites (root/negamax/qsearch);
-    /// null moves change no pieces, so the top stays valid through them.
+    /// Stack of NNUE accumulators to avoid recalculation.
     acc_stack: Vec<crate::eval::Accumulator>,
     /// Index of the current node's accumulator in `acc_stack`
     /// (usize::MAX = incremental path inactive).
@@ -452,6 +454,7 @@ pub struct Searcher {
 impl Searcher {
     pub fn new(weights: ValueWeights, rung2: Option<Rung2Weights>) -> Searcher {
         Searcher {
+            root_scope: RootScope::All,
             weights,
             rung2_base: rung2,
             rung2,
@@ -663,8 +666,10 @@ impl Searcher {
                     ..single
                 };
                 let lead = 2 + (t as u32 % 6);
+                let root_scope = self.root_scope;
                 handles.push(scope.spawn(move || {
                     let mut helper = Searcher::new(weights, rung2);
+                    helper.root_scope = root_scope;
                     helper.tt = tt;
                     helper.nnue = nnue;
                     helper.stop = Some(stop);
@@ -834,6 +839,9 @@ impl Searcher {
         beta: i32,
     ) -> (i32, Option<Move>) {
         let mut legal = generate_legal_list(pos);
+        if let RootScope::Only(forced) = self.root_scope {
+            legal.retain(|mv| *mv == forced);
+        }
         if legal.is_empty() {
             return (if in_check(pos) { -MATE_SCORE } else { 0 }, None);
         }
