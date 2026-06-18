@@ -1919,14 +1919,6 @@ impl Searcher {
             if Some(*m) == tt_move {
                 return 1_000_000_000;
             }
-            if ply == 0 && self.helper_nnue.is_some() {
-                if let Some(cache) = &self.root_geom_cache {
-                    if let Some(&(_, score)) = cache.move_scores.iter().find(|(mv, _)| mv == m) {
-                        return score;
-                    }
-                }
-                return 0;
-            }
             if m.flag.promo_piece().is_some() {
                 return 900_000 + self.capture_order(pos, *m);
             }
@@ -1952,6 +1944,14 @@ impl Searcher {
             if let Some((pp, pt)) = ch_key {
                 if let Some((_, cp)) = pos.piece_at(m.from) {
                     s += self.conthist[Self::conthist_idx(pp, pt, cp, m.to)];
+                }
+            }
+            if ply == 0 && self.helper_nnue.is_some() {
+                if let Some(cache) = &self.root_geom_cache {
+                    if let Some(&(_, geom_score)) = cache.move_scores.iter().find(|(mv, _)| mv == m) {
+                        let geom_bonus = (geom_score * 10).clamp(-4000, 4000);
+                        s += geom_bonus;
+                    }
                 }
             }
             s
