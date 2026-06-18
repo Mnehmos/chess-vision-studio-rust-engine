@@ -41,6 +41,7 @@ pub struct Nnue {
     cvs_w2: Vec<f32>,
     b2: f32,
     scale: f32,
+    pub model_hash: u64,
 }
 
 impl Nnue {
@@ -157,6 +158,17 @@ impl Nnue {
         }
         
         let b2 = v["b2"].as_f64().ok_or("missing b2")? as f32;
+        
+        let mut model_hash = 0u64;
+        for &x in &w2 {
+            model_hash = model_hash.wrapping_mul(31).wrapping_add(x.to_bits() as u64);
+        }
+        for &x in &cvs_w2 {
+            model_hash = model_hash.wrapping_mul(31).wrapping_add(x.to_bits() as u64);
+        }
+        model_hash = model_hash.wrapping_mul(31).wrapping_add(scale.to_bits() as u64);
+        model_hash = model_hash.wrapping_mul(31).wrapping_add(b2.to_bits() as u64);
+
         Ok(Nnue {
             hidden,
             inputs: expect_inputs,
@@ -172,7 +184,20 @@ impl Nnue {
             cvs_w2,
             b2,
             scale,
+            model_hash,
         })
+    }
+
+    pub fn registry_hash(&self) -> u64 {
+        if self.is_core {
+            cvs_features::core_registry_hash()
+        } else {
+            cvs_features::registry_hash()
+        }
+    }
+
+    pub fn model_hash(&self) -> u64 {
+        self.model_hash
     }
 
     /// Incremental updates apply to all models; for cvs_nnue models, piece-squares

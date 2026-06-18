@@ -403,6 +403,14 @@ pub enum RootScope {
     Only(Move),
 }
 
+#[derive(Clone, Debug)]
+pub struct RootGeometryCacheEntry {
+    pub zobrist: u64,
+    pub model_hash: u64,
+    pub registry_hash: u64,
+    pub move_scores: Vec<(Move, i32)>,
+}
+
 pub struct Searcher {
     pub root_scope: RootScope,
     weights: ValueWeights,
@@ -425,7 +433,7 @@ pub struct Searcher {
     /// ply elsewhere in the tree — cheap, position-independent ordering signal.
     killers: Vec<[Option<Move>; 2]>,
     /// History heuristic: [side][from][to] — quiet cutoff counts weighted by
-    /// depth², so deep cutoffs teach more than leaf noise.
+    /// depth², so quiet cutoffs teach more than leaf noise.
     history: Vec<i32>, // 2*64*64, flat for cache friendliness
     /// Countermove heuristic (--countermove): keyed by the opponent's
     /// previous (piece, to-square) -> the quiet that refuted it last time.
@@ -468,6 +476,8 @@ pub struct Searcher {
     pub book: Option<Arc<std::sync::Mutex<crate::book::Book>>>,
     /// Excluded move for singular search.
     excluded_move: Option<Move>,
+    /// Cache for Hybrid A root geometry/residual move scoring.
+    pub root_geom_cache: Option<RootGeometryCacheEntry>,
 }
 
 impl Searcher {
@@ -500,6 +510,7 @@ impl Searcher {
             tb: None,
             book: None,
             excluded_move: None,
+            root_geom_cache: None,
         }
     }
 
@@ -1844,7 +1855,37 @@ impl Searcher {
     ///   plain quiets ≫ losing captures.
     /// Ordering-only — values are unaffected; sort is stable so equal scores
     /// keep generation order and searches stay deterministic.
-    fn order_moves(&self, pos: &Position, moves: &mut [Move], tt_move: Option<Move>, ply: u32) {
+    fn order_moves(&mut self, pos: &Position, moves: &mut [Move], tt_move: Option<Move>, ply: u32) {
+        if ply == 0 {
+            if let Some(helper) = &self.helper_nnue {
+                let model_hash = helper.model_hash;
+                let registry_hash = helper.registry_hash();
+                let zobrist = pos.hash;
+                
+                let cache_hit = if let Some(cache) = &self.root_geom_cache {
+                    cache.zobrist == zobrist && cache.model_hash == model_hash && cache.registry_hash == registry_hash
+                } else {
+                    false
+                };
+                
+                if !cache_hit {
+                    let mut move_scores = Vec::with_capacity(moves.len());
+                    for &mv in moves.iter() {
+                        let mut child = pos.clone();
+                        child.make(mv);
+                        let score = -helper.eval_stm(&child);
+                        move_scores.push((mv, score));
+                    }
+                    self.root_geom_cache = Some(RootGeometryCacheEntry {
+                        zobrist,
+                        model_hash,
+                        registry_hash,
+                        move_scores,
+                    });
+                }
+            }
+        }
+
         let side = pos.stm.index();
         let killers = self.killers.get(ply as usize).copied().unwrap_or([None; 2]);
         // Countermove: the stored refutation of the opponent's previous move,
@@ -1877,6 +1918,14 @@ impl Searcher {
         let score_of = |m: &Move| -> i32 {
             if Some(*m) == tt_move {
                 return 1_000_000_000;
+            }
+            if ply == 0 && self.helper_nnue.is_some() {
+                if let Some(cache) = &self.root_geom_cache {
+                    if let Some(&(_, score)) = cache.move_scores.iter().find(|(mv, _)| mv == m) {
+                        return score;
+                    }
+                }
+                return 0;
             }
             if m.flag.promo_piece().is_some() {
                 return 900_000 + self.capture_order(pos, *m);

@@ -387,3 +387,24 @@ fn forced_root_move_restricts_search() {
     let r = s.search(&mut p, opts(3, false, false));
     assert_eq!(r.best_move.unwrap().to_uci(), "a2a3");
 }
+
+#[test]
+fn test_hybrid_a_root_ordering_and_cache() {
+    use cvs_bitboard_core::eval::Nnue;
+    let net_path = "target-cvs/matrix-residual.json";
+    if std::path::Path::new(net_path).exists() {
+        let helper = Nnue::load(net_path, true).expect("load residual");
+        let mut p = pos("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+        let mut s = Searcher::new(ValueWeights::default(), None);
+        s.set_helper_nnue(Some(helper));
+        
+        // Let's run a search and check that root_geom_cache gets populated.
+        let _r = s.search(&mut p, opts(2, false, false));
+        assert!(s.root_geom_cache.is_some());
+        
+        let cache = s.root_geom_cache.as_ref().unwrap();
+        assert_eq!(cache.zobrist, p.hash);
+        assert_ne!(cache.model_hash, 0);
+        assert_ne!(cache.move_scores.len(), 0);
+    }
+}
