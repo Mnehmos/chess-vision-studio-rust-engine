@@ -438,6 +438,174 @@ pub fn extract_rung2(pos: &Position) -> Rung2Features {
     f
 }
 
+/// Extract only the cheap Rung-2 features (omitting expensive mobility/danger/hanging/safe-squares calculations).
+pub fn extract_rung2_core(pos: &Position) -> Rung2Features {
+    let units = phase_units(pos);
+    let mg_w = units as f64 / MAX_PHASE as f64;
+    let eg_w = 1.0 - mg_w;
+    let mut f = Rung2Features::default();
+
+    let w = Color::White.index();
+    let b = Color::Black.index();
+
+    // --- Bishop pair (tapered) ---
+    let wb = pos.pieces[w][Piece::Bishop.index()].count_ones() as i32;
+    let bb = pos.pieces[b][Piece::Bishop.index()].count_ones() as i32;
+    let pair_ind = (if wb >= 2 { 1 } else { 0 }) - (if bb >= 2 { 1 } else { 0 });
+    f.bishop_pair_mg = pair_ind as f64 * mg_w;
+    f.bishop_pair_eg = pair_ind as f64 * eg_w;
+
+    // --- Pawn structure ---
+    let wp = pos.pieces[w][Piece::Pawn.index()];
+    let bp = pos.pieces[b][Piece::Pawn.index()];
+    let mut w_files = [0i32; 8];
+    let mut b_files = [0i32; 8];
+    {
+        let mut t = wp;
+        while t != 0 {
+            w_files[file_of(pop_lsb(&mut t)) as usize] += 1;
+        }
+        let mut t = bp;
+        while t != 0 {
+            b_files[file_of(pop_lsb(&mut t)) as usize] += 1;
+        }
+    }
+    let adj = |files: &[i32; 8], file: usize| -> i32 {
+        let mut n = 0;
+        if file > 0 {
+            n += files[file - 1];
+        }
+        if file < 7 {
+            n += files[file + 1];
+        }
+        n
+    };
+    let mut doubled_signed = 0i32;
+    let mut isolated_signed = 0i32;
+    for file in 0..8usize {
+        if w_files[file] > 1 {
+            doubled_signed -= w_files[file] - 1;
+        }
+        if b_files[file] > 1 {
+            doubled_signed += b_files[file] - 1;
+        }
+        if w_files[file] > 0 && adj(&w_files, file) == 0 {
+            isolated_signed -= w_files[file];
+        }
+        if b_files[file] > 0 && adj(&b_files, file) == 0 {
+            isolated_signed += b_files[file];
+        }
+    }
+    f.doubled_pawn = doubled_signed as f64;
+    f.isolated_pawn = isolated_signed as f64;
+
+    // Passed pawns
+    let mut passed_signed = 0f64;
+    let mut connected_signed = 0f64;
+    {
+        let mut t = wp;
+        while t != 0 {
+            let sq = pop_lsb(&mut t);
+            if is_passed(bp, sq, Color::White) {
+                passed_signed += rank_of(sq) as f64;
+                if adj(&w_files, file_of(sq) as usize) > 0 {
+                    connected_signed += 1.0;
+                }
+            }
+        }
+        let mut t = bp;
+        while t != 0 {
+            let sq = pop_lsb(&mut t);
+            if is_passed(wp, sq, Color::Black) {
+                passed_signed -= 6.0 - rank_of(sq) as f64;
+                if adj(&b_files, file_of(sq) as usize) > 0 {
+                    connected_signed -= 1.0;
+                }
+            }
+        }
+    }
+    f.passed_pawn_mg = passed_signed * mg_w;
+    f.passed_pawn_eg = passed_signed * eg_w;
+    f.connected_passed_pawn = connected_signed;
+
+    // --- Rook activity ---
+    for (ci, sign) in [(w, 1.0f64), (b, -1.0f64)] {
+        let mut ro = pos.pieces[ci][Piece::Rook.index()];
+        while ro != 0 {
+            let sq = pop_lsb(&mut ro);
+            let file = file_of(sq) as usize;
+            let (own_p, enemy_p) = if ci == w {
+                (w_files[file], b_files[file])
+            } else {
+                (b_files[file], w_files[file])
+            };
+            if own_p == 0 && enemy_p == 0 {
+                f.rook_open_file += sign;
+            } else if own_p == 0 && enemy_p > 0 {
+                f.rook_semi_open_file += sign;
+            }
+            let r = rank_of(sq);
+            if (ci == w && r == 6) || (ci == b && r == 1) {
+                f.rook_seventh += sign;
+            }
+        }
+    }
+
+    // --- King safety (cheap terms only) ---
+    let wk = pos.king_sq(Color::White);
+    let bk = pos.king_sq(Color::Black);
+    f.king_shield =
+        (shield_pawns(wp, wk, Color::White) - shield_pawns(bp, bk, Color::Black)) as f64;
+    f.king_open_file = (king_file_exposure(&b_files, file_of(bk))
+        - king_file_exposure(&w_files, file_of(wk))) as f64;
+
+    // --- Queen proximity and home rank displacement ---
+    {
+        let wq = pos.pieces[w][Piece::Queen.index()];
+        let bq = pos.pieces[b][Piece::Queen.index()];
+        let cheb = |a: u8, c: u8| -> i32 {
+            let df = (file_of(a) as i32 - file_of(c) as i32).abs();
+            let dr = (rank_of(a) as i32 - rank_of(c) as i32).abs();
+            df.max(dr)
+        };
+        let mut near = 0i32;
+        let mut t = wq;
+        while t != 0 {
+            let q = pop_lsb(&mut t);
+            near += (4 - cheb(q, bk)).max(0);
+        }
+        let mut t = bq;
+        while t != 0 {
+            let q = pop_lsb(&mut t);
+            near -= (4 - cheb(q, wk)).max(0);
+        }
+        f.enemy_queen_near_king = near as f64;
+
+        let side_terms =
+            |ksq: u8, own_pawns: u64, color: Color, enemy_queen: u64| -> (f64, f64) {
+                if enemy_queen == 0 {
+                    return (0.0, 0.0);
+                }
+                let home: i32 = if color == Color::White { 0 } else { 7 };
+                let displacement = (rank_of(ksq) as i32 - home).abs();
+                let central = (2..=5).contains(&file_of(ksq));
+                let exposure = (displacement + if central { 1 } else { 0 }) as f64 * mg_w;
+                let open_center = if central && shield_pawns(own_pawns, ksq, color) == 0 {
+                    mg_w
+                } else {
+                    0.0
+                };
+                (exposure, open_center)
+            };
+        let (we, wo) = side_terms(wk, wp, Color::White, bq);
+        let (be, bo) = side_terms(bk, bp, Color::Black, wq);
+        f.king_central_exposure = be - we;
+        f.open_center_king_penalty = bo - wo;
+    }
+
+    f
+}
+
 /// White-POV centipawn contribution of the Rung-2 terms: Σ weight·feature.
 /// Fast-path 0 when all weights are zero (matches the TS `rung2Contribution`).
 pub fn rung2_contribution(pos: &Position, w: &super::weights::Rung2Weights) -> f64 {

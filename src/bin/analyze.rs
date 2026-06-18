@@ -245,6 +245,7 @@ fn main() {
         king_activity: !args.iter().any(|a| a == "--no-king-activity"),
         threads: get("--threads").and_then(|s| s.parse().ok()).unwrap_or(1),
         cvs_trace: args.iter().any(|a| a == "--cvs-trace"),
+        cvs_core_trace: args.iter().any(|a| a == "--cvs-core-trace"),
         cvs_helpers: get("--cvs-helpers")
             .and_then(|s| s.parse().ok())
             .unwrap_or(0),
@@ -284,6 +285,32 @@ fn main() {
             match Position::from_fen(fen) {
                 Ok(pos) => {
                     cvs_bitboard_core::eval::cvs_features::extract_cvs_ids_into(&pos, &mut buf);
+                    let strs: Vec<String> = buf.iter().map(|i| i.to_string()).collect();
+                    writeln!(w, "{}", strs.join(",")).expect("stdout");
+                }
+                Err(_) => {
+                    writeln!(w, "ERR").expect("stdout");
+                }
+            }
+        }
+        return;
+    }
+    // --cvs-core-ids: ultra-fast batch (fens file -> one line of comma-separated
+    // active CVS core feature ids per fen).
+    if args.iter().any(|a| a == "--cvs-core-ids") {
+        let path = fens_path.expect("--cvs-core-ids requires --fens");
+        let file = std::fs::File::open(path).expect("fens file");
+        let mut w = std::io::BufWriter::new(std::io::stdout());
+        let mut buf: Vec<u32> = Vec::with_capacity(32);
+        for line in std::io::BufRead::lines(std::io::BufReader::new(file)) {
+            let Ok(l) = line else { break };
+            let fen = l.trim();
+            if fen.is_empty() {
+                continue;
+            }
+            match Position::from_fen(fen) {
+                Ok(pos) => {
+                    cvs_bitboard_core::eval::cvs_features::extract_cvs_core_ids_into(&pos, &mut buf);
                     let strs: Vec<String> = buf.iter().map(|i| i.to_string()).collect();
                     writeln!(w, "{}", strs.join(",")).expect("stdout");
                 }

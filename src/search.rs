@@ -204,6 +204,9 @@ pub struct SearchOptions {
     /// only - does not alter move choice. Default OFF; benchmark-mode upper
     /// bound on the per-node geometry cost.
     pub cvs_trace: bool,
+    /// CVS core geometry trace (brief Gate 2): when on, extract CVS core features at each
+    /// leaf eval and fold the active-id count into telemetry.
+    pub cvs_core_trace: bool,
     /// Heterogeneous CVS-SMP: of the N-1 helpers, the first K run the loaded
     /// NNUE (the geometry-aware stand-in) while the MAIN thread runs the fast
     /// classical eval. K=0 = homogeneous. Only meaningful with threads>1 and a
@@ -255,6 +258,7 @@ impl Default for SearchOptions {
             improving: true,
             threads: 1,
             cvs_trace: false,
+            cvs_core_trace: false,
             cvs_helpers: 0,
             lane: Lane::Fast,
             singular: true,
@@ -1100,7 +1104,7 @@ impl Searcher {
             if self.acc_top != usize::MAX {
                 return self.king_activity(
                     pos,
-                    self.rule50_scale(pos, n.eval_acc(&self.acc_stack[self.acc_top], pos.stm)),
+                    self.rule50_scale(pos, n.eval_acc(pos, &self.acc_stack[self.acc_top], pos.stm)),
                 );
             }
             return self.king_activity(pos, self.rule50_scale(pos, n.eval_stm(pos)));
@@ -1113,6 +1117,9 @@ impl Searcher {
         if self.opts.cvs_trace {
             crate::eval::cvs_features::extract_cvs_ids_into(pos, &mut self.cvs_buf);
             self.tel.cvs_trace_features += self.cvs_buf.len() as u64;
+        } else if self.opts.cvs_core_trace {
+            crate::eval::cvs_features::extract_cvs_core_ids_into(pos, &mut self.cvs_buf);
+            self.tel.cvs_trace_features += self.cvs_buf.len() as u64;
         }
         if no_legal {
             return if checked { -MATE_SCORE } else { 0 };
@@ -1124,7 +1131,7 @@ impl Searcher {
             if self.acc_top != usize::MAX {
                 return self.king_activity(
                     pos,
-                    self.rule50_scale(pos, n.eval_acc(&self.acc_stack[self.acc_top], pos.stm)),
+                    self.rule50_scale(pos, n.eval_acc(pos, &self.acc_stack[self.acc_top], pos.stm)),
                 );
             }
             return self.king_activity(pos, self.rule50_scale(pos, n.eval_stm(pos)));

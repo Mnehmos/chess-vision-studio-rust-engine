@@ -29,10 +29,16 @@ pub struct Nnue {
     inputs: usize,
     /// True for cvs_nnue models (piece-square + CVS geometry ids).
     cvs: bool,
+    is_core: bool,
+    is_residual: bool,
+    cvs_hidden: usize,
     /// Flat (inputs × hidden), row per feature.
     w1: Vec<f32>,
     b1: Vec<f32>,
     w2: Vec<f32>,
+    cvs_w1: Vec<f32>,
+    cvs_b1: Vec<f32>,
+    cvs_w2: Vec<f32>,
     b2: f32,
     scale: f32,
 }
@@ -42,10 +48,43 @@ impl Nnue {
         let text = std::fs::read_to_string(path).map_err(|e| format!("read {path}: {e}"))?;
         let v: serde_json::Value =
             serde_json::from_str(&text).map_err(|e| format!("parse {path}: {e}"))?;
-        let hidden = v["hidden"].as_u64().ok_or("missing hidden")? as usize;
+        let model_kind = v["modelKind"].as_str();
+        let cvs = model_kind == Some("cvs_nnue");
+        let is_residual = model_kind == Some("cvs_residual_nnue");
+        let hidden = if is_residual {
+            v["psHidden"].as_u64().ok_or("missing psHidden")? as usize
+        } else {
+            v["hidden"].as_u64().ok_or("missing hidden")? as usize
+        };
         let scale = v["outputScaleCp"].as_f64().ok_or("missing outputScaleCp")? as f32;
-        let cvs = v["modelKind"].as_str() == Some("cvs_nnue");
-        if cvs {
+        let mut expect_inputs = NNUE_INPUTS;
+        let mut is_core = false;
+        let mut cvs_hidden = 0;
+        
+        let vecf = |val: &serde_json::Value, key: &str| -> Result<Vec<f32>, String> {
+            val[key]
+                .as_array()
+                .ok_or(format!("missing {key}"))?
+                .iter()
+                .map(|x| x.as_f64().map(|f| f as f32).ok_or(format!("{key} entry")))
+                .collect()
+        };
+
+        if cvs || is_residual {
+            let cvs_dim = v["cvsDim"].as_u64().unwrap_or(cvs_features::CVS_INPUT_DIM as u64) as usize;
+            if cvs_dim == cvs_features::CVS_CORE_INPUT_DIM {
+                is_core = true;
+            } else if cvs_dim != cvs_features::CVS_INPUT_DIM {
+                return Err(format!("unsupported cvsDim: {}", cvs_dim));
+            }
+            
+            if !is_residual {
+                expect_inputs = NNUE_INPUTS + cvs_dim;
+            } else {
+                expect_inputs = NNUE_INPUTS;
+                cvs_hidden = v["cvsHidden"].as_u64().ok_or("missing cvsHidden")? as usize;
+            }
+            
             // Only the stm-relative geometry convention is valid: white-POV CVS
             // ids beside stm-mirrored piece squares made the net side-blind
             // (v1 post-mortem: -527 Elo). Refuse the broken convention.
@@ -54,59 +93,83 @@ impl Nnue {
             }
             // Registry compatibility is non-negotiable: a silent mismatch would
             // mis-map every geometry feature. Fail loudly.
-            let want = format!("{:016x}", cvs_features::registry_hash());
-            let got = v["registryHash"].as_str().unwrap_or("(missing)");
-            if got != want {
-                return Err(format!(
-                    "cvs_nnue registry hash mismatch: model {got} vs engine {want} — refusing to load"
-                ));
+            let want = if is_core {
+                format!("{:016x}", cvs_features::core_registry_hash())
+            } else {
+                format!("{:016x}", cvs_features::registry_hash())
+            };
+            if let Some(got) = v["registryHash"].as_str() {
+                if got != want {
+                    return Err(format!(
+                        "cvs_nnue registry hash mismatch: model {got} vs engine {want} — refusing to load"
+                    ));
+                }
             }
         }
-        let expect_inputs = if cvs { CVS_NNUE_INPUTS } else { NNUE_INPUTS };
-        let w1_rows = v["w1"].as_array().ok_or("missing w1")?;
-        if w1_rows.len() != expect_inputs {
-            return Err(format!("w1 rows {} != {expect_inputs}", w1_rows.len()));
-        }
-        let mut w1 = Vec::with_capacity(expect_inputs * hidden);
-        for row in w1_rows {
-            let row = row.as_array().ok_or("w1 row not array")?;
-            if row.len() != hidden {
-                return Err("w1 row width mismatch".into());
+        
+        let parse_w1 = |val: &serde_json::Value, key: &str, expect_rows: usize, h: usize| -> Result<Vec<f32>, String> {
+            let w1_rows = val[key].as_array().ok_or(format!("missing {}", key))?;
+            if w1_rows.len() != expect_rows {
+                return Err(format!("{} rows {} != {}", key, w1_rows.len(), expect_rows));
             }
-            for x in row {
-                w1.push(x.as_f64().ok_or("w1 entry")? as f32);
+            let mut w1 = Vec::with_capacity(expect_rows * h);
+            for row in w1_rows {
+                let row = row.as_array().ok_or(format!("{} row not array", key))?;
+                if row.len() != h {
+                    return Err(format!("{} row width mismatch", key));
+                }
+                for x in row {
+                    w1.push(x.as_f64().ok_or(format!("{} entry", key))? as f32);
+                }
             }
-        }
-        let vecf = |key: &str| -> Result<Vec<f32>, String> {
-            v[key]
-                .as_array()
-                .ok_or(format!("missing {key}"))?
-                .iter()
-                .map(|x| x.as_f64().map(|f| f as f32).ok_or(format!("{key} entry")))
-                .collect()
+            Ok(w1)
         };
-        let b1 = vecf("b1")?;
-        let w2 = vecf("w2")?;
+
+        let w1 = if is_residual { parse_w1(&v, "ps_w1", expect_inputs, hidden)? } else { parse_w1(&v, "w1", expect_inputs, hidden)? };
+        let b1 = if is_residual { vecf(&v, "ps_b1")? } else { vecf(&v, "b1")? };
+        let w2 = if is_residual { vecf(&v, "ps_w2")? } else { vecf(&v, "w2")? };
+        
+        let (cvs_w1, cvs_b1, cvs_w2) = if is_residual {
+            let dim = if is_core { cvs_features::CVS_CORE_INPUT_DIM } else { cvs_features::CVS_INPUT_DIM };
+            (
+                parse_w1(&v, "cvs_w1", dim, cvs_hidden)?,
+                vecf(&v, "cvs_b1")?,
+                vecf(&v, "cvs_w2")?
+            )
+        } else {
+            (Vec::new(), Vec::new(), Vec::new())
+        };
+
         if b1.len() != hidden || w2.len() != hidden {
             return Err("b1/w2 width mismatch".into());
         }
+        if is_residual && (cvs_b1.len() != cvs_hidden || cvs_w2.len() != cvs_hidden) {
+            return Err("cvs_b1/cvs_w2 width mismatch".into());
+        }
+        
         let b2 = v["b2"].as_f64().ok_or("missing b2")? as f32;
         Ok(Nnue {
             hidden,
             inputs: expect_inputs,
-            cvs,
+            cvs: cvs || is_residual,
+            is_core,
+            is_residual,
+            cvs_hidden,
             w1,
             b1,
             w2,
+            cvs_w1,
+            cvs_b1,
+            cvs_w2,
             b2,
             scale,
         })
     }
 
-    /// Incremental updates only apply to pure piece-square models; cvs_nnue
-    /// re-extracts geometry per position and stays on the full recompute.
+    /// Incremental updates apply to all models; for cvs_nnue models, piece-squares
+    /// are maintained incrementally, and geometry features are merged on the fly.
     pub fn supports_incremental(&self) -> bool {
-        !self.cvs
+        true
     }
 
     /// Both-perspective accumulator built from scratch (search-root entry).
@@ -192,18 +255,90 @@ impl Nnue {
         }
     }
 
-    /// Centipawns from `stm`'s perspective using the maintained accumulator —
-    /// the hot-path replacement for `eval_stm`'s full recompute.
-    pub fn eval_acc(&self, acc: &Accumulator, stm: Color) -> i32 {
-        let side = match stm {
+    /// Centipawns from `stm`'s perspective using the maintained accumulator.
+    /// If it is a cvs_nnue model, cheap/core/full features are extracted from `pos`
+    /// and added on the fly to a stack copy of the piece-square accumulator.
+    pub fn eval_acc(&self, pos: &Position, acc: &Accumulator, stm: Color) -> i32 {
+        let h = self.hidden;
+        let base = match stm {
             Color::White => &acc.white,
             Color::Black => &acc.black,
         };
-        let mut out = self.b2;
-        for j in 0..self.hidden {
-            out += self.w2[j] * side[j].clamp(0.0, 1.0);
+        
+        if self.is_residual {
+            let mut ids: Vec<u32> = Vec::with_capacity(32);
+            if self.is_core {
+                cvs_features::extract_cvs_core_ids_into(pos, &mut ids);
+            } else {
+                cvs_features::extract_cvs_ids_into(pos, &mut ids);
+            }
+            
+            let mut cvs_side = [0f32; 512];
+            let ch = self.cvs_hidden;
+            cvs_side[..ch].copy_from_slice(&self.cvs_b1);
+            
+            let flip = stm == Color::Black;
+            for mut id in ids {
+                if flip {
+                    let fam = id / 8;
+                    let within = id % 8;
+                    let side_bit = within / 4;
+                    let bucket = within % 4;
+                    id = fam * 8 + (1 - side_bit) * 4 + bucket;
+                }
+                let f = id as usize;
+                let row = &self.cvs_w1[f * ch..f * ch + ch];
+                for j in 0..ch {
+                    cvs_side[j] += row[j];
+                }
+            }
+            
+            let mut out = self.b2;
+            for j in 0..h {
+                out += self.w2[j] * base[j].clamp(0.0, 1.0);
+            }
+            for j in 0..ch {
+                out += self.cvs_w2[j] * cvs_side[j].clamp(0.0, 1.0);
+            }
+            (out * self.scale).round() as i32
+        } else if self.cvs {
+            let mut ids: Vec<u32> = Vec::with_capacity(32);
+            if self.is_core {
+                cvs_features::extract_cvs_core_ids_into(pos, &mut ids);
+            } else {
+                cvs_features::extract_cvs_ids_into(pos, &mut ids);
+            }
+            let mut side = [0f32; 512];
+            side[..h].copy_from_slice(&base[..h]);
+
+            let flip = stm == Color::Black;
+            for mut id in ids {
+                if flip {
+                    let fam = id / 8;
+                    let within = id % 8;
+                    let side_bit = within / 4;
+                    let bucket = within % 4;
+                    id = fam * 8 + (1 - side_bit) * 4 + bucket;
+                }
+                let f = NNUE_INPUTS + id as usize;
+                debug_assert!(f < self.inputs);
+                let row = &self.w1[f * h..f * h + h];
+                for j in 0..h {
+                    side[j] += row[j];
+                }
+            }
+            let mut out = self.b2;
+            for j in 0..h {
+                out += self.w2[j] * side[j].clamp(0.0, 1.0);
+            }
+            (out * self.scale).round() as i32
+        } else {
+            let mut out = self.b2;
+            for j in 0..h {
+                out += self.w2[j] * base[j].clamp(0.0, 1.0);
+            }
+            (out * self.scale).round() as i32
         }
-        (out * self.scale).round() as i32
     }
 
     /// Centipawns from the side to move's perspective.
@@ -231,20 +366,59 @@ impl Nnue {
                 }
             }
         }
-        if self.cvs {
-            // Geometry features ride at +768 in the same accumulator,
-            // STM-RELATIVE: the registry emits white-POV side bits, so flip
-            // the side when black is to move (mirrors the piece-square half).
+        let mut out = self.b2;
+        for j in 0..h {
+            out += self.w2[j] * acc[j].clamp(0.0, 1.0);
+        }
+
+        if self.is_residual {
             let mut ids: Vec<u32> = Vec::with_capacity(32);
-            cvs_features::extract_cvs_ids_into(pos, &mut ids);
+            if self.is_core {
+                cvs_features::extract_cvs_core_ids_into(pos, &mut ids);
+            } else {
+                cvs_features::extract_cvs_ids_into(pos, &mut ids);
+            }
+            
+            let ch = self.cvs_hidden;
+            let mut cvs_side = [0f32; 512];
+            cvs_side[..ch].copy_from_slice(&self.cvs_b1);
+            
             let flip = pos.stm == Color::Black;
             for mut id in ids {
                 if flip {
                     let fam = id / 8;
                     let within = id % 8;
-                    let side = within / 4;
+                    let side_bit = within / 4;
                     let bucket = within % 4;
-                    id = fam * 8 + (1 - side) * 4 + bucket;
+                    id = fam * 8 + (1 - side_bit) * 4 + bucket;
+                }
+                let f = id as usize;
+                let row = &self.cvs_w1[f * ch..f * ch + ch];
+                for j in 0..ch {
+                    cvs_side[j] += row[j];
+                }
+            }
+            for j in 0..ch {
+                out += self.cvs_w2[j] * cvs_side[j].clamp(0.0, 1.0);
+            }
+        } else if self.cvs {
+            // Geometry features ride at +768 in the same accumulator,
+            // STM-RELATIVE: the registry emits white-POV side bits, so flip
+            // the side when black is to move (mirrors the piece-square half).
+            let mut ids: Vec<u32> = Vec::with_capacity(32);
+            if self.is_core {
+                cvs_features::extract_cvs_core_ids_into(pos, &mut ids);
+            } else {
+                cvs_features::extract_cvs_ids_into(pos, &mut ids);
+            }
+            let flip = pos.stm == Color::Black;
+            for mut id in ids {
+                if flip {
+                    let fam = id / 8;
+                    let within = id % 8;
+                    let side_bit = within / 4;
+                    let bucket = within % 4;
+                    id = fam * 8 + (1 - side_bit) * 4 + bucket;
                 }
                 let f = NNUE_INPUTS + id as usize;
                 debug_assert!(f < self.inputs);
@@ -253,10 +427,11 @@ impl Nnue {
                     acc[j] += row[j];
                 }
             }
-        }
-        let mut out = self.b2;
-        for j in 0..h {
-            out += self.w2[j] * acc[j].clamp(0.0, 1.0);
+            // For flat cvs_nnue, out is recalculated since acc changed
+            out = self.b2;
+            for j in 0..h {
+                out += self.w2[j] * acc[j].clamp(0.0, 1.0);
+            }
         }
         (out * self.scale).round() as i32
     }

@@ -1,0 +1,9 @@
+{
+  "shard_index": 56,
+  "position_count": 99999,
+  "registry_version": 1,
+  "registry_hash": "58cb4e1e461a607d",
+  "analyzer_binary_hash": "4456fa3e5ebf3b9542877d30da214eab8979166ad02351591146d3c7c1047fbc",
+  "checksum": "376f26451f33b0a44552a996a0f8c77641df1ee472e4f3729f1aaadc3c4250a0",
+  "feature_mode": "core"
+}

@@ -17,7 +17,7 @@
 //! `BUCKETS_PER_SIDE`. Any change to either is a new registry version. The
 //! `registry_hash()` is embedded in trained models; the loader must reject a
 //! model whose hash differs (fail loud, never silently mis-map features).
-use crate::eval::rung2::{extract_rung2, Rung2Features};
+use crate::eval::rung2::{extract_rung2, extract_rung2_core, Rung2Features};
 use crate::Position;
 
 /// Registry version. Bump on any change to FAMILIES or the bucketing scheme.
@@ -126,8 +126,65 @@ const FAMILIES: &[Family] = &[
     },
 ];
 
+/// The cheap geometry registry v1 (CVS_CORE) - 104 features.
+const CORE_FAMILIES: &[Family] = &[
+    Family {
+        key: "KING_OPEN_FILE",
+        thresholds: [1.0, 2.0, 3.0],
+    },
+    Family {
+        key: "KING_SHIELD",
+        thresholds: [1.0, 2.0, 3.0],
+    },
+    Family {
+        key: "KING_CENTRAL_EXPOSURE",
+        thresholds: [1.0, 2.0, 4.0],
+    },
+    Family {
+        key: "ENEMY_QUEEN_NEAR_KING",
+        thresholds: [1.0, 2.0, 3.0],
+    },
+    Family {
+        key: "OPEN_CENTER_KING",
+        thresholds: [1.0, 2.0, 3.0],
+    },
+    Family {
+        key: "PASSED_PAWN",
+        thresholds: [1.0, 2.0, 3.0],
+    },
+    Family {
+        key: "CONNECTED_PASSED_PAWN",
+        thresholds: [1.0, 2.0, 3.0],
+    },
+    Family {
+        key: "ROOK_OPEN_FILE",
+        thresholds: [1.0, 2.0, 3.0],
+    },
+    Family {
+        key: "ROOK_SEMI_OPEN_FILE",
+        thresholds: [1.0, 2.0, 3.0],
+    },
+    Family {
+        key: "ROOK_SEVENTH",
+        thresholds: [1.0, 2.0, 3.0],
+    },
+    Family {
+        key: "DOUBLED_PAWN",
+        thresholds: [1.0, 2.0, 3.0],
+    },
+    Family {
+        key: "ISOLATED_PAWN",
+        thresholds: [1.0, 2.0, 3.0],
+    },
+    Family {
+        key: "BISHOP_PAIR",
+        thresholds: [0.5, 1.0, 1.5],
+    },
+];
+
 /// Total feature-ID space (dense upper bound for the NNUE input layer).
 pub const CVS_INPUT_DIM: usize = (FAMILIES.len() as u32 * FAMILY_STRIDE) as usize;
+pub const CVS_CORE_INPUT_DIM: usize = (CORE_FAMILIES.len() as u32 * FAMILY_STRIDE) as usize;
 
 /// The White-POV delta each family reads from `Rung2Features` (positive =
 /// favors White). Kept beside FAMILIES (same order) so the registry stays a
@@ -231,6 +288,66 @@ pub fn registry_hash() -> u64 {
     mix(&CVS_REGISTRY_VERSION.to_le_bytes());
     mix(&BUCKETS_PER_SIDE.to_le_bytes());
     for fam in FAMILIES {
+        mix(fam.key.as_bytes());
+        for t in fam.thresholds {
+            mix(&t.to_le_bytes());
+        }
+    }
+    h
+}
+
+/// The White-POV delta each core family reads from `Rung2Features` (positive =
+/// favors White).
+fn core_family_value(f: &Rung2Features, idx: usize) -> f64 {
+    match idx {
+        0 => f.king_open_file,              // "KING_OPEN_FILE"
+        1 => f.king_shield,                 // "KING_SHIELD"
+        2 => f.king_central_exposure,        // "KING_CENTRAL_EXPOSURE"
+        3 => f.enemy_queen_near_king,       // "ENEMY_QUEEN_NEAR_KING"
+        4 => f.open_center_king_penalty,    // "OPEN_CENTER_KING"
+        5 => f.passed_pawn_mg + f.passed_pawn_eg, // "PASSED_PAWN"
+        6 => f.connected_passed_pawn,       // "CONNECTED_PASSED_PAWN"
+        7 => f.rook_open_file,              // "ROOK_OPEN_FILE"
+        8 => f.rook_semi_open_file,         // "ROOK_SEMI_OPEN_FILE"
+        9 => f.rook_seventh,                // "ROOK_SEVENTH"
+        10 => f.doubled_pawn,               // "DOUBLED_PAWN"
+        11 => f.isolated_pawn,              // "ISOLATED_PAWN"
+        12 => f.bishop_pair_mg + f.bishop_pair_eg, // "BISHOP_PAIR"
+        _ => 0.0,
+    }
+}
+
+/// CVS-FAST (CVS_CORE): active core feature IDs only, appended into a caller-owned
+/// buffer. This is the hot-path form for incrementally updated leaf eval.
+/// `buf` is cleared first.
+pub fn extract_cvs_core_ids_into(pos: &Position, buf: &mut Vec<u32>) {
+    buf.clear();
+    let r = extract_rung2_core(pos);
+    for (idx, fam) in CORE_FAMILIES.iter().enumerate() {
+        let v = core_family_value(&r, idx);
+        let b = bucket(v.abs(), &fam.thresholds);
+        if b == 0 {
+            continue;
+        }
+        let side = if v >= 0.0 { 0 } else { 1 };
+        buf.push(idx as u32 * FAMILY_STRIDE + side * (BUCKETS_PER_SIDE + 1) + b);
+    }
+}
+
+/// Deterministic hash of the core registry definition (version + family keys +
+/// bucketing).
+pub fn core_registry_hash() -> u64 {
+    // FNV-1a over the structural definition.
+    let mut h: u64 = 0xcbf29ce484222325;
+    let mut mix = |bytes: &[u8]| {
+        for &b in bytes {
+            h ^= b as u64;
+            h = h.wrapping_mul(0x100000001b3);
+        }
+    };
+    mix(&CVS_REGISTRY_VERSION.to_le_bytes());
+    mix(&BUCKETS_PER_SIDE.to_le_bytes());
+    for fam in CORE_FAMILIES {
         mix(fam.key.as_bytes());
         for t in fam.thresholds {
             mix(&t.to_le_bytes());

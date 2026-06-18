@@ -42,7 +42,7 @@ fn incremental_matches_full_recompute_on_random_playouts() {
             stack.push(acc.clone());
             net.acc_apply(&mut acc, &pos, mv);
             pos.make(mv);
-            let inc = net.eval_acc(&acc, pos.stm);
+            let inc = net.eval_acc(&pos, &acc, pos.stm);
             let full = net.eval_stm(&pos);
             // f32 summation order differs between incremental and fresh paths,
             // so ±1cp rounding drift is expected on long playouts; anything
@@ -59,7 +59,7 @@ fn incremental_matches_full_recompute_on_random_playouts() {
             if rng.next(10) == 0 {
                 pos.unmake();
                 acc = stack.pop().unwrap();
-                let inc = net.eval_acc(&acc, pos.stm);
+                let inc = net.eval_acc(&pos, &acc, pos.stm);
                 let full = net.eval_stm(&pos);
                 assert!(
                     (inc - full).abs() <= 1,
