@@ -98,6 +98,8 @@ fn main() {
     let nnue: Option<Nnue> = get("--nnue").map(|p| Nnue::load(&p).expect("load nnue"));
     let helper_nnue: Option<Nnue> =
         get("--helper-nnue").map(|p| Nnue::load(&p).expect("load helper nnue"));
+    let syzygy_path = get("--syzygy");
+    let book_path = get("--book");
     let mk = |base: ValueWeights, rung2: Option<Rung2Weights>| {
         let mut searcher = match &nnue {
             Some(n) => Searcher::with_nnue(base, rung2, n.clone()),
@@ -105,6 +107,16 @@ fn main() {
         };
         if let Some(n) = &helper_nnue {
             searcher.set_helper_nnue(Some(n.clone()));
+        }
+        if let Some(path) = &syzygy_path {
+            if let Ok(tb) = cvs_bitboard_core::syzygy::Syzygy::new(path) {
+                searcher.tb = Some(Arc::new(tb));
+            }
+        }
+        if let Some(path) = &book_path {
+            if let Ok(b) = cvs_bitboard_core::book::Book::new(path) {
+                searcher.book = Some(Arc::new(std::sync::Mutex::new(b)));
+            }
         }
         searcher
     };
@@ -134,16 +146,47 @@ fn main() {
         };
         let mut tok = line.split_whitespace();
         match tok.next() {
-            Some("uci") => {
+             Some("uci") => {
                 let _ = writeln!(out, "id name CVS Bitboard Core");
                 let _ = writeln!(out, "id author Chess Vision Studio (MIT)");
                 let _ = writeln!(out, "option name Ponder type check default false");
+                let _ = writeln!(out, "option name SyzygyPath type string default <empty>");
+                let _ = writeln!(out, "option name BookPath type string default <empty>");
                 let _ = writeln!(out, "uciok");
             }
             Some("isready") => {
                 let _ = writeln!(out, "readyok");
             }
-            Some("setoption") => { /* Ponder on/off is driven by go/ponderhit */ }
+            Some("setoption") => {
+                let rest: Vec<&str> = tok.collect();
+                if rest.get(0) == Some(&"name") {
+                    let mut name_idx = 1;
+                    while name_idx < rest.len() && rest[name_idx] != "value" {
+                        name_idx += 1;
+                    }
+                    let name = rest[1..name_idx].join(" ");
+                    if name_idx < rest.len() {
+                        let value = rest[name_idx+1..].join(" ");
+                        if name == "SyzygyPath" {
+                            if !value.is_empty() && value != "<empty>" {
+                                if let Ok(tb) = cvs_bitboard_core::syzygy::Syzygy::new(&value) {
+                                    if let Some(s) = &mut searcher {
+                                        s.tb = Some(Arc::new(tb));
+                                    }
+                                }
+                            }
+                        } else if name == "BookPath" {
+                            if !value.is_empty() && value != "<empty>" {
+                                if let Ok(b) = cvs_bitboard_core::book::Book::new(&value) {
+                                    if let Some(s) = &mut searcher {
+                                        s.book = Some(Arc::new(std::sync::Mutex::new(b)));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             Some("ucinewgame") => {
                 abort_ponder!();
                 searcher = Some(mk(base, rung2.clone()));
@@ -241,24 +284,27 @@ fn main() {
                     } else {
                         soft
                     },
-                    // Patch 7 kill switches, mirrored from analyze for A/B gates.
-                    rfp: args.iter().any(|a| a == "--rfp"),
-                    futility: args.iter().any(|a| a == "--futility"),
-                    lmp: args.iter().any(|a| a == "--lmp"),
-                    see_prune: args.iter().any(|a| a == "--seeprune"),
-                    delta_prune: args.iter().any(|a| a == "--delta"),
-                    countermove: args.iter().any(|a| a == "--countermove"),
-                    conthist: args.iter().any(|a| a == "--conthist"),
-                    tt_prune_store: args.iter().any(|a| a == "--tt-prune-store"),
-                    rule50_scale: args.iter().any(|a| a == "--rule50"),
-                    qsearch_tt: args.iter().any(|a| a == "--qtt"),
-                    hist_malus: args.iter().any(|a| a == "--histmalus"),
-                    hist_lmr: args.iter().any(|a| a == "--histlmr"),
-                    caphist: args.iter().any(|a| a == "--caphist"),
-                    tt2: args.iter().any(|a| a == "--tt2"),
-                    improving: args.iter().any(|a| a == "--improving"),
-                    king_activity: args.iter().any(|a| a == "--king-activity"),
+                    // Standardized gated search features (now enabled by default, --no-xxx to opt-out).
+                    rfp: !args.iter().any(|a| a == "--no-rfp"),
+                    futility: !args.iter().any(|a| a == "--no-futility"),
+                    lmp: !args.iter().any(|a| a == "--no-lmp"),
+                    see_prune: !args.iter().any(|a| a == "--no-seeprune"),
+                    delta_prune: !args.iter().any(|a| a == "--no-delta"),
+                    countermove: !args.iter().any(|a| a == "--no-countermove"),
+                    conthist: !args.iter().any(|a| a == "--no-conthist"),
+                    tt_prune_store: !args.iter().any(|a| a == "--no-tt-prune-store"),
+                    rule50_scale: !args.iter().any(|a| a == "--no-rule50"),
+                    qsearch_tt: !args.iter().any(|a| a == "--no-qtt"),
+                    hist_malus: !args.iter().any(|a| a == "--no-histmalus"),
+                    hist_lmr: !args.iter().any(|a| a == "--no-histlmr"),
+                    caphist: !args.iter().any(|a| a == "--no-caphist"),
+                    tt2: !args.iter().any(|a| a == "--no-tt2"),
+                    improving: !args.iter().any(|a| a == "--no-improving"),
+                    king_activity: !args.iter().any(|a| a == "--no-king-activity"),
                     threads: get("--threads").and_then(|s| s.parse().ok()).unwrap_or(1),
+                    singular: !args.iter().any(|a| a == "--no-singular"),
+                    syzygy: !args.iter().any(|a| a == "--no-syzygy"),
+                    book: !args.iter().any(|a| a == "--no-book"),
                     ..Default::default()
                 };
                 if pondering {

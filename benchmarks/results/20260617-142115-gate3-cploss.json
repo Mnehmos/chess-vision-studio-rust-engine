@@ -1,0 +1,66 @@
+{
+ "provenance": [
+  {
+   "date": "2026-06-17T21:21:15+00:00",
+   "git_commit": "a2b9190",
+   "git_describe": "snapshot/gen7-acc-futility-2026-06-11-19-ga2b9190-dirty",
+   "machine": "DESKTOP-KF0SM7V",
+   "engine_exe": "f:/tools/cvs-baselines/analyze-gen7-acc-futility.exe",
+   "engine_sha": "3376c2ac434b1a71",
+   "net": "f:/tools/cvs-baselines/raw-nnue-h256-sf-d12-v3.json",
+   "net_sha": "4cc9765c35c92d51",
+   "futility": true,
+   "extra_flags": [],
+   "threads": 1,
+   "depth": 9,
+   "baseline_ref": "snapshot/gen7-acc-futility-2026-06-11"
+  },
+  {
+   "date": "2026-06-17T21:21:15+00:00",
+   "git_commit": "a2b9190",
+   "git_describe": "snapshot/gen7-acc-futility-2026-06-11-19-ga2b9190-dirty",
+   "machine": "DESKTOP-KF0SM7V",
+   "engine_exe": "target/release/analyze.exe",
+   "engine_sha": "14dcc15dc0bcb971",
+   "net": "f:/Github/chess-vision-studio/arena/out/gen9-raw-h256-d20.json",
+   "net_sha": "08dd1753893674fc",
+   "futility": true,
+   "extra_flags": [],
+   "threads": 1,
+   "depth": 9,
+   "baseline_ref": "snapshot/gen7-acc-futility-2026-06-11"
+  }
+ ],
+ "suite": {
+  "name": "suite-fresh-100",
+  "hash": "23275256e9ba122c"
+ },
+ "engine_budget": {
+  "movetime_ms": null,
+  "depth": 9
+ },
+ "results": {
+  "baseline": {
+   "match_pct": 60.0,
+   "avg": 11.92,
+   "median": 0.0,
+   "p90": 41,
+   "p95": 71,
+   "bl100_pct": 3.0,
+   "bl200_pct": 1.0,
+   "danger_avg": 13.75609756097561,
+   "quiet_avg": 3.5555555555555554
+  },
+  "candidate": {
+   "match_pct": 52.0,
+   "avg": 25.58,
+   "median": 0.0,
+   "p90": 80,
+   "p95": 127,
+   "bl100_pct": 7.0,
+   "bl200_pct": 3.0,
+   "danger_avg": 30.036585365853657,
+   "quiet_avg": 5.277777777777778
+  }
+ }
+}

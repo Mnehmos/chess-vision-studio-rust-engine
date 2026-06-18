@@ -192,6 +192,8 @@ fn main() {
     let nnue: Option<Nnue> = get("--nnue").map(|p| Nnue::load(&p).expect("load nnue"));
     let helper_nnue: Option<Nnue> =
         get("--helper-nnue").map(|p| Nnue::load(&p).expect("load helper nnue"));
+    let syzygy_path = get("--syzygy");
+    let book_path = get("--book");
     let make_searcher = |base: ValueWeights, rung2: Option<Rung2Weights>| {
         let mut searcher = match &nnue {
             Some(n) => Searcher::with_nnue(base, rung2, n.clone()),
@@ -199,6 +201,16 @@ fn main() {
         };
         if let Some(n) = &helper_nnue {
             searcher.set_helper_nnue(Some(n.clone()));
+        }
+        if let Some(path) = &syzygy_path {
+            if let Ok(tb) = cvs_bitboard_core::syzygy::Syzygy::new(path) {
+                searcher.tb = Some(std::sync::Arc::new(tb));
+            }
+        }
+        if let Some(path) = &book_path {
+            if let Ok(b) = cvs_bitboard_core::book::Book::new(path) {
+                searcher.book = Some(std::sync::Arc::new(std::sync::Mutex::new(b)));
+            }
         }
         searcher
     };
@@ -214,23 +226,23 @@ fn main() {
         null_move: !args.iter().any(|a| a == "--no-null"),
         lmr: !args.iter().any(|a| a == "--no-lmr"),
         pvs: !args.iter().any(|a| a == "--no-pvs"),
-        // Patch 7 prunes are opt-in for experiments (rejected as defaults).
-        rfp: args.iter().any(|a| a == "--rfp"),
-        futility: args.iter().any(|a| a == "--futility"),
-        lmp: args.iter().any(|a| a == "--lmp"),
-        see_prune: args.iter().any(|a| a == "--seeprune"),
-        delta_prune: args.iter().any(|a| a == "--delta"),
-        countermove: args.iter().any(|a| a == "--countermove"),
-        conthist: args.iter().any(|a| a == "--conthist"),
-        tt_prune_store: args.iter().any(|a| a == "--tt-prune-store"),
-        rule50_scale: args.iter().any(|a| a == "--rule50"),
-        qsearch_tt: args.iter().any(|a| a == "--qtt"),
-        hist_malus: args.iter().any(|a| a == "--histmalus"),
-        hist_lmr: args.iter().any(|a| a == "--histlmr"),
-        caphist: args.iter().any(|a| a == "--caphist"),
-        tt2: args.iter().any(|a| a == "--tt2"),
-        improving: args.iter().any(|a| a == "--improving"),
-        king_activity: args.iter().any(|a| a == "--king-activity"),
+        // Standardized gated search features (now enabled by default, --no-xxx to opt-out).
+        rfp: !args.iter().any(|a| a == "--no-rfp"),
+        futility: !args.iter().any(|a| a == "--no-futility"),
+        lmp: !args.iter().any(|a| a == "--no-lmp"),
+        see_prune: !args.iter().any(|a| a == "--no-seeprune"),
+        delta_prune: !args.iter().any(|a| a == "--no-delta"),
+        countermove: !args.iter().any(|a| a == "--no-countermove"),
+        conthist: !args.iter().any(|a| a == "--no-conthist"),
+        tt_prune_store: !args.iter().any(|a| a == "--no-tt-prune-store"),
+        rule50_scale: !args.iter().any(|a| a == "--no-rule50"),
+        qsearch_tt: !args.iter().any(|a| a == "--no-qtt"),
+        hist_malus: !args.iter().any(|a| a == "--no-histmalus"),
+        hist_lmr: !args.iter().any(|a| a == "--no-histlmr"),
+        caphist: !args.iter().any(|a| a == "--no-caphist"),
+        tt2: !args.iter().any(|a| a == "--no-tt2"),
+        improving: !args.iter().any(|a| a == "--no-improving"),
+        king_activity: !args.iter().any(|a| a == "--no-king-activity"),
         threads: get("--threads").and_then(|s| s.parse().ok()).unwrap_or(1),
         cvs_trace: args.iter().any(|a| a == "--cvs-trace"),
         cvs_helpers: get("--cvs-helpers")
@@ -247,6 +259,9 @@ fn main() {
             Some("pawn") => cvs_bitboard_core::search::Lane::PawnEndgame,
             _ => cvs_bitboard_core::search::Lane::Fast,
         },
+        singular: !args.iter().any(|a| a == "--no-singular"),
+        syzygy: !args.iter().any(|a| a == "--no-syzygy"),
+        book: !args.iter().any(|a| a == "--no-book"),
     };
 
     // --features: emit the eval + Rung-2 feature vector per FEN instead of

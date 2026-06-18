@@ -212,6 +212,12 @@ pub struct SearchOptions {
     /// Specialist ordering lane for THIS searcher (helpers get assigned a
     /// roster; the main thread stays Fast). Ordering-only, Channel-A safe.
     pub lane: Lane,
+    /// Singular extensions.
+    pub singular: bool,
+    /// Syzygy tablebases.
+    pub syzygy: bool,
+    /// Polyglot opening book.
+    pub book: bool,
 }
 
 impl Default for SearchOptions {
@@ -231,26 +237,29 @@ impl Default for SearchOptions {
             // mislabels hopeless); delta+SEE measured neutral. All five stay
             // OFF until the eval can be trusted (post-NNUE) or ordering
             // improves enough to make the quiet tail safely prunable.
-            rfp: false,
-            futility: false,
-            lmp: false,
-            see_prune: false,
-            delta_prune: false,
-            countermove: false,
-            conthist: false,
-            tt_prune_store: false,
-            rule50_scale: false,
-            king_activity: false,
-            qsearch_tt: false,
-            hist_malus: false,
-            hist_lmr: false,
-            caphist: false,
-            tt2: false,
-            improving: false,
+            rfp: true,
+            futility: true,
+            lmp: true,
+            see_prune: true,
+            delta_prune: true,
+            countermove: true,
+            conthist: true,
+            tt_prune_store: true,
+            rule50_scale: true,
+            king_activity: true,
+            qsearch_tt: true,
+            hist_malus: true,
+            hist_lmr: true,
+            caphist: true,
+            tt2: true,
+            improving: true,
             threads: 1,
             cvs_trace: false,
             cvs_helpers: 0,
             lane: Lane::Fast,
+            singular: true,
+            syzygy: true,
+            book: true,
         }
     }
 }
@@ -449,6 +458,12 @@ pub struct Searcher {
     acc_top: usize,
     /// Reusable scratch for CVS-Fast trace IDs (no per-node allocation).
     cvs_buf: Vec<u32>,
+    /// Syzygy tablebases.
+    pub tb: Option<Arc<crate::syzygy::Syzygy>>,
+    /// Polyglot opening book.
+    pub book: Option<Arc<std::sync::Mutex<crate::book::Book>>>,
+    /// Excluded move for singular search.
+    excluded_move: Option<Move>,
 }
 
 impl Searcher {
@@ -478,6 +493,9 @@ impl Searcher {
             acc_stack: Vec::new(),
             acc_top: usize::MAX,
             cvs_buf: Vec::with_capacity(32),
+            tb: None,
+            book: None,
+            excluded_move: None,
         }
     }
 
@@ -672,6 +690,8 @@ impl Searcher {
                 };
                 let lead = 2 + (t as u32 % 6);
                 let root_scope = self.root_scope;
+                let tb = self.tb.clone();
+                let book = self.book.clone();
                 handles.push(scope.spawn(move || {
                     let mut helper = Searcher::new(weights, rung2);
                     helper.root_scope = root_scope;
@@ -679,6 +699,8 @@ impl Searcher {
                     helper.nnue = nnue;
                     helper.stop = Some(stop);
                     helper.id_start = lead;
+                    helper.tb = tb;
+                    helper.book = book;
                     let r = helper.search_single(&mut hpos, hopts);
                     r.telemetry.nodes
                 }));
@@ -739,6 +761,53 @@ impl Searcher {
         self.deadline = opts
             .max_time_ms
             .map(|ms| started + std::time::Duration::from_millis(ms));
+
+        // 1. Opening Book Probe
+        if opts.book {
+            if let Some(book) = &self.book {
+                if let Ok(mut book_guard) = book.lock() {
+                    if let Some(mv) = book_guard.query(pos) {
+                        return SearchResult {
+                            best_move: Some(mv),
+                            score_cp: 0,
+                            mate: None,
+                            pv: vec![mv],
+                            depth: 1,
+                            telemetry: self.tel,
+                        };
+                    }
+                }
+            }
+        }
+
+        // 2. Syzygy Tablebase Root Probe
+        if opts.syzygy {
+            if let Some(tb) = &self.tb {
+                if pos.castling == 0 && pos.all.count_ones() as u32 <= tb.max_pieces() {
+                    if let Some((mv, wdl)) = tb.probe_root(pos) {
+                        let score: i32 = match wdl {
+                            pyrrhic_rs::WdlProbeResult::Win => 900_000,
+                            pyrrhic_rs::WdlProbeResult::Loss => -900_000,
+                            _ => 0,
+                        };
+                        let mate = if score.abs() > MATE_THRESHOLD {
+                            let plies = MATE_SCORE - score.abs();
+                            Some(if score > 0 { plies } else { -plies })
+                        } else {
+                            None
+                        };
+                        return SearchResult {
+                            best_move: Some(mv),
+                            score_cp: score,
+                            mate,
+                            pv: vec![mv],
+                            depth: 1,
+                            telemetry: self.tel,
+                        };
+                    }
+                }
+            }
+        }
 
         let mut result = SearchResult {
             best_move: None,
@@ -1165,6 +1234,55 @@ impl Searcher {
             }
         }
 
+        // 1. Syzygy Tablebase WDL Probe
+        if self.opts.syzygy {
+            if let Some(tb) = &self.tb {
+                if pos.castling == 0 && pos.all.count_ones() as u32 <= tb.max_pieces() {
+                    if let Some(wdl) = tb.probe_wdl(pos) {
+                        let score = match wdl {
+                            pyrrhic_rs::WdlProbeResult::Win => 900_000 - ply as i32,
+                            pyrrhic_rs::WdlProbeResult::Loss => -900_000 + ply as i32,
+                            _ => 0,
+                        };
+                        let flag = match wdl {
+                            pyrrhic_rs::WdlProbeResult::Win => Flag::Lower,
+                            pyrrhic_rs::WdlProbeResult::Loss => Flag::Upper,
+                            _ => Flag::Exact,
+                        };
+                        if self.opts.use_tt {
+                            self.store(self.tt_key(pos), depth, score, flag, None);
+                        }
+                        return score;
+                    }
+                }
+            }
+        }
+
+        // 2. Singular Extensions Probe
+        let mut extension = 0;
+        if self.opts.singular
+            && self.excluded_move.is_none()
+            && depth >= 8
+            && tt_move.is_some()
+            && !(checked && rule_draw)
+        {
+            if let Some(e) = self.tt_probe(self.tt_key(pos)) {
+                if e.depth >= depth - 3 && e.flag != Flag::Upper && e.score.abs() < MATE_THRESHOLD {
+                    let rdepth = (depth - 1) / 2;
+                    let margin = 2 * depth as i32;
+                    let s_beta = e.score - margin;
+                    
+                    self.excluded_move = tt_move;
+                    let s_score = self.negamax(pos, rdepth, s_beta - 1, s_beta, ply, false);
+                    self.excluded_move = None;
+                    
+                    if s_score < s_beta {
+                        extension = 1;
+                    }
+                }
+            }
+        }
+
         let mut legal = generate_legal_list(pos);
         if legal.is_empty() {
             return if checked { -MATE_SCORE + ply as i32 } else { 0 };
@@ -1291,6 +1409,9 @@ impl Searcher {
         let mut tried_caps = MoveList::new();
         for move_index in 0..legal.len() {
             let mv = legal.get(move_index);
+            if Some(mv) == self.excluded_move {
+                continue;
+            }
             // Patch 7 skips. All require one searched move already (best is
             // real, so a pruned node still returns a legal score), never fire
             // in check, and exempt the TT move and killers.
@@ -1367,24 +1488,25 @@ impl Searcher {
             if let Some(slot) = self.prev_moves.get_mut((ply + 1) as usize) {
                 *slot = Some(mv);
             }
+            let ext = if Some(mv) == tt_move { extension } else { 0 };
             let mut score;
             if lmr_r > 0 {
                 self.tel.lmr_reductions += 1;
-                score = -self.negamax(pos, depth - 1 - lmr_r, -alpha - 1, -alpha, ply + 1, true);
+                score = -self.negamax(pos, depth - 1 + ext - lmr_r, -alpha - 1, -alpha, ply + 1, true);
                 if score > alpha && !self.aborted {
                     self.tel.lmr_researches += 1;
-                    score = -self.negamax(pos, depth - 1, -beta, -alpha, ply + 1, true);
+                    score = -self.negamax(pos, depth - 1 + ext, -beta, -alpha, ply + 1, true);
                 }
             } else if self.opts.pvs && move_index > 0 && best > alpha_in {
                 // PVS (Patch 5): once a PV move raised alpha, probe the rest
                 // with a null window and re-search only on a raise.
-                score = -self.negamax(pos, depth - 1, -alpha - 1, -alpha, ply + 1, true);
+                score = -self.negamax(pos, depth - 1 + ext, -alpha - 1, -alpha, ply + 1, true);
                 if score > alpha && score < beta && !self.aborted {
                     self.tel.pvs_researches += 1;
-                    score = -self.negamax(pos, depth - 1, -beta, -alpha, ply + 1, true);
+                    score = -self.negamax(pos, depth - 1 + ext, -beta, -alpha, ply + 1, true);
                 }
             } else {
-                score = -self.negamax(pos, depth - 1, -beta, -alpha, ply + 1, true);
+                score = -self.negamax(pos, depth - 1 + ext, -beta, -alpha, ply + 1, true);
             }
             pos.unmake();
             self.acc_unmake();

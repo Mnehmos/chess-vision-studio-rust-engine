@@ -20,6 +20,8 @@ pub mod position;
 pub mod search;
 pub mod see;
 pub mod tt;
+pub mod syzygy;
+pub mod book;
 
 pub use position::Position;
 

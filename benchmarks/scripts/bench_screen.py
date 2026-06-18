@@ -38,7 +38,13 @@ cmd = [CC,
        '-openings', f'file={BOOK}', 'format=epd', 'order=random',
        '-pgnout', pgn]
 print('running:', ' '.join(cmd), file=sys.stderr)
-out = subprocess.run(cmd, capture_output=True, text=True).stdout
+p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+out_lines = []
+for line in p.stdout:
+    print(line, end='', flush=True)
+    out_lines.append(line)
+p.wait()
+out = ''.join(out_lines)
 
 wl = [l for l in out.splitlines() if 'Score of' in l or 'Elo difference' in l]
 print('\n'.join(wl[-4:]))

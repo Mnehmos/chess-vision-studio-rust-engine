@@ -1,0 +1,51 @@
+{
+ "provenance": {
+  "date": "2026-06-17T21:58:44+00:00",
+  "git_commit": "a2b9190",
+  "git_describe": "snapshot/gen7-acc-futility-2026-06-11-19-ga2b9190-dirty",
+  "machine": "DESKTOP-KF0SM7V",
+  "engine_exe": "target/release/uci.exe",
+  "engine_sha": "324c26d4f11d3efe",
+  "net": "f:/tools/cvs-baselines/raw-nnue-h256-sf-d12-v3.json",
+  "net_sha": "4cc9765c35c92d51",
+  "futility": true,
+  "extra_flags": [],
+  "threads": 1,
+  "depth": 30,
+  "baseline_ref": "snapshot/gen7-acc-futility-2026-06-11"
+ },
+ "cand_args": [
+  "--base-args"
+ ],
+ "base_args": [
+  "--no-rfp",
+  "--no-futility",
+  "--no-lmp",
+  "--no-seeprune",
+  "--no-delta",
+  "--no-countermove",
+  "--no-conthist",
+  "--no-tt-prune-store",
+  "--no-rule50",
+  "--no-qtt",
+  "--no-histmalus",
+  "--no-histlmr",
+  "--no-caphist",
+  "--no-tt2",
+  "--no-improving",
+  "--no-king-activity",
+  "--no-singular",
+  "--no-syzygy",
+  "--no-book"
+ ],
+ "tc": "5+0.05",
+ "conc": "4",
+ "wld": [
+  29,
+  19,
+  12
+ ],
+ "score_pct": 58.333333333333336,
+ "label": "NEUTRAL",
+ "pgn": "f:/tools/screen-latest.pgn"
+}

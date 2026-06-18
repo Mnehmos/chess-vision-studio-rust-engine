@@ -1,0 +1,18 @@
+{
+ "provenance": {
+  "date": "2026-06-17T21:11:38+00:00",
+  "git_commit": "a2b9190",
+  "git_describe": "snapshot/gen7-acc-futility-2026-06-11-19-ga2b9190",
+  "machine": "DESKTOP-KF0SM7V",
+  "engine_exe": "target/release/analyze.exe",
+  "engine_sha": "14dcc15dc0bcb971",
+  "net": "f:/Github/chess-vision-studio/arena/out/gen9-raw-h256-d20.json",
+  "net_sha": "08dd1753893674fc",
+  "futility": true,
+  "extra_flags": [],
+  "threads": 1,
+  "depth": 4,
+  "baseline_ref": "snapshot/gen7-acc-futility-2026-06-11"
+ },
+ "pass": true
+}

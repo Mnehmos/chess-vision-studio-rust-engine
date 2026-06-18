@@ -29,7 +29,8 @@ if any(fl in sys.argv for fl in ('--exe', '--net', '--no-futility', '--extra')):
         futility=False if '--no-futility' in sys.argv else None,
         extra=arg('--extra', '').split(), depth=depth))
 
-sf = B.Stockfish(depth=12)
+sf_depth = int(arg('--sf-depth', '15'))
+sf = B.Stockfish(depth=sf_depth)
 fens, orc, danger = suite['fens'], suite['oracle'], suite['danger'] or [False] * len(suite['fens'])
 n = len(fens)
 out = {}
