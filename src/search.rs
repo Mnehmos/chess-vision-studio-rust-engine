@@ -207,6 +207,10 @@ pub struct SearchOptions {
     /// CVS core geometry trace (brief Gate 2): when on, extract CVS core features at each
     /// leaf eval and fold the active-id count into telemetry.
     pub cvs_core_trace: bool,
+    /// Apply relational/structural move ordering bonus (default true).
+    pub cvs_bonus: bool,
+    /// Shuffle geometry ordering bonuses (default false).
+    pub shuffled_geometry: bool,
     /// Heterogeneous CVS-SMP: of the N-1 helpers, the first K run the loaded
     /// NNUE (the geometry-aware stand-in) while the MAIN thread runs the fast
     /// classical eval. K=0 = homogeneous. Only meaningful with threads>1 and a
@@ -259,6 +263,8 @@ impl Default for SearchOptions {
             threads: 1,
             cvs_trace: false,
             cvs_core_trace: false,
+            cvs_bonus: true,
+            shuffled_geometry: false,
             cvs_helpers: 0,
             lane: Lane::Fast,
             singular: true,
@@ -411,6 +417,18 @@ pub struct RootGeometryCacheEntry {
     pub move_scores: Vec<(Move, i32)>,
 }
 
+#[derive(Clone, Debug)]
+pub struct RootMoveAttention {
+    pub mv: Move,
+    pub raw_score: i32,
+    pub raw_diff: i32,
+    pub quiet_safety: i32,
+    pub ranker_logit: f32,
+    pub confidence: f32,
+    pub ordering_bonus: i32,
+}
+pub type RootAttentionCache = Vec<RootMoveAttention>;
+
 pub struct Searcher {
     pub root_scope: RootScope,
     weights: ValueWeights,
@@ -478,6 +496,8 @@ pub struct Searcher {
     excluded_move: Option<Move>,
     /// Cache for Hybrid A root geometry/residual move scoring.
     pub root_geom_cache: Option<RootGeometryCacheEntry>,
+    pub root_attention_cache: Option<RootAttentionCache>,
+    pub root_attention_zobrist: Option<u64>,
 }
 
 impl Searcher {
@@ -511,6 +531,8 @@ impl Searcher {
             book: None,
             excluded_move: None,
             root_geom_cache: None,
+            root_attention_cache: None,
+            root_attention_zobrist: None,
         }
     }
 
@@ -758,6 +780,8 @@ impl Searcher {
         self.tel = Telemetry::default();
         self.tel.danger_extension_plies = danger_plies;
         self.aborted = false;
+        self.root_attention_cache = None;
+        self.root_attention_zobrist = None;
         // Incremental NNUE: root accumulator rebuilt fresh per search (also
         // bounds f32 drift to the search path length).
         self.acc_top = usize::MAX;
@@ -1862,26 +1886,63 @@ impl Searcher {
                 let registry_hash = helper.registry_hash();
                 let zobrist = pos.hash;
                 
-                let cache_hit = if let Some(cache) = &self.root_geom_cache {
-                    cache.zobrist == zobrist && cache.model_hash == model_hash && cache.registry_hash == registry_hash
-                } else {
-                    false
-                };
-                
-                if !cache_hit {
-                    let mut move_scores = Vec::with_capacity(moves.len());
-                    for &mv in moves.iter() {
-                        let mut child = pos.clone();
-                        child.make(mv);
-                        let score = -helper.eval_stm(&child);
-                        move_scores.push((mv, score));
+                if helper.is_ranker {
+                    let cache_hit = if let (Some(_), Some(cache_zobrist)) = (&self.root_attention_cache, self.root_attention_zobrist) {
+                        cache_zobrist == zobrist
+                    } else {
+                        false
+                    };
+                    if !cache_hit {
+                        if let Some(raw_nnue) = &self.nnue {
+                            let mut cache = self.prepare_root_attention(pos, moves, raw_nnue, helper);
+                            if self.opts.shuffled_geometry {
+                                let mut seed = zobrist;
+                                let n = cache.len();
+                                for i in (1..n).rev() {
+                                    seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+                                    let j = (seed % (i as u64 + 1)) as usize;
+                                    let temp = cache[i].ordering_bonus;
+                                    cache[i].ordering_bonus = cache[j].ordering_bonus;
+                                    cache[j].ordering_bonus = temp;
+                                }
+                            }
+                            self.root_attention_cache = Some(cache);
+                            self.root_attention_zobrist = Some(zobrist);
+                        }
                     }
-                    self.root_geom_cache = Some(RootGeometryCacheEntry {
-                        zobrist,
-                        model_hash,
-                        registry_hash,
-                        move_scores,
-                    });
+                } else {
+                    let cache_hit = if let Some(cache) = &self.root_geom_cache {
+                        cache.zobrist == zobrist && cache.model_hash == model_hash && cache.registry_hash == registry_hash
+                    } else {
+                        false
+                    };
+                    
+                    if !cache_hit {
+                        let mut move_scores = Vec::with_capacity(moves.len());
+                        for &mv in moves.iter() {
+                            let mut child = pos.clone();
+                            child.make(mv);
+                            let score = -helper.eval_stm(&child);
+                            move_scores.push((mv, score));
+                        }
+                        if self.opts.shuffled_geometry {
+                            let mut seed = zobrist;
+                            let n = move_scores.len();
+                            for i in (1..n).rev() {
+                                seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+                                let j = (seed % (i as u64 + 1)) as usize;
+                                let temp = move_scores[i].1;
+                                move_scores[i].1 = move_scores[j].1;
+                                move_scores[j].1 = temp;
+                            }
+                        }
+                        self.root_geom_cache = Some(RootGeometryCacheEntry {
+                            zobrist,
+                            model_hash,
+                            registry_hash,
+                            move_scores,
+                        });
+                    }
                 }
             }
         }
@@ -1946,11 +2007,21 @@ impl Searcher {
                     s += self.conthist[Self::conthist_idx(pp, pt, cp, m.to)];
                 }
             }
-            if ply == 0 && self.helper_nnue.is_some() {
-                if let Some(cache) = &self.root_geom_cache {
-                    if let Some(&(_, geom_score)) = cache.move_scores.iter().find(|(mv, _)| mv == m) {
-                        let geom_bonus = (geom_score * 10).clamp(-4000, 4000);
-                        s += geom_bonus;
+            if ply == 0 && self.opts.cvs_bonus {
+                if let Some(helper) = &self.helper_nnue {
+                    if helper.is_ranker {
+                        if let Some(cache) = &self.root_attention_cache {
+                            if let Some(att) = cache.iter().find(|att| att.mv == *m) {
+                                s += att.ordering_bonus;
+                            }
+                        }
+                    } else {
+                        if let Some(cache) = &self.root_geom_cache {
+                            if let Some(&(_, geom_score)) = cache.move_scores.iter().find(|(mv, _)| mv == m) {
+                                let geom_bonus = (geom_score * 10).clamp(-4000, 4000);
+                                s += geom_bonus;
+                            }
+                        }
                     }
                 }
             }
@@ -2170,5 +2241,103 @@ impl Searcher {
             pos.unmake();
         }
         pv
+    }
+
+    pub fn prepare_root_attention(
+        &self,
+        pos: &Position,
+        legal_moves: &[Move],
+        raw_nnue: &Nnue,
+        ranker: &Nnue,
+    ) -> RootAttentionCache {
+        let mut cache = Vec::new();
+        let mut quiet_moves = Vec::new();
+        let mut raw_scores = Vec::new();
+        let mut best_raw_score = i32::MIN;
+
+        for &mv in legal_moves {
+            let quiet = !mv.flag.is_capture() && mv.flag.promo_piece().is_none();
+            if quiet {
+                let mut child = pos.clone();
+                child.make(mv);
+                let raw_score = -raw_nnue.eval_stm(&child);
+                quiet_moves.push(mv);
+                raw_scores.push(raw_score);
+                if raw_score > best_raw_score {
+                    best_raw_score = raw_score;
+                }
+            }
+        }
+
+        if quiet_moves.is_empty() {
+            return cache;
+        }
+
+        let mut parent_ids = Vec::new();
+        crate::eval::cvs_features::extract_cvs_ids_into(pos, &mut parent_ids);
+        let parent_bitset = crate::eval::cvs_features::ids_to_bitset(&parent_ids);
+        let ctx = crate::eval::cvs_features::RootGeometryContext {
+            parent_bitset,
+            mover: pos.stm,
+        };
+
+        let mut logits = Vec::with_capacity(quiet_moves.len());
+        let mut sparse_bufs = Vec::with_capacity(quiet_moves.len());
+        let mut dense_bufs = Vec::with_capacity(quiet_moves.len());
+
+        for i in 0..quiet_moves.len() {
+            let mv = quiet_moves[i];
+            let raw_score = raw_scores[i];
+            let mut sparse_buf = Vec::new();
+            let mut dense_buf = [0.0f32; 32];
+            crate::eval::cvs_features::extract_candidate_delta(
+                &ctx,
+                pos,
+                mv,
+                &mut sparse_buf,
+                &mut dense_buf,
+                raw_score,
+                best_raw_score,
+            );
+            let logit = ranker.eval_ranker_raw(&sparse_buf, &dense_buf);
+            logits.push(logit);
+            sparse_bufs.push(sparse_buf);
+            dense_bufs.push(dense_buf);
+        }
+
+        let count = logits.len() as f32;
+        let sum_logits: f32 = logits.iter().sum();
+        let mean_logit = sum_logits / count;
+
+        let temp = if ranker.ranker_temperature == 0.0 { 1.0 } else { ranker.ranker_temperature };
+
+        for i in 0..quiet_moves.len() {
+            let mv = quiet_moves[i];
+            let raw_score = raw_scores[i];
+            let logit = logits[i];
+
+            let centered_logit = logit - mean_logit;
+            let scaled_logit = (centered_logit / temp).tanh();
+
+            let raw_diff = best_raw_score - raw_score;
+            let raw_ambiguity = (1.0 - raw_diff as f32 / 80.0).clamp(0.0, 1.0);
+            let quiet_safety = see(pos, mv.from, mv.to);
+            let tactical_safety = if quiet_safety >= 0 { 1.0 } else { 0.0 };
+            let confidence = raw_ambiguity * tactical_safety;
+
+            let ordering_bonus = (scaled_logit * confidence * ranker.ranker_max_bonus as f32).round() as i32;
+
+            cache.push(RootMoveAttention {
+                mv,
+                raw_score,
+                raw_diff,
+                quiet_safety,
+                ranker_logit: logit,
+                confidence,
+                ordering_bonus,
+            });
+        }
+
+        cache
     }
 }

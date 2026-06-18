@@ -264,12 +264,103 @@ fn main() {
         singular: !args.iter().any(|a| a == "--no-singular"),
         syzygy: !args.iter().any(|a| a == "--no-syzygy"),
         book: !args.iter().any(|a| a == "--no-book"),
+        cvs_bonus: !args.iter().any(|a| a == "--no-cvs-bonus"),
+        shuffled_geometry: args.iter().any(|a| a == "--shuffled-geometry"),
     };
 
     // --features: emit the eval + Rung-2 feature vector per FEN instead of
     // searching — the training-data faucet for head fitting (TS orchestration
     // does the regression; Rust owns extraction).
     let features_mode = args.iter().any(|a| a == "--features");
+    // --cvs-deltas: batch quiet-move delta/anchor feature extraction.
+    if args.iter().any(|a| a == "--cvs-deltas") {
+        let path = fens_path.expect("--cvs-deltas requires --fens");
+        let raw_nnue_ref = nnue.as_ref().expect("--cvs-deltas requires --nnue");
+        let file = std::fs::File::open(path).expect("fens file");
+        let mut w = std::io::BufWriter::new(std::io::stdout());
+        
+        for line in std::io::BufRead::lines(std::io::BufReader::new(file)) {
+            let Ok(l) = line else { break };
+            let fen = l.trim();
+            if fen.is_empty() {
+                continue;
+            }
+            match Position::from_fen(fen) {
+                Ok(mut pos) => {
+                    let moves = generate_legal_list(&mut pos);
+                    let quiet_moves: Vec<Move> = moves
+                        .as_slice()
+                        .iter()
+                        .filter(|mv| !mv.flag.is_capture() && mv.flag.promo_piece().is_none())
+                        .copied()
+                        .collect();
+                    
+                    if quiet_moves.is_empty() {
+                        continue;
+                      }
+
+                    // Evaluate child raw scores
+                    let mut raw_scores = Vec::with_capacity(quiet_moves.len());
+                    let mut best_raw_score = i32::MIN;
+                    for &mv in &quiet_moves {
+                        let mut child = pos.clone();
+                        child.make(mv);
+                        let raw_score = -raw_nnue_ref.eval_stm(&child);
+                        raw_scores.push(raw_score);
+                        if raw_score > best_raw_score {
+                            best_raw_score = raw_score;
+                        }
+                    }
+
+                    // Compute RootGeometryContext
+                    let mut parent_ids = Vec::new();
+                    cvs_bitboard_core::eval::cvs_features::extract_cvs_ids_into(&pos, &mut parent_ids);
+                    let parent_bitset = cvs_bitboard_core::eval::cvs_features::ids_to_bitset(&parent_ids);
+                    let ctx = cvs_bitboard_core::eval::cvs_features::RootGeometryContext {
+                        parent_bitset,
+                        mover: pos.stm,
+                    };
+
+                    let mut moves_json = Vec::new();
+                    for i in 0..quiet_moves.len() {
+                        let mv = quiet_moves[i];
+                        let raw_score = raw_scores[i];
+                        let mut sparse_buf = Vec::new();
+                        let mut dense_buf = [0.0f32; 32];
+                        cvs_bitboard_core::eval::cvs_features::extract_candidate_delta(
+                            &ctx,
+                            &pos,
+                            mv,
+                            &mut sparse_buf,
+                            &mut dense_buf,
+                            raw_score,
+                            best_raw_score,
+                        );
+                        moves_json.push(serde_json::json!({
+                            "uci": mv.to_uci(),
+                            "rawScore": raw_score,
+                            "rawDiff": best_raw_score - raw_score,
+                            "sparse": sparse_buf,
+                            "dense": dense_buf.to_vec(),
+                        }));
+                    }
+
+                    let parent_eval = raw_nnue_ref.eval_stm(&pos);
+                    let out_json = serde_json::json!({
+                        "fen": fen,
+                        "parentEval": parent_eval,
+                        "moves": moves_json,
+                    });
+                    writeln!(w, "{}", out_json.to_string()).expect("stdout");
+                }
+                Err(_) => {
+                    writeln!(w, "ERR").expect("stdout");
+                }
+            }
+        }
+        return;
+    }
+
     // --cvs-ids: ultra-fast batch (fens file -> one line of comma-separated
     // active CVS feature ids per fen). Training-data faucet for cvs_nnue.
     if args.iter().any(|a| a == "--cvs-ids") {

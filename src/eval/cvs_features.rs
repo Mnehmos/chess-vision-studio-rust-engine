@@ -18,7 +18,12 @@
 //! `registry_hash()` is embedded in trained models; the loader must reject a
 //! model whose hash differs (fail loud, never silently mis-map features).
 use crate::eval::rung2::{extract_rung2, extract_rung2_core, Rung2Features};
-use crate::Position;
+use crate::{Position, Color, Move, Piece};
+use crate::movegen::in_check;
+use crate::see::{see, SEE_VALUE};
+use crate::eval::phase_units;
+use crate::attacks::king_attacks;
+
 
 /// Registry version. Bump on any change to FAMILIES or the bucketing scheme.
 pub const CVS_REGISTRY_VERSION: u32 = 1;
@@ -354,6 +359,237 @@ pub fn core_registry_hash() -> u64 {
         }
     }
     h
+}
+
+
+/// The compile-time symmetry/mirror mapping for registry features.
+pub const MIRROR_FEATURE_ID: [u16; 168] = {
+    let mut arr = [0u16; 168];
+    let mut i = 0;
+    while i < 168 {
+        let fam = i / 8;
+        let within = i % 8;
+        let side_bit = within / 4;
+        let bucket = within % 4;
+        arr[i as usize] = fam * 8 + (1 - side_bit) * 4 + bucket;
+        i += 1;
+    }
+    arr
+};
+
+#[derive(Clone, Debug)]
+pub struct RootGeometryContext {
+    pub parent_bitset: [u64; 3],
+    pub mover: Color,
+}
+
+pub fn ids_to_bitset(ids: &[u32]) -> [u64; 3] {
+    let mut bitset = [0u64; 3];
+    for &id in ids {
+        let word = (id / 64) as usize;
+        let bit = (id % 64) as usize;
+        if word < 3 {
+            bitset[word] |= 1 << bit;
+        }
+    }
+    bitset
+}
+
+pub fn extract_candidate_delta(
+    ctx: &RootGeometryContext,
+    pos: &Position,
+    mv: Move,
+    sparse_buf: &mut Vec<u32>,
+    dense_buf: &mut [f32; 32],
+    raw_score: i32,
+    best_raw_score: i32,
+) {
+    // 1. Generate child position
+    let mut child = pos.clone();
+    child.make(mv);
+
+    // 2. Extract active features (White-POV) for child
+    let mut child_ids = Vec::with_capacity(32);
+    extract_cvs_ids_into(&child, &mut child_ids);
+    let child_bitset = ids_to_bitset(&child_ids);
+
+    // 3. Compare with parent_bitset to identify added and removed sets
+    let mut added_ids = Vec::new();
+    let mut removed_ids = Vec::new();
+
+    // Features active in child: if not active in parent, they were added
+    for &id in &child_ids {
+        let word = (id / 64) as usize;
+        let bit = (id % 64) as usize;
+        let is_in_parent = if word < 3 {
+            (ctx.parent_bitset[word] & (1 << bit)) != 0
+        } else {
+            false
+        };
+        if !is_in_parent {
+            added_ids.push(id);
+        }
+    }
+
+    // Features active in parent: if not active in child, they were removed
+    for id in 0..168u32 {
+        let word = (id / 64) as usize;
+        let bit = (id % 64) as usize;
+        let is_in_parent = (ctx.parent_bitset[word] & (1 << bit)) != 0;
+        let is_in_child = (child_bitset[word] & (1 << bit)) != 0;
+        if is_in_parent && !is_in_child {
+            removed_ids.push(id);
+        }
+    }
+
+    // 4. Mirror relative to the root mover (ctx.mover)
+    let flip = ctx.mover == Color::Black;
+    let flip_id = |id: u32| -> u32 {
+        if flip {
+            MIRROR_FEATURE_ID[id as usize] as u32
+        } else {
+            id
+        }
+    };
+
+    sparse_buf.clear();
+    // Parent features
+    for id in 0..168u32 {
+        let word = (id / 64) as usize;
+        let bit = (id % 64) as usize;
+        if (ctx.parent_bitset[word] & (1 << bit)) != 0 {
+            sparse_buf.push(flip_id(id));
+        }
+    }
+    // Added features
+    for id in added_ids {
+        sparse_buf.push(168 + flip_id(id));
+    }
+    // Removed features
+    for id in removed_ids {
+        sparse_buf.push(336 + flip_id(id));
+    }
+
+    // 5. Populate dense anchors (32 floats)
+    let piece = pos.piece_at(mv.from).map(|(_, p)| p).unwrap_or(Piece::Pawn);
+    
+    // One-hot moved piece type
+    for j in 0..6 {
+        dense_buf[j] = if piece.index() == j { 1.0 } else { 0.0 };
+    }
+
+    // Source file/rank
+    dense_buf[6] = (mv.from % 8) as f32 / 7.0;
+    dense_buf[7] = (mv.from / 8) as f32 / 7.0;
+
+    // Destination file/rank
+    dense_buf[8] = (mv.to % 8) as f32 / 7.0;
+    dense_buf[9] = (mv.to / 8) as f32 / 7.0;
+
+    // Gives check?
+    let mut child_clone = child.clone();
+    let gives_check_val = if in_check(&mut child_clone) { 1.0 } else { 0.0 };
+    dense_buf[10] = gives_check_val;
+
+    // Attacks higher value piece?
+    let mut attacks_higher = 0.0;
+    let placed = mv.flag.promo_piece().unwrap_or(piece);
+    let occ = child.all;
+    let att = match placed {
+        Piece::Pawn => crate::attacks::pawn_attacks(pos.stm, mv.to),
+        Piece::Knight => crate::attacks::knight_attacks(mv.to),
+        Piece::Bishop => crate::attacks::bishop_attacks(mv.to, occ),
+        Piece::Rook => crate::attacks::rook_attacks(mv.to, occ),
+        Piece::Queen => crate::attacks::queen_attacks(mv.to, occ),
+        Piece::King => king_attacks(mv.to),
+    };
+    let opponent_pieces = child.occ[pos.stm.flip().index()];
+    let attacked_opponents = att & opponent_pieces;
+    if attacked_opponents != 0 {
+        let mut temp_opponents = attacked_opponents;
+        while temp_opponents != 0 {
+            let sq = temp_opponents.trailing_zeros() as u8;
+            temp_opponents &= temp_opponents - 1;
+            if let Some((_, opp_p)) = child.piece_at(sq) {
+                if SEE_VALUE[opp_p.index()] > SEE_VALUE[placed.index()] {
+                    attacks_higher = 1.0;
+                    break;
+                }
+            }
+        }
+    }
+    dense_buf[11] = attacks_higher;
+
+    // SEE score (bounded/normalized)
+    dense_buf[12] = (see(pos, mv.from, mv.to) as f32 / 1000.0).clamp(-1.0, 1.0);
+
+    // Side to move
+    dense_buf[13] = if pos.stm == Color::White { 0.0 } else { 1.0 };
+
+    // Material balance (stm-perspective)
+    let mut white_val = 0;
+    let mut black_val = 0;
+    for p in Piece::ALL {
+        white_val += pos.pieces[Color::White.index()][p.index()].count_ones() as i32 * SEE_VALUE[p.index()];
+        black_val += pos.pieces[Color::Black.index()][p.index()].count_ones() as i32 * SEE_VALUE[p.index()];
+    }
+    let balance = if pos.stm == Color::White {
+        white_val - black_val
+    } else {
+        black_val - white_val
+    };
+    dense_buf[14] = (balance as f32 / 1000.0).clamp(-4.0, 4.0);
+
+    // Game phase
+    dense_buf[15] = (24 - phase_units(pos)) as f32 / 24.0;
+
+    // King squares (relative to side to move)
+    let ksq_us = pos.king_sq(pos.stm);
+    let ksq_them = pos.king_sq(pos.stm.flip());
+    dense_buf[16] = (ksq_us % 8) as f32 / 7.0;
+    dense_buf[17] = (ksq_us / 8) as f32 / 7.0;
+    dense_buf[18] = (ksq_them % 8) as f32 / 7.0;
+    dense_buf[19] = (ksq_them / 8) as f32 / 7.0;
+
+    // Castling rights (relative to side to move)
+    let (wk_flag, wq_flag, bk_flag, bq_flag) = (crate::castle::WK, crate::castle::WQ, crate::castle::BK, crate::castle::BQ);
+    let (us_k, us_q, them_k, them_q) = if pos.stm == Color::White {
+        (wk_flag, wq_flag, bk_flag, bq_flag)
+    } else {
+        (bk_flag, bq_flag, wk_flag, wq_flag)
+    };
+    dense_buf[20] = if pos.castling & us_k != 0 { 1.0 } else { 0.0 };
+    dense_buf[21] = if pos.castling & us_q != 0 { 1.0 } else { 0.0 };
+    dense_buf[22] = if pos.castling & them_k != 0 { 1.0 } else { 0.0 };
+    dense_buf[23] = if pos.castling & them_q != 0 { 1.0 } else { 0.0 };
+
+    // Raw score & diff (normalized)
+    dense_buf[24] = (raw_score as f32 / 400.0).clamp(-4.0, 4.0);
+    dense_buf[25] = ((best_raw_score - raw_score) as f32 / 80.0).clamp(0.0, 4.0);
+
+    // Moves categories
+    dense_buf[26] = if piece == Piece::Pawn { 1.0 } else { 0.0 };
+
+    // Development check (depart undeveloped starting square)
+    let starting_sq = match (pos.stm, piece) {
+        (Color::White, Piece::Knight) => mv.from == 1 || mv.from == 6,
+        (Color::White, Piece::Bishop) => mv.from == 2 || mv.from == 5,
+        (Color::White, Piece::Rook) => mv.from == 0 || mv.from == 7,
+        (Color::White, Piece::Queen) => mv.from == 3,
+        (Color::Black, Piece::Knight) => mv.from == 57 || mv.from == 62,
+        (Color::Black, Piece::Bishop) => mv.from == 58 || mv.from == 61,
+        (Color::Black, Piece::Rook) => mv.from == 56 || mv.from == 63,
+        (Color::Black, Piece::Queen) => mv.from == 59,
+        _ => false,
+    };
+    dense_buf[27] = if starting_sq { 1.0 } else { 0.0 };
+
+    dense_buf[28] = if piece == Piece::King { 1.0 } else { 0.0 };
+
+    // Padding (29..32)
+    for j in 29..32 {
+        dense_buf[j] = 0.0;
+    }
 }
 
 #[cfg(test)]

@@ -31,7 +31,7 @@ pub struct Nnue {
     cvs: bool,
     is_core: bool,
     is_residual: bool,
-    cvs_hidden: usize,
+    pub cvs_hidden: usize,
     /// Flat (inputs × hidden), row per feature.
     w1: Vec<f32>,
     b1: Vec<f32>,
@@ -42,6 +42,12 @@ pub struct Nnue {
     b2: f32,
     scale: f32,
     pub model_hash: u64,
+    pub is_ranker: bool,
+    pub ranker_w1: Vec<f32>,
+    pub ranker_b1: Vec<f32>,
+    pub ranker_w2: Vec<f32>,
+    pub ranker_temperature: f32,
+    pub ranker_max_bonus: i32,
 }
 
 impl Nnue {
@@ -52,8 +58,12 @@ impl Nnue {
         let model_kind = v["modelKind"].as_str();
         let cvs = model_kind == Some("cvs_nnue");
         let is_residual = model_kind == Some("cvs_residual_nnue");
+        let is_ranker = model_kind == Some("cvs_ranker_b");
+        
         let hidden = if is_residual {
             v["psHidden"].as_u64().ok_or("missing psHidden")? as usize
+        } else if is_ranker {
+            0
         } else {
             v["hidden"].as_u64().ok_or("missing hidden")? as usize
         };
@@ -70,6 +80,29 @@ impl Nnue {
                 .map(|x| x.as_f64().map(|f| f as f32).ok_or(format!("{key} entry")))
                 .collect()
         };
+
+        if is_ranker {
+            let reg_hash = v["registryHash"].as_str().ok_or("missing registryHash")?;
+            let want = format!("{:016x}", cvs_features::registry_hash());
+            if reg_hash != want {
+                return Err(format!("cvs_ranker_b registry hash mismatch: model {reg_hash} vs engine {want}"));
+            }
+            if v["anchorSchemaVersion"].as_u64().is_none() {
+                return Err("missing anchorSchemaVersion".into());
+            }
+            if v["featureCount"].as_u64() != Some(168) {
+                return Err("featureCount must be 168".into());
+            }
+            if v["sparseInputCount"].as_u64() != Some(504) {
+                return Err("sparseInputCount must be 504".into());
+            }
+            if v["trainingCommit"].as_str().is_none() {
+                return Err("missing trainingCommit".into());
+            }
+            if v["datasetManifestHash"].as_str().is_none() {
+                return Err("missing datasetManifestHash".into());
+            }
+        }
 
         if cvs || is_residual {
             let cvs_dim = v["cvsDim"].as_u64().unwrap_or(cvs_features::CVS_INPUT_DIM as u64) as usize;
@@ -135,23 +168,61 @@ impl Nnue {
             Ok(w1)
         };
 
-        let w1 = if is_residual { parse_w1(&v, "ps_w1", expect_inputs, hidden)? } else { parse_w1(&v, "w1", expect_inputs, hidden)? };
-        let b1 = if is_residual { vecf(&v, "ps_b1")? } else { vecf(&v, "b1")? };
-        let w2 = if is_residual { vecf(&v, "ps_w2")? } else { vecf(&v, "w2")? };
+        let w1 = if is_residual {
+            parse_w1(&v, "ps_w1", expect_inputs, hidden)?
+        } else if is_ranker {
+            Vec::new()
+        } else {
+            parse_w1(&v, "w1", expect_inputs, hidden)?
+        };
+        let b1 = if is_residual {
+            vecf(&v, "ps_b1")?
+        } else if is_ranker {
+            Vec::new()
+        } else {
+            vecf(&v, "b1")?
+        };
+        let w2 = if is_residual {
+            vecf(&v, "ps_w2")?
+        } else if is_ranker {
+            Vec::new()
+        } else {
+            vecf(&v, "w2")?
+        };
         
-        let (cvs_w1, cvs_b1, cvs_w2) = if is_residual {
+        let (cvs_w1, cvs_b1, cvs_w2) = if is_residual || is_ranker {
             let dim = if is_core { cvs_features::CVS_CORE_INPUT_DIM } else { cvs_features::CVS_INPUT_DIM };
+            let dim = if is_ranker { 504 } else { dim };
+            let cvs_hidden = if is_ranker {
+                v["cvsHidden"].as_u64().ok_or("missing cvsHidden")? as usize
+            } else {
+                cvs_hidden
+            };
             (
                 parse_w1(&v, "cvs_w1", dim, cvs_hidden)?,
                 vecf(&v, "cvs_b1")?,
-                vecf(&v, "cvs_w2")?
+                if is_residual { vecf(&v, "cvs_w2")? } else { Vec::<f32>::new() }
             )
         } else {
-            (Vec::new(), Vec::new(), Vec::new())
+            (Vec::<f32>::new(), Vec::<f32>::new(), Vec::<f32>::new())
         };
 
-        if b1.len() != hidden || w2.len() != hidden {
+        let (ranker_w1, ranker_b1, ranker_w2) = if is_ranker {
+            (
+                parse_w1(&v, "ranker_w1", 32, 64)?,
+                vecf(&v, "ranker_b1")?,
+                vecf(&v, "ranker_w2")?,
+            )
+        } else {
+            (Vec::<f32>::new(), Vec::<f32>::new(), Vec::<f32>::new())
+        };
+
+        if !is_ranker && (b1.len() != hidden || w2.len() != hidden) {
             return Err("b1/w2 width mismatch".into());
+        }
+        let check_cvs_hidden = if is_ranker { 32 } else { cvs_hidden };
+        if is_ranker && cvs_b1.len() != check_cvs_hidden {
+            return Err("cvs_b1 width mismatch".into());
         }
         if is_residual && (cvs_b1.len() != cvs_hidden || cvs_w2.len() != cvs_hidden) {
             return Err("cvs_b1/cvs_w2 width mismatch".into());
@@ -160,22 +231,30 @@ impl Nnue {
         let b2 = v["b2"].as_f64().ok_or("missing b2")? as f32;
         
         let mut model_hash = 0u64;
-        for &x in &w2 {
-            model_hash = model_hash.wrapping_mul(31).wrapping_add(x.to_bits() as u64);
+        if is_ranker {
+            for &x in &ranker_w2 {
+                model_hash = model_hash.wrapping_mul(31).wrapping_add(x.to_bits() as u64);
+            }
+            model_hash = model_hash.wrapping_mul(31).wrapping_add(scale.to_bits() as u64);
+            model_hash = model_hash.wrapping_mul(31).wrapping_add(b2.to_bits() as u64);
+        } else {
+            for &x in &w2 {
+                model_hash = model_hash.wrapping_mul(31).wrapping_add(x.to_bits() as u64);
+            }
+            for &x in &cvs_w2 {
+                model_hash = model_hash.wrapping_mul(31).wrapping_add(x.to_bits() as u64);
+            }
+            model_hash = model_hash.wrapping_mul(31).wrapping_add(scale.to_bits() as u64);
+            model_hash = model_hash.wrapping_mul(31).wrapping_add(b2.to_bits() as u64);
         }
-        for &x in &cvs_w2 {
-            model_hash = model_hash.wrapping_mul(31).wrapping_add(x.to_bits() as u64);
-        }
-        model_hash = model_hash.wrapping_mul(31).wrapping_add(scale.to_bits() as u64);
-        model_hash = model_hash.wrapping_mul(31).wrapping_add(b2.to_bits() as u64);
 
         Ok(Nnue {
             hidden,
             inputs: expect_inputs,
-            cvs: cvs || is_residual,
+            cvs: cvs || is_residual || is_ranker,
             is_core,
             is_residual,
-            cvs_hidden,
+            cvs_hidden: check_cvs_hidden,
             w1,
             b1,
             w2,
@@ -185,6 +264,12 @@ impl Nnue {
             b2,
             scale,
             model_hash,
+            is_ranker,
+            ranker_w1,
+            ranker_b1,
+            ranker_w2,
+            ranker_temperature: if is_ranker { v["rankerTemperature"].as_f64().unwrap_or(1.0) as f32 } else { 1.0 },
+            ranker_max_bonus: if is_ranker { v["rankerMaxBonus"].as_i64().unwrap_or(4000) as i32 } else { 4000 },
         })
     }
 
@@ -468,5 +553,54 @@ impl Nnue {
             }
         }
         (out * self.scale).round() as i32
+    }
+
+    pub fn eval_ranker_raw(&self, sparse_buf: &[u32], dense_buf: &[f32; 32]) -> f32 {
+        if !self.is_ranker {
+            return 0.0;
+        }
+
+        // 1. Sparse hidden sum of embeddings + cvs_b1, clamped to [0.0, 1.0]
+        let ch = self.cvs_hidden;
+        let mut sparse_h = vec![0.0f32; ch];
+        sparse_h.copy_from_slice(&self.cvs_b1);
+
+        for &id in sparse_buf {
+            let f = id as usize;
+            let row = &self.cvs_w1[f * ch..(f + 1) * ch];
+            for j in 0..ch {
+                sparse_h[j] += row[j];
+            }
+        }
+        for j in 0..ch {
+            sparse_h[j] = sparse_h[j].clamp(0.0, 1.0);
+        }
+
+        // 2. Concatenate sparse_h (32) and dense_buf (32) into combined (64)
+        let mut combined = vec![0.0f32; 64];
+        combined[..32].copy_from_slice(&sparse_h);
+        combined[32..64].copy_from_slice(dense_buf);
+
+        // 3. Compute fc1: combined * ranker_w1 + ranker_b1, clamp(0, 1)
+        let rh = 32; // rankerHidden
+        let mut fc1_h = vec![0.0f32; rh];
+        fc1_h.copy_from_slice(&self.ranker_b1);
+
+        for r in 0..rh {
+            let row = &self.ranker_w1[r * 64..(r + 1) * 64];
+            let mut sum = 0.0f32;
+            for c in 0..64 {
+                sum += combined[c] * row[c];
+            }
+            fc1_h[r] += sum;
+            fc1_h[r] = fc1_h[r].clamp(0.0, 1.0);
+        }
+
+        // 4. Compute fc2: fc1_h * ranker_w2 + b2
+        let mut out = self.b2;
+        for j in 0..rh {
+            out += self.ranker_w2[j] * fc1_h[j];
+        }
+        out
     }
 }

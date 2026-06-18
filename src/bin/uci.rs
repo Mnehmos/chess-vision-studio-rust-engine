@@ -306,6 +306,8 @@ fn main() {
                     singular: !args.iter().any(|a| a == "--no-singular"),
                     syzygy: !args.iter().any(|a| a == "--no-syzygy"),
                     book: !args.iter().any(|a| a == "--no-book"),
+                    cvs_bonus: !args.iter().any(|a| a == "--no-cvs-bonus"),
+                    shuffled_geometry: args.iter().any(|a| a == "--shuffled-geometry"),
                     ..Default::default()
                 };
                 if pondering {

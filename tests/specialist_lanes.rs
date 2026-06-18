@@ -19,6 +19,19 @@ fn opts(depth: u32, threads: usize, cvs_helpers: usize) -> SearchOptions {
         depth,
         threads,
         cvs_helpers,
+        rfp: false,
+        futility: false,
+        lmp: false,
+        see_prune: false,
+        delta_prune: false,
+        countermove: false,
+        conthist: false,
+        hist_malus: false,
+        hist_lmr: false,
+        caphist: false,
+        tt2: false,
+        improving: false,
+        singular: false,
         ..Default::default()
     }
 }
