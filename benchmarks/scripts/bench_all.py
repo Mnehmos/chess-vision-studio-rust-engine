@@ -40,7 +40,7 @@ configs = [
     B.engine_cfg('Gen8-Champion', exe='f:/tools/cvs-baselines/analyze-gen8v2-champion.exe', net='f:/tools/cvs-baselines/raw-nnue-h256-sf-d12-v3.json', depth=depth),
     B.engine_cfg('Gen9-Raw', exe='target/release/analyze.exe', net='target-cvs/matrix-raw.json', depth=depth),
     B.engine_cfg('Gen9-Flat', exe='target/release/analyze.exe', net='target-cvs/matrix-flat.json', depth=depth),
-    B.engine_cfg('Gen9-Residual', exe='target/release/analyze.exe', net='target-cvs/matrix-residual.json', depth=depth),
+    B.engine_cfg('Gen9-Residual', exe='target/release/analyze.exe', net='target-cvs/matrix-residual.json', depth=depth, extra=['--allow-unverified-net']),
     {'name': 'Stockfish-Ref', 'is_stockfish': True}
 ]
 

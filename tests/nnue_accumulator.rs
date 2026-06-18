@@ -21,7 +21,7 @@ impl Rng {
 
 #[test]
 fn incremental_matches_full_recompute_on_random_playouts() {
-    let Ok(net) = Nnue::load(NET) else {
+    let Ok(net) = Nnue::load(NET, false) else {
         eprintln!("skipping: champion net not present at {NET}");
         return;
     };

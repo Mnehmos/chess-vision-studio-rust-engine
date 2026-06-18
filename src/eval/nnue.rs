@@ -44,7 +44,7 @@ pub struct Nnue {
 }
 
 impl Nnue {
-    pub fn load(path: &str) -> Result<Nnue, String> {
+    pub fn load(path: &str, allow_unverified: bool) -> Result<Nnue, String> {
         let text = std::fs::read_to_string(path).map_err(|e| format!("read {path}: {e}"))?;
         let v: serde_json::Value =
             serde_json::from_str(&text).map_err(|e| format!("parse {path}: {e}"))?;
@@ -98,11 +98,20 @@ impl Nnue {
             } else {
                 format!("{:016x}", cvs_features::registry_hash())
             };
-            if let Some(got) = v["registryHash"].as_str() {
-                if got != want {
-                    return Err(format!(
-                        "cvs_nnue registry hash mismatch: model {got} vs engine {want} — refusing to load"
-                    ));
+            match v["registryHash"].as_str() {
+                Some(got) => {
+                    if got != want {
+                        return Err(format!(
+                            "cvs_nnue registry hash mismatch: model {got} vs engine {want} — refusing to load"
+                        ));
+                    }
+                }
+                None => {
+                    if allow_unverified {
+                        eprintln!("WARNING: Loading unverified CVS geometry model lacking registryHash! Proceed at your own risk.");
+                    } else {
+                        return Err("cvs_nnue model lacks registryHash (verification failed) — refusing to load. Use --allow-unverified-net to bypass this safety check.".into());
+                    }
                 }
             }
         }

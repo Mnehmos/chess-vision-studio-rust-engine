@@ -95,9 +95,10 @@ fn main() {
             .expect("parse rung2")
     });
 
-    let nnue: Option<Nnue> = get("--nnue").map(|p| Nnue::load(&p).expect("load nnue"));
+    let allow_unverified = args.iter().any(|a| a == "--allow-unverified-net");
+    let nnue: Option<Nnue> = get("--nnue").map(|p| Nnue::load(&p, allow_unverified).expect("load nnue"));
     let helper_nnue: Option<Nnue> =
-        get("--helper-nnue").map(|p| Nnue::load(&p).expect("load helper nnue"));
+        get("--helper-nnue").map(|p| Nnue::load(&p, allow_unverified).expect("load helper nnue"));
     let syzygy_path = get("--syzygy");
     let book_path = get("--book");
     let mk = |base: ValueWeights, rung2: Option<Rung2Weights>| {
