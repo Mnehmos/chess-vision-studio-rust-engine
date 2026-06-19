@@ -21,7 +21,7 @@ def main():
     parser = argparse.ArgumentParser(description="Run CVS geometry information-loss test")
     parser.add_argument('--data-dir', default='training/gen9/gen9-cvs')
     parser.add_argument('--limit', type=int, default=50000, help='Max positions to process')
-    parser.add_argument('--sf-depth', type=int, default=10, help='Stockfish depth for best move check')
+    parser.add_argument('--sf-depth', type=int, default=24, help='Stockfish depth for best move check')
     parser.add_argument('--sf-limit-groups', type=int, default=100, help='Max colliding groups to query SF for best moves')
     args = parser.parse_args()
 

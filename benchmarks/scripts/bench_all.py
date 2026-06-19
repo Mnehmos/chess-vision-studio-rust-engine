@@ -30,7 +30,7 @@ class StockfishEngine:
         self.p.kill()
 
 suite = B.load_suite('suite-fresh-100')
-sf_depth = 15
+sf_depth = B.DEFAULT_STOCKFISH_REVIEW_DEPTH
 sf = B.Stockfish(depth=sf_depth)
 fens, orc, danger = suite['fens'], suite['oracle'], suite['danger'] or [False] * len(suite['fens'])
 n = len(fens)

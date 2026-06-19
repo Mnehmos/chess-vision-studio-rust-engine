@@ -96,7 +96,8 @@ fn main() {
     });
 
     let allow_unverified = args.iter().any(|a| a == "--allow-unverified-net");
-    let nnue: Option<Nnue> = get("--nnue").map(|p| Nnue::load(&p, allow_unverified).expect("load nnue"));
+    let nnue: Option<Nnue> =
+        get("--nnue").map(|p| Nnue::load(&p, allow_unverified).expect("load nnue"));
     let helper_nnue: Option<Nnue> =
         get("--helper-nnue").map(|p| Nnue::load(&p, allow_unverified).expect("load helper nnue"));
     let syzygy_path = get("--syzygy");
@@ -147,7 +148,7 @@ fn main() {
         };
         let mut tok = line.split_whitespace();
         match tok.next() {
-             Some("uci") => {
+            Some("uci") => {
                 let _ = writeln!(out, "id name CVS Bitboard Core");
                 let _ = writeln!(out, "id author Chess Vision Studio (MIT)");
                 let _ = writeln!(out, "option name Ponder type check default false");
@@ -167,7 +168,7 @@ fn main() {
                     }
                     let name = rest[1..name_idx].join(" ");
                     if name_idx < rest.len() {
-                        let value = rest[name_idx+1..].join(" ");
+                        let value = rest[name_idx + 1..].join(" ");
                         if name == "SyzygyPath" {
                             if !value.is_empty() && value != "<empty>" {
                                 if let Ok(tb) = cvs_bitboard_core::syzygy::Syzygy::new(&value) {
@@ -285,31 +286,10 @@ fn main() {
                     } else {
                         soft
                     },
-                    // Standardized gated search features (now enabled by default, --no-xxx to opt-out).
-                    rfp: !args.iter().any(|a| a == "--no-rfp"),
-                    futility: !args.iter().any(|a| a == "--no-futility"),
-                    lmp: !args.iter().any(|a| a == "--no-lmp"),
-                    see_prune: !args.iter().any(|a| a == "--no-seeprune"),
-                    delta_prune: !args.iter().any(|a| a == "--no-delta"),
-                    countermove: !args.iter().any(|a| a == "--no-countermove"),
-                    conthist: !args.iter().any(|a| a == "--no-conthist"),
-                    tt_prune_store: !args.iter().any(|a| a == "--no-tt-prune-store"),
-                    rule50_scale: !args.iter().any(|a| a == "--no-rule50"),
-                    qsearch_tt: !args.iter().any(|a| a == "--no-qtt"),
-                    hist_malus: !args.iter().any(|a| a == "--no-histmalus"),
-                    hist_lmr: !args.iter().any(|a| a == "--no-histlmr"),
-                    caphist: !args.iter().any(|a| a == "--no-caphist"),
-                    tt2: !args.iter().any(|a| a == "--no-tt2"),
-                    improving: !args.iter().any(|a| a == "--no-improving"),
-                    king_activity: !args.iter().any(|a| a == "--no-king-activity"),
                     threads: get("--threads").and_then(|s| s.parse().ok()).unwrap_or(1),
-                    singular: !args.iter().any(|a| a == "--no-singular"),
-                    syzygy: !args.iter().any(|a| a == "--no-syzygy"),
-                    book: !args.iter().any(|a| a == "--no-book"),
-                    cvs_bonus: !args.iter().any(|a| a == "--no-cvs-bonus"),
-                    shuffled_geometry: args.iter().any(|a| a == "--shuffled-geometry"),
                     ..Default::default()
-                };
+                }
+                .with_cli_flags(&args);
                 if pondering {
                     // Opponent-clock search: free depth, no bestmove until
                     // ponderhit (clock arms) or stop (miss; result discarded

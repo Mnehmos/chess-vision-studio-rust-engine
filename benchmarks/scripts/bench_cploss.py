@@ -29,13 +29,14 @@ if any(fl in sys.argv for fl in ('--exe', '--net', '--no-futility', '--extra')):
         futility=False if '--no-futility' in sys.argv else None,
         extra=arg('--extra', '').split(), depth=depth))
 
-sf_depth = int(arg('--sf-depth', '15'))
+sf_depth = int(arg('--sf-depth', str(B.DEFAULT_STOCKFISH_REVIEW_DEPTH)))
 sf = B.Stockfish(depth=sf_depth)
 fens, orc, danger = suite['fens'], suite['oracle'], suite['danger'] or [False] * len(suite['fens'])
 n = len(fens)
 out = {}
 print(f"# Gate 3 cp-loss — {suite['name']} (hash {suite['hash']}), "
-      f"engine {'movetime ' + movetime + 'ms' if movetime else 'd' + str(depth)}, SF-d12 child evals")
+      f"engine {'movetime ' + movetime + 'ms' if movetime else 'd' + str(depth)}, "
+      f"SF-d{sf_depth} child evals")
 print(f"{'config':>12s} {'match%':>7s} {'avgCP':>7s} {'medCP':>6s} {'p90':>5s} {'p95':>5s} "
       f"{'bl100':>6s} {'bl200':>6s} {'danger':>7s} {'quiet':>7s}")
 for cfg in configs:

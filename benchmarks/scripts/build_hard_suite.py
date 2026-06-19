@@ -1,5 +1,5 @@
 # Build suite-hard-100: positions where the SNAPSHOT engine itself loses
-# >=50cp vs SF-d12 at d7 — mined from the self-play corpus. "Hard" is defined
+# >=50cp vs SF-d24 at d7 — mined from the self-play corpus. "Hard" is defined
 # relative to the frozen baseline, so it concentrates exactly the failures
 # future candidates should fix. Composition skews danger/tactical naturally.
 #
@@ -17,6 +17,7 @@ def arg(flag, dflt=None):
 
 target = int(arg('--target', '100'))
 source = arg('--source', 'f:/tmp/nnue-all.jsonl')
+sf_depth = int(arg('--sf-depth', str(B.DEFAULT_STOCKFISH_REVIEW_DEPTH)))
 THRESH = 50  # cp loss for "hard"
 existing = set()
 for s in ('suite-dev-100', 'suite-fresh-100'):
@@ -25,7 +26,7 @@ for s in ('suite-dev-100', 'suite-fresh-100'):
         existing |= {l.strip() for l in open(p) if l.strip()}
 
 eng = B.Engine(B.engine_cfg('baseline', depth=7))
-sf = B.Stockfish(depth=12)
+sf = B.Stockfish(depth=sf_depth)
 hard, oracle, scanned = [], [], 0
 with open(source, encoding='utf8') as f:
     for i, line in enumerate(f):
@@ -44,7 +45,7 @@ with open(source, encoding='utf8') as f:
         mv = r.get('uci')
         if not mv:
             continue
-        _, sf_best = sf.go(fen, depth=14)
+        _, sf_best = sf.go(fen, depth=sf_depth)
         best = sf.child_cp(fen, sf_best)
         mine = sf.child_cp(fen, mv)
         if best is None or mine is None:
@@ -59,7 +60,7 @@ sf.close()
 
 open(os.path.join(B.SUITES, 'suite-hard-100.txt'), 'w').write('\n'.join(hard) + '\n')
 json.dump({'ORACLE': oracle,
-           'note': f'mined {len(hard)} positions where snapshot d7 loses >={THRESH}cp vs SF-d14 oracle / SF-d12 scoring'},
+           'note': f'mined {len(hard)} positions where snapshot d7 loses >={THRESH}cp vs SF-d{sf_depth} oracle/scoring'},
           open(os.path.join(B.SUITES, 'suite-hard-100.moves.json'), 'w'))
 print(f'wrote suite-hard-100: {len(hard)} positions from {scanned} scanned '
       f'(hard rate {len(hard)/max(1,scanned)*100:.1f}%)')

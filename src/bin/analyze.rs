@@ -161,6 +161,40 @@ fn telemetry_json(t: &Telemetry) -> serde_json::Value {
     serde_json::Value::Object(out)
 }
 
+fn search_options_json(options: &SearchOptions) -> serde_json::Value {
+    serde_json::json!({
+        "quietChecks": options.quiet_checks,
+        "useTt": options.use_tt,
+        "dangerExtension": options.danger_extension,
+        "nullMove": options.null_move,
+        "lmr": options.lmr,
+        "pvs": options.pvs,
+        "rfp": options.rfp,
+        "futility": options.futility,
+        "lmp": options.lmp,
+        "seePrune": options.see_prune,
+        "deltaPrune": options.delta_prune,
+        "countermove": options.countermove,
+        "continuationHistory": options.conthist,
+        "ttPruneStore": options.tt_prune_store,
+        "rule50Scale": options.rule50_scale,
+        "qsearchTt": options.qsearch_tt,
+        "historyMalus": options.hist_malus,
+        "historyLmr": options.hist_lmr,
+        "captureHistory": options.caphist,
+        "tt2": options.tt2,
+        "improving": options.improving,
+        "kingActivity": options.king_activity,
+        "threads": options.threads,
+        "cvsBonus": options.cvs_bonus,
+        "shuffledGeometry": options.shuffled_geometry,
+        "cvsHelpers": options.cvs_helpers,
+        "singular": options.singular,
+        "syzygy": options.syzygy,
+        "book": options.book,
+    })
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let get = |flag: &str| -> Option<String> {
@@ -190,7 +224,8 @@ fn main() {
             .expect("parse rung2")
     });
     let allow_unverified = args.iter().any(|a| a == "--allow-unverified-net");
-    let nnue: Option<Nnue> = get("--nnue").map(|p| Nnue::load(&p, allow_unverified).expect("load nnue"));
+    let nnue: Option<Nnue> =
+        get("--nnue").map(|p| Nnue::load(&p, allow_unverified).expect("load nnue"));
     let helper_nnue: Option<Nnue> =
         get("--helper-nnue").map(|p| Nnue::load(&p, allow_unverified).expect("load helper nnue"));
     let syzygy_path = get("--syzygy");
@@ -220,30 +255,8 @@ fn main() {
         // --movetime <ms>: wall-clock cap for equal-clock matches (R4 fairness run).
         max_time_ms: get("--movetime").and_then(|s| s.parse().ok()),
         soft_time_ms: None,
-        quiet_checks: !args.iter().any(|a| a == "--no-quiet-checks"),
-        use_tt: !args.iter().any(|a| a == "--no-tt"),
         // --danger: danger-triggered root depth extension (RSI loop 1, gated).
         danger_extension: args.iter().any(|a| a == "--danger"),
-        null_move: !args.iter().any(|a| a == "--no-null"),
-        lmr: !args.iter().any(|a| a == "--no-lmr"),
-        pvs: !args.iter().any(|a| a == "--no-pvs"),
-        // Standardized gated search features (now enabled by default, --no-xxx to opt-out).
-        rfp: !args.iter().any(|a| a == "--no-rfp"),
-        futility: !args.iter().any(|a| a == "--no-futility"),
-        lmp: !args.iter().any(|a| a == "--no-lmp"),
-        see_prune: !args.iter().any(|a| a == "--no-seeprune"),
-        delta_prune: !args.iter().any(|a| a == "--no-delta"),
-        countermove: !args.iter().any(|a| a == "--no-countermove"),
-        conthist: !args.iter().any(|a| a == "--no-conthist"),
-        tt_prune_store: !args.iter().any(|a| a == "--no-tt-prune-store"),
-        rule50_scale: !args.iter().any(|a| a == "--no-rule50"),
-        qsearch_tt: !args.iter().any(|a| a == "--no-qtt"),
-        hist_malus: !args.iter().any(|a| a == "--no-histmalus"),
-        hist_lmr: !args.iter().any(|a| a == "--no-histlmr"),
-        caphist: !args.iter().any(|a| a == "--no-caphist"),
-        tt2: !args.iter().any(|a| a == "--no-tt2"),
-        improving: !args.iter().any(|a| a == "--no-improving"),
-        king_activity: !args.iter().any(|a| a == "--no-king-activity"),
         threads: get("--threads").and_then(|s| s.parse().ok()).unwrap_or(1),
         cvs_trace: args.iter().any(|a| a == "--cvs-trace"),
         cvs_core_trace: args.iter().any(|a| a == "--cvs-core-trace"),
@@ -261,12 +274,9 @@ fn main() {
             Some("pawn") => cvs_bitboard_core::search::Lane::PawnEndgame,
             _ => cvs_bitboard_core::search::Lane::Fast,
         },
-        singular: !args.iter().any(|a| a == "--no-singular"),
-        syzygy: !args.iter().any(|a| a == "--no-syzygy"),
-        book: !args.iter().any(|a| a == "--no-book"),
-        cvs_bonus: !args.iter().any(|a| a == "--no-cvs-bonus"),
-        shuffled_geometry: args.iter().any(|a| a == "--shuffled-geometry"),
-    };
+        ..Default::default()
+    }
+    .with_cli_flags(&args);
 
     // --features: emit the eval + Rung-2 feature vector per FEN instead of
     // searching — the training-data faucet for head fitting (TS orchestration
@@ -278,7 +288,7 @@ fn main() {
         let raw_nnue_ref = nnue.as_ref().expect("--cvs-deltas requires --nnue");
         let file = std::fs::File::open(path).expect("fens file");
         let mut w = std::io::BufWriter::new(std::io::stdout());
-        
+
         for line in std::io::BufRead::lines(std::io::BufReader::new(file)) {
             let Ok(l) = line else { break };
             let fen = l.trim();
@@ -294,10 +304,10 @@ fn main() {
                         .filter(|mv| !mv.flag.is_capture() && mv.flag.promo_piece().is_none())
                         .copied()
                         .collect();
-                    
+
                     if quiet_moves.is_empty() {
                         continue;
-                      }
+                    }
 
                     // Evaluate child raw scores
                     let mut raw_scores = Vec::with_capacity(quiet_moves.len());
@@ -314,8 +324,12 @@ fn main() {
 
                     // Compute RootGeometryContext
                     let mut parent_ids = Vec::new();
-                    cvs_bitboard_core::eval::cvs_features::extract_cvs_ids_into(&pos, &mut parent_ids);
-                    let parent_bitset = cvs_bitboard_core::eval::cvs_features::ids_to_bitset(&parent_ids);
+                    cvs_bitboard_core::eval::cvs_features::extract_cvs_ids_into(
+                        &pos,
+                        &mut parent_ids,
+                    );
+                    let parent_bitset =
+                        cvs_bitboard_core::eval::cvs_features::ids_to_bitset(&parent_ids);
                     let ctx = cvs_bitboard_core::eval::cvs_features::RootGeometryContext {
                         parent_bitset,
                         mover: pos.stm,
@@ -402,7 +416,9 @@ fn main() {
             }
             match Position::from_fen(fen) {
                 Ok(pos) => {
-                    cvs_bitboard_core::eval::cvs_features::extract_cvs_core_ids_into(&pos, &mut buf);
+                    cvs_bitboard_core::eval::cvs_features::extract_cvs_core_ids_into(
+                        &pos, &mut buf,
+                    );
                     let strs: Vec<String> = buf.iter().map(|i| i.to_string()).collect();
                     writeln!(w, "{}", strs.join(",")).expect("stdout");
                 }
@@ -582,6 +598,22 @@ fn main() {
                             .to_string(),
                         }
                     }
+                    Ok(req) if req.cmd.as_deref() == Some("identity") => serde_json::json!({
+                        "engine": "cvs-bitboard-core",
+                        "depth": opts.depth,
+                        "options": search_options_json(&opts),
+                        "nnue": nnue.as_ref().map(|model| serde_json::json!({
+                            "modelHash": format!("{:016x}", model.model_hash()),
+                            "registryHash": format!("{:016x}", model.registry_hash()),
+                            "ranker": model.is_ranker,
+                        })),
+                        "helperNnue": helper_nnue.as_ref().map(|model| serde_json::json!({
+                            "modelHash": format!("{:016x}", model.model_hash()),
+                            "registryHash": format!("{:016x}", model.registry_hash()),
+                            "ranker": model.is_ranker,
+                        })),
+                    })
+                    .to_string(),
                     Ok(req) => match request_position(&req) {
                         Ok((mut pos, echo)) => {
                             let forced_move = if let Some(forced_uci) = req.forced_move_uci.as_ref()

@@ -7,13 +7,18 @@ import hashlib
 import json
 import os
 import platform
+import re
 import subprocess
 import sys
+import ctypes
 from datetime import datetime, timezone
 
 REPO = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..'))
 SUITES = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', 'suites'))
 RESULTS = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', 'results'))
+ENGINE_REGISTRY = os.path.normpath(
+    os.path.join(os.path.dirname(__file__), '..', 'engines.json')
+)
 
 # ---- the frozen baseline (snapshot/gen7-acc-futility-2026-06-11) ----
 BASELINE = {
@@ -27,6 +32,7 @@ BASELINE = {
     'futility': True,  # accepted-with-note; ALWAYS recorded per run
 }
 STOCKFISH = 'f:/tools/stockfish/stockfish/stockfish-windows-x86-64-avx2.exe'
+DEFAULT_STOCKFISH_REVIEW_DEPTH = 24
 
 
 def sha256(path, n=16):
@@ -37,11 +43,131 @@ def sha256(path, n=16):
     return h.hexdigest()[:n]
 
 
+def _expand_env_token(match):
+    key = match.group(1)
+    fallback = match.group(2) or ''
+    return os.environ.get(key, fallback)
+
+
+def resolve_path(path):
+    """Resolve registry paths with ${NAME:-fallback} support."""
+    if not path:
+        return None
+    value = re.sub(r'\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?\}',
+                   _expand_env_token, path)
+    value = os.path.expanduser(os.path.expandvars(value))
+    if not os.path.isabs(value):
+        value = os.path.join(REPO, value)
+    return os.path.normpath(value)
+
+
+def load_engine_registry(path=None):
+    registry_path = resolve_path(path) if path else ENGINE_REGISTRY
+    with open(registry_path, encoding='utf8') as handle:
+        registry = json.load(handle)
+    registry['_path'] = registry_path
+    return registry
+
+
+def registered_engine(engine_id, registry=None, depth=30, threads=None):
+    registry = registry or load_engine_registry()
+    row = next((item for item in registry['engines'] if item['id'] == engine_id), None)
+    if row is None:
+        raise KeyError(f'unknown engine id: {engine_id}')
+    profile_id = row['searchProfile']
+    profile = registry['searchProfiles'][profile_id]
+    extra = list(profile.get('args', []))
+    helper = resolve_path(row.get('helperNet'))
+    if helper:
+        extra += ['--helper-nnue', helper]
+    return {
+        'id': row['id'],
+        'name': row['displayName'],
+        'generation': row['generation'],
+        'status': row['status'],
+        'architecture': row['architecture'],
+        'search_profile': profile_id,
+        'expected_search_options': profile.get('effectiveOptions', {}),
+        'exe': resolve_path(row['serveExe']),
+        'uci_exe': resolve_path(row.get('uciExe')),
+        'net': resolve_path(row.get('mainNet')),
+        'helper_net': helper,
+        'base_weights': resolve_path(row.get('baseWeights') or BASELINE['base_weights']),
+        'rung2_weights': resolve_path(row.get('rung2Weights') or BASELINE['rung2_weights']),
+        'futility': bool(row.get('legacyFutilityFlag', False)),
+        'extra': extra,
+        'threads': threads or row.get('defaultThreads', 1),
+        'depth': depth,
+        'notes': row.get('notes', ''),
+    }
+
+
 def git(args):
     try:
         return subprocess.check_output(['git', '-C', REPO] + args, text=True).strip()
     except Exception:
         return '(unavailable)'
+
+
+def _command_version(command):
+    try:
+        return subprocess.check_output(command, text=True, stderr=subprocess.STDOUT).strip()
+    except Exception:
+        return '(unavailable)'
+
+
+def _memory_bytes():
+    if os.name != 'nt':
+        return None
+
+    class MemoryStatus(ctypes.Structure):
+        _fields_ = [
+            ('length', ctypes.c_ulong),
+            ('memory_load', ctypes.c_ulong),
+            ('total_phys', ctypes.c_ulonglong),
+            ('avail_phys', ctypes.c_ulonglong),
+            ('total_page_file', ctypes.c_ulonglong),
+            ('avail_page_file', ctypes.c_ulonglong),
+            ('total_virtual', ctypes.c_ulonglong),
+            ('avail_virtual', ctypes.c_ulonglong),
+            ('avail_extended_virtual', ctypes.c_ulonglong),
+        ]
+
+    status = MemoryStatus()
+    status.length = ctypes.sizeof(MemoryStatus)
+    return status.total_phys if ctypes.windll.kernel32.GlobalMemoryStatusEx(
+        ctypes.byref(status)
+    ) else None
+
+
+def machine_info():
+    return {
+        'hostname': platform.node(),
+        'os': platform.platform(),
+        'architecture': platform.machine(),
+        'processor': os.environ.get('PROCESSOR_IDENTIFIER') or platform.processor(),
+        'logical_cpus': os.cpu_count(),
+        'memory_bytes': _memory_bytes(),
+        'python': sys.version.split()[0],
+        'rustc': _command_version(['rustc', '--version']),
+        'cargo': _command_version(['cargo', '--version']),
+    }
+
+
+def model_metadata(path):
+    if not path or not os.path.exists(path):
+        return None
+    try:
+        with open(path, encoding='utf8') as handle:
+            value = json.load(handle)
+    except Exception:
+        return {'parse_error': True}
+    keys = (
+        'modelKind', 'arch', 'registryVersion', 'registryHash', 'rows',
+        'epochs', 'hidden', 'psHidden', 'cvsHidden', 'cvsDim',
+        'featureCount', 'trainingCommit', 'datasetManifestHash',
+    )
+    return {key: value.get(key) for key in keys if key in value}
 
 
 def provenance(cfg):
@@ -50,12 +176,30 @@ def provenance(cfg):
         'date': datetime.now(timezone.utc).isoformat(timespec='seconds'),
         'git_commit': git(['rev-parse', '--short', 'HEAD']),
         'git_describe': git(['describe', '--tags', '--always', '--dirty']),
-        'machine': platform.node(),
+        'machine': machine_info(),
+        'engine_id': cfg.get('id'),
+        'generation': cfg.get('generation'),
+        'status': cfg.get('status'),
+        'architecture': cfg.get('architecture'),
+        'search_profile': cfg.get('search_profile'),
         'engine_exe': cfg['exe'],
-        'engine_sha': sha256(cfg['exe']),
+        'engine_sha': sha256(cfg['exe']) if os.path.exists(cfg['exe']) else None,
+        'uci_exe': cfg.get('uci_exe'),
+        'uci_sha': sha256(cfg['uci_exe']) if cfg.get('uci_exe') and os.path.exists(cfg['uci_exe']) else None,
         'net': cfg.get('net'),
-        'net_sha': sha256(cfg['net']) if cfg.get('net') else None,
-        'futility': bool(cfg.get('futility')),
+        'net_sha': sha256(cfg['net']) if cfg.get('net') and os.path.exists(cfg['net']) else None,
+        'net_metadata': model_metadata(cfg.get('net')),
+        'helper_net': cfg.get('helper_net'),
+        'helper_net_sha': sha256(cfg['helper_net']) if cfg.get('helper_net') and os.path.exists(cfg['helper_net']) else None,
+        'helper_net_metadata': model_metadata(cfg.get('helper_net')),
+        'base_weights': cfg.get('base_weights') or BASELINE['base_weights'],
+        'base_weights_sha': sha256(cfg.get('base_weights') or BASELINE['base_weights'])
+        if os.path.exists(cfg.get('base_weights') or BASELINE['base_weights']) else None,
+        'rung2_weights': cfg.get('rung2_weights') or BASELINE['rung2_weights'],
+        'rung2_weights_sha': sha256(cfg.get('rung2_weights') or BASELINE['rung2_weights'])
+        if os.path.exists(cfg.get('rung2_weights') or BASELINE['rung2_weights']) else None,
+        'legacy_futility_cli_flag': bool(cfg.get('futility')),
+        'expected_search_options': cfg.get('expected_search_options', {}),
         'extra_flags': cfg.get('extra', []),
         'threads': cfg.get('threads', 1),
         'depth': cfg.get('depth'),
@@ -84,20 +228,28 @@ class Engine:
         self.cfg = cfg
         args = [cfg['exe'], '--serve', '--depth', str(cfg['depth']),
                 '--threads', str(cfg['threads']),
-                '--base', BASELINE['base_weights'],
-                '--rung2', BASELINE['rung2_weights']]
+                '--base', cfg.get('base_weights') or BASELINE['base_weights'],
+                '--rung2', cfg.get('rung2_weights') or BASELINE['rung2_weights']]
         if cfg.get('net'):
             args += ['--nnue', cfg['net']]
         if cfg.get('futility'):
             args.append('--futility')
         args += cfg.get('extra', [])
+        self.command = args
         self.p = subprocess.Popen(args, stdin=subprocess.PIPE,
-                                  stdout=subprocess.PIPE, text=True, bufsize=1)
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                  text=True, bufsize=1)
 
     def _ask(self, line):
         self.p.stdin.write(line + '\n')
         self.p.stdin.flush()
-        return json.loads(self.p.stdout.readline())
+        reply = self.p.stdout.readline()
+        if not reply:
+            stderr = self.p.stderr.read()
+            raise RuntimeError(
+                f"engine exited before replying ({self.p.returncode}): {stderr.strip()}"
+            )
+        return json.loads(reply)
 
     def search_depth(self, fen):
         """Fixed-depth search (the process's --depth)."""
@@ -119,7 +271,7 @@ class Engine:
 class Stockfish:
     """Fixed-depth scorer (Gate 3): mover-POV cp of a child position."""
 
-    def __init__(self, depth=12):
+    def __init__(self, depth=DEFAULT_STOCKFISH_REVIEW_DEPTH):
         self.depth = depth
         self.p = subprocess.Popen([STOCKFISH], stdin=subprocess.PIPE,
                                   stdout=subprocess.PIPE, text=True, bufsize=1)

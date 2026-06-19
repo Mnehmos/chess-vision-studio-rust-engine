@@ -236,6 +236,9 @@ Promoted and experimental work is tracked in:
 - `RSI_LOOP_REPORT.md`
 - `GEN8_TRAINING_PLAN.md`
 - `benchmarks/README.md`
+- `benchmarks/GENERATION_STANDARD.md`
+- `benchmarks/ENGINE_STRENGTH_AUDIT.md`
+- `benchmarks/BASELINE_2026-06-19.md`
 
 Current Gen8 discipline:
 

@@ -118,20 +118,20 @@ impl Default for SearchOptions {
             pvs: true,
             rfp: true,
             futility: true,
-            lmp: true,
-            see_prune: true,
-            delta_prune: true,
-            countermove: true,
-            conthist: true,
+            lmp: false,
+            see_prune: false,
+            delta_prune: false,
+            countermove: false,
+            conthist: false,
             tt_prune_store: true,
-            rule50_scale: true,
-            king_activity: true,
+            rule50_scale: false,
+            king_activity: false,
             qsearch_tt: true,
             hist_malus: true,
             hist_lmr: true,
-            caphist: true,
-            tt2: true,
-            improving: true,
+            caphist: false,
+            tt2: false,
+            improving: false,
             threads: 1,
             cvs_trace: false,
             cvs_core_trace: false,
@@ -139,10 +139,63 @@ impl Default for SearchOptions {
             shuffled_geometry: false,
             cvs_helpers: 0,
             lane: Lane::Fast,
-            singular: true,
+            singular: false,
             syzygy: true,
             book: true,
         }
+    }
+}
+
+impl SearchOptions {
+    /// Apply explicit CLI feature toggles without changing the registered
+    /// profile's defaults. Positive flags opt experiments in; `--no-*` flags
+    /// provide a deterministic override for A/B controls.
+    pub fn with_cli_flags(mut self, args: &[String]) -> Self {
+        let toggle = |on: &str, off: &str, default: bool| {
+            if args.iter().any(|arg| arg == off) {
+                false
+            } else if args.iter().any(|arg| arg == on) {
+                true
+            } else {
+                default
+            }
+        };
+
+        self.quiet_checks = toggle("--quiet-checks", "--no-quiet-checks", self.quiet_checks);
+        self.use_tt = toggle("--tt", "--no-tt", self.use_tt);
+        self.null_move = toggle("--null", "--no-null", self.null_move);
+        self.lmr = toggle("--lmr", "--no-lmr", self.lmr);
+        self.pvs = toggle("--pvs", "--no-pvs", self.pvs);
+        self.rfp = toggle("--rfp", "--no-rfp", self.rfp);
+        self.futility = toggle("--futility", "--no-futility", self.futility);
+        self.lmp = toggle("--lmp", "--no-lmp", self.lmp);
+        self.see_prune = toggle("--seeprune", "--no-seeprune", self.see_prune);
+        self.delta_prune = toggle("--delta", "--no-delta", self.delta_prune);
+        self.countermove = toggle("--countermove", "--no-countermove", self.countermove);
+        self.conthist = toggle("--conthist", "--no-conthist", self.conthist);
+        self.tt_prune_store = toggle(
+            "--tt-prune-store",
+            "--no-tt-prune-store",
+            self.tt_prune_store,
+        );
+        self.rule50_scale = toggle("--rule50", "--no-rule50", self.rule50_scale);
+        self.qsearch_tt = toggle("--qtt", "--no-qtt", self.qsearch_tt);
+        self.hist_malus = toggle("--histmalus", "--no-histmalus", self.hist_malus);
+        self.hist_lmr = toggle("--histlmr", "--no-histlmr", self.hist_lmr);
+        self.caphist = toggle("--caphist", "--no-caphist", self.caphist);
+        self.tt2 = toggle("--tt2", "--no-tt2", self.tt2);
+        self.improving = toggle("--improving", "--no-improving", self.improving);
+        self.king_activity = toggle("--king-activity", "--no-king-activity", self.king_activity);
+        self.singular = toggle("--singular", "--no-singular", self.singular);
+        self.syzygy = toggle("--syzygy", "--no-syzygy", self.syzygy);
+        self.book = toggle("--book-enabled", "--no-book", self.book);
+        self.cvs_bonus = toggle("--cvs-bonus", "--no-cvs-bonus", self.cvs_bonus);
+        self.shuffled_geometry = toggle(
+            "--shuffled-geometry",
+            "--no-shuffled-geometry",
+            self.shuffled_geometry,
+        );
+        self
     }
 }
 
