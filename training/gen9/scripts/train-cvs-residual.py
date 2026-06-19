@@ -9,6 +9,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+REGISTRY_VERSION = 1
+CORE_REGISTRY_HASH = "58cb4e1e461a607d"
+FULL_REGISTRY_HASH = "25c15688f9f4ebba"
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--data-dir', default='training/gen9/gen9-cvs')
 parser.add_argument('--epochs', type=int, default=30)
@@ -184,6 +188,8 @@ def main():
         
     json.dump({
         'modelKind': 'cvs_residual_nnue', 
+        'registryVersion': REGISTRY_VERSION,
+        'registryHash': CORE_REGISTRY_HASH if args.cvs_dim == 104 else FULL_REGISTRY_HASH,
         'arch': f'PS({PS_INPUTS}x{args.ps_hidden}cReLU) + CVS({args.cvs_dim}x{args.cvs_hidden}cReLU)',
         'psInputs': PS_INPUTS, 'psHidden': args.ps_hidden,
         'cvsDim': args.cvs_dim, 'cvsHidden': args.cvs_hidden,
