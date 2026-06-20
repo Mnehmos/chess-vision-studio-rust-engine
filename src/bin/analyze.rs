@@ -11,7 +11,9 @@ use cvs_bitboard_core::facts::{
     build_teaching_fact_bundle, TeachingFactsOptionsV1, TeachingFactsRequestV1,
 };
 use cvs_bitboard_core::movegen::generate_legal_list;
-use cvs_bitboard_core::search::{RootScope, SearchIteration, SearchOptions, Searcher, Telemetry};
+use cvs_bitboard_core::search::{
+    PartialIteration, RootScope, SearchIteration, SearchOptions, Searcher, Telemetry,
+};
 use cvs_bitboard_core::{Move, Position};
 use std::io::{BufRead, Write};
 
@@ -192,6 +194,7 @@ fn search_options_json(options: &SearchOptions) -> serde_json::Value {
         "singular": options.singular,
         "syzygy": options.syzygy,
         "book": options.book,
+        "rootDiagnostics": options.root_diagnostics,
     })
 }
 
@@ -211,6 +214,29 @@ fn iterations_json(iterations: &[SearchIteration]) -> serde_json::Value {
             })
             .collect(),
     )
+}
+
+fn partial_iteration_json(partial: Option<&PartialIteration>) -> serde_json::Value {
+    match partial {
+        Some(partial) => serde_json::json!({
+            "depth": partial.depth,
+            "alpha": partial.alpha,
+            "beta": partial.beta,
+            "rootOrder": partial.root_order.iter().map(|mv| mv.to_uci()).collect::<Vec<_>>(),
+            "completedCandidates": partial.completed_candidates.iter().map(|candidate| {
+                serde_json::json!({
+                    "uci": candidate.mv.to_uci(),
+                    "scoreCp": candidate.score_cp,
+                    "timeMs": candidate.time_ms,
+                })
+            }).collect::<Vec<_>>(),
+            "completedCandidateCount": partial.completed_candidates.len(),
+            "totalCandidateCount": partial.root_order.len(),
+            "provisionalBest": partial.provisional_best.map(|mv| mv.to_uci()),
+            "provisionalScoreCp": partial.provisional_score_cp,
+        }),
+        None => serde_json::Value::Null,
+    }
 }
 
 fn main() {
@@ -505,6 +531,10 @@ fn main() {
             "timeMs": t.elapsed_ms,
             "iterations": iterations_json(&r.iterations),
             "rootOrder": r.root_order.iter().map(|m| m.to_uci()).collect::<Vec<_>>(),
+            "attemptedDepth": r.attempted_depth,
+            "termination": r.termination.as_str(),
+            "resultSource": r.result_source.as_str(),
+            "partialIteration": partial_iteration_json(r.partial_iteration.as_ref()),
         })
         .to_string()
     };
@@ -550,6 +580,10 @@ fn main() {
                 "foreignCutoffs": t.foreign_tt_cutoffs,
                 "iterations": iterations_json(&r.iterations),
                 "rootOrder": r.root_order.iter().map(|m| m.to_uci()).collect::<Vec<_>>(),
+                "attemptedDepth": r.attempted_depth,
+                "termination": r.termination.as_str(),
+                "resultSource": r.result_source.as_str(),
+                "partialIteration": partial_iteration_json(r.partial_iteration.as_ref()),
             })
             .to_string()
         };
@@ -754,6 +788,10 @@ fn main() {
                             "foreignCutoffs": t.foreign_tt_cutoffs,
                             "iterations": iterations_json(&r.iterations),
                             "rootOrder": r.root_order.iter().map(|m| m.to_uci()).collect::<Vec<_>>(),
+                            "attemptedDepth": r.attempted_depth,
+                            "termination": r.termination.as_str(),
+                            "resultSource": r.result_source.as_str(),
+                            "partialIteration": partial_iteration_json(r.partial_iteration.as_ref()),
                         })
                         .to_string()
                     }

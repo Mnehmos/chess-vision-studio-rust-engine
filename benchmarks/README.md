@@ -15,6 +15,7 @@ python benchmarks/scripts/build_clean_holdout.py
 python benchmarks/scripts/label_holdout.py
 python benchmarks/scripts/bench_equal_time.py
 python benchmarks/scripts/bench_forensic_time.py
+python benchmarks/scripts/bench_tactical_sentinel.py
 ```
 
 Use stable registry IDs, not ad hoc names. See `GENERATION_STANDARD.md` and
@@ -32,6 +33,9 @@ MultiPV labels and danger classifications.
 The exact Raw versus Hybrid A equal-time decision is recorded in
 `EQUAL_TIME_HYBRID_A_2026-06-19.md`. Hybrid A failed the play-mode gate and is
 retained for analysis only.
+
+Specialist authority and the proof-only tactical sentinel gates are defined in
+`SPECIALIST_AUTHORITY_STANDARD.md`.
 
 Live-dev discipline, not a laboratory paper: catch regressions fast, preserve
 provenance, compare every change against the same clean baseline.

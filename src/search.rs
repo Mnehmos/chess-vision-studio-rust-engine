@@ -156,6 +156,8 @@ pub struct Searcher {
     pub root_attention_cache: Option<RootAttentionCache>,
     pub root_attention_zobrist: Option<u64>,
     last_root_order: Vec<Move>,
+    root_progress: Option<PartialIteration>,
+    abort_reason: Option<SearchTermination>,
 }
 
 impl Searcher {
@@ -192,6 +194,8 @@ impl Searcher {
             root_attention_cache: None,
             root_attention_zobrist: None,
             last_root_order: Vec::new(),
+            root_progress: None,
+            abort_reason: None,
         }
     }
 
@@ -251,6 +255,8 @@ impl Searcher {
         self.root_attention_cache = None;
         self.root_attention_zobrist = None;
         self.last_root_order.clear();
+        self.root_progress = None;
+        self.abort_reason = None;
         // Incremental NNUE: root accumulator rebuilt fresh per search (also
         // bounds f32 drift to the search path length).
         self.acc_top = usize::MAX;
@@ -284,6 +290,10 @@ impl Searcher {
                             telemetry: self.tel,
                             iterations: Vec::new(),
                             root_order: vec![mv],
+                            attempted_depth: 1,
+                            termination: SearchTermination::Book,
+                            result_source: SearchResultSource::Book,
+                            partial_iteration: None,
                         };
                     }
                 }
@@ -315,6 +325,10 @@ impl Searcher {
                             telemetry: self.tel,
                             iterations: Vec::new(),
                             root_order: vec![mv],
+                            attempted_depth: 1,
+                            termination: SearchTermination::Tablebase,
+                            result_source: SearchResultSource::Tablebase,
+                            partial_iteration: None,
                         };
                     }
                 }
@@ -330,16 +344,22 @@ impl Searcher {
             telemetry: self.tel,
             iterations: Vec::new(),
             root_order: Vec::new(),
+            attempted_depth: 0,
+            termination: SearchTermination::DepthLimit,
+            result_source: SearchResultSource::NoCompletedIteration,
+            partial_iteration: None,
         };
 
         let mut prev_score: Option<i32> = None;
         let mut iterations = Vec::new();
+        let mut termination = SearchTermination::DepthLimit;
         // Smart-time state: best-move stability and last score for the
         // iteration-boundary stop/extend decision.
         let mut tm_prev_best: Option<Move> = None;
         let mut tm_stable: u32 = 0;
         let mut tm_last_score: Option<i32> = None;
         for depth in self.id_start.min(max_depth)..=max_depth {
+            result.attempted_depth = depth;
             // Aspiration windows (Patch 5): start from a tight window around
             // the previous iteration's score; on any fail, re-search at full
             // width (one-step widen — simple and safe).
@@ -368,6 +388,8 @@ impl Searcher {
                 break (sc, bm);
             };
             if self.aborted {
+                termination = self.abort_reason.unwrap_or(SearchTermination::HardTime);
+                result.partial_iteration = self.root_progress.clone();
                 break;
             }
             prev_score = Some(score);
@@ -396,9 +418,14 @@ impl Searcher {
                 telemetry: self.tel,
                 iterations: iterations.clone(),
                 root_order: self.last_root_order.clone(),
+                attempted_depth: depth,
+                termination: SearchTermination::DepthLimit,
+                result_source: SearchResultSource::CompletedIteration,
+                partial_iteration: None,
             };
             // A proven mate cannot be improved by searching deeper.
             if score.abs() > MATE_THRESHOLD {
+                termination = SearchTermination::ProvenMate;
                 break;
             }
             // Smart time: decide continue/stop at the iteration boundary.
@@ -420,13 +447,14 @@ impl Searcher {
                     soft
                 };
                 if started.elapsed().as_millis() as u64 >= target {
+                    termination = SearchTermination::SoftTime;
                     break;
                 }
             }
         }
         self.tel.elapsed_ms = started.elapsed().as_millis() as u64;
         result.telemetry = self.tel;
-        result.root_order = self.last_root_order.clone();
+        result.termination = termination;
         result
     }
 

@@ -81,11 +81,14 @@ The 100 ms mean is dominated by:
 4r3/2pk2pp/5p2/2P2b2/r7/3n1p2/P2B2PP/R4K1R w - - 0 32
 ```
 
-Raw returned `h2h4` for 135 cp loss. Hybrid completed a different partial
-iteration and returned `g2f3` for 8,880 cp loss. The paired regression is
-8,745 cp. Removing four observations from each tail changes the 100 ms mean
-from `+93.13` to `-1.07` cp, confirming that the central distribution is tied
-while the tail risk is not.
+Raw returned `h2h4` from completed depth 6 for 135 cp loss. Hybrid returned
+`g2f3` from completed depth 7 for 8,880 cp loss. The paired regression is
+8,745 cp. A code audit confirmed that the engine already rejects interrupted
+iterations and returns the last completed depth; the failure is horizon
+oscillation at a different completed depth, not partial-iteration authority.
+Removing four observations from each tail changes the 100 ms mean from
+`+93.13` to `-1.07` cp, confirming that the central distribution is tied while
+the tail risk is not.
 
 At 2000 ms, Raw averaged 13.5 cp loss versus Hybrid's 19.4. Raw's p95/max were
 74/125 cp versus Hybrid's 97/206. This is not statistically decisive, but it
@@ -114,3 +117,6 @@ helper implicitly; live helper experiments require the explicit
 Any successor helper must use a new policy ID and independently gate its
 multiplier, clamp, activation confidence, throughput, clean-suite tail, and
 paired game strength.
+
+The next experiment is the proof-only tactical sentinel defined in
+`SPECIALIST_AUTHORITY_STANDARD.md`. It has no live move authority.

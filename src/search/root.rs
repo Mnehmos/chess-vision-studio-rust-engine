@@ -34,12 +34,22 @@ impl Searcher {
         };
         self.order_moves(pos, legal.as_mut_slice(), tt_move, 0);
         self.last_root_order = legal.as_slice().to_vec();
+        self.root_progress = self.opts.root_diagnostics.then(|| PartialIteration {
+            depth: depth.max(0) as u32,
+            alpha: alpha0,
+            beta,
+            root_order: self.last_root_order.clone(),
+            completed_candidates: Vec::with_capacity(legal.len()),
+            provisional_best: None,
+            provisional_score_cp: None,
+        });
 
         let mut alpha = alpha0;
         let mut best = -INF;
         let mut best_move: Option<Move> = None;
         for move_index in 0..legal.len() {
             let mv = legal.get(move_index);
+            let candidate_started = self.opts.root_diagnostics.then(Instant::now);
             self.tel.searched_moves += 1;
             self.tel.ply_child_searches[0] += 1;
             self.acc_make(pos, mv);
@@ -61,9 +71,22 @@ impl Searcher {
             if self.aborted {
                 return (best, best_move);
             }
+            if let Some(progress) = self.root_progress.as_mut() {
+                progress.completed_candidates.push(RootCandidateProgress {
+                    mv,
+                    score_cp: score,
+                    time_ms: candidate_started
+                        .map(|started| started.elapsed().as_millis() as u64)
+                        .unwrap_or(0),
+                });
+            }
             if score > best {
                 best = score;
                 best_move = Some(mv);
+                if let Some(progress) = self.root_progress.as_mut() {
+                    progress.provisional_best = best_move;
+                    progress.provisional_score_cp = Some(best);
+                }
             }
             if best > alpha {
                 alpha = best;
@@ -72,6 +95,7 @@ impl Searcher {
         if self.opts.use_tt {
             self.store(self.tt_key(pos), depth, best, Flag::Exact, best_move);
         }
+        self.root_progress = None;
         (best, best_move)
     }
 

@@ -7,9 +7,55 @@ from bench_equal_time import (
     stable_final_depth,
 )
 from bench_forensic_time import transition_summary
+from bench_tactical_sentinel import (
+    all_repeats_transition,
+    child_fen,
+    is_verified_mate_alarm,
+    sentinel_config,
+)
 
 
 class EqualTimeTests(unittest.TestCase):
+    def test_sentinel_requires_independent_mate_confirmation(self):
+        self.assertTrue(
+            is_verified_mate_alarm({"mate": 4}, {"mate": -4})
+        )
+        self.assertFalse(
+            is_verified_mate_alarm({"mate": 4}, {"mate": None})
+        )
+        self.assertFalse(
+            is_verified_mate_alarm({"mate": None}, {"mate": -4})
+        )
+
+    def test_sentinel_child_and_policy_are_explicit(self):
+        fen = "4r3/2pk2pp/5p2/2P2b2/r7/3n1p2/P2B2PP/R4K1R w - - 0 32"
+        self.assertTrue(child_fen(fen, "g2f3").startswith("4r3/2pk2pp/5p2/2P2b2/"))
+        raw = {
+            "id": "raw",
+            "name": "Raw",
+            "status": "control",
+            "architecture": "raw",
+            "extra": ["--no-lmp"],
+        }
+        sentinel = sentinel_config(raw)
+        self.assertIn("--no-null", sentinel["extra"])
+        self.assertEqual(
+            sentinel["policy"]["authority"],
+            "proof-only; cannot choose or reorder live moves",
+        )
+
+    def test_sentinel_transition_requires_every_repeat(self):
+        rows = [
+            {"budgetMs": 10, "verified": True},
+            {"budgetMs": 10, "verified": False},
+            {"budgetMs": 25, "verified": True},
+            {"budgetMs": 25, "verified": True},
+        ]
+        self.assertEqual(
+            all_repeats_transition(rows, [10, 25], "verified"),
+            25,
+        )
+
     def test_forensic_transition_distinguishes_first_and_sustained_clear(self):
         rows = []
         moves = {

@@ -102,6 +102,7 @@ pub struct SearchOptions {
     pub singular: bool,
     pub syzygy: bool,
     pub book: bool,
+    pub root_diagnostics: bool,
 }
 
 impl Default for SearchOptions {
@@ -142,6 +143,7 @@ impl Default for SearchOptions {
             singular: false,
             syzygy: true,
             book: true,
+            root_diagnostics: false,
         }
     }
 }
@@ -189,6 +191,11 @@ impl SearchOptions {
         self.singular = toggle("--singular", "--no-singular", self.singular);
         self.syzygy = toggle("--syzygy", "--no-syzygy", self.syzygy);
         self.book = toggle("--book-enabled", "--no-book", self.book);
+        self.root_diagnostics = toggle(
+            "--root-diagnostics",
+            "--no-root-diagnostics",
+            self.root_diagnostics,
+        );
         self.cvs_bonus = toggle("--cvs-bonus", "--no-cvs-bonus", self.cvs_bonus);
         self.shuffled_geometry = toggle(
             "--shuffled-geometry",
@@ -262,6 +269,10 @@ pub struct SearchResult {
     pub telemetry: Telemetry,
     pub iterations: Vec<SearchIteration>,
     pub root_order: Vec<Move>,
+    pub attempted_depth: u32,
+    pub termination: SearchTermination,
+    pub result_source: SearchResultSource,
+    pub partial_iteration: Option<PartialIteration>,
 }
 
 #[derive(Clone, Debug)]
@@ -272,6 +283,68 @@ pub struct SearchIteration {
     pub nodes: u64,
     pub time_ms: u64,
     pub pv: Vec<Move>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SearchTermination {
+    DepthLimit,
+    SoftTime,
+    HardTime,
+    ExternalStop,
+    ProvenMate,
+    Book,
+    Tablebase,
+}
+
+impl SearchTermination {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::DepthLimit => "depth-limit",
+            Self::SoftTime => "soft-time",
+            Self::HardTime => "hard-time",
+            Self::ExternalStop => "external-stop",
+            Self::ProvenMate => "proven-mate",
+            Self::Book => "book",
+            Self::Tablebase => "tablebase",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SearchResultSource {
+    CompletedIteration,
+    NoCompletedIteration,
+    Book,
+    Tablebase,
+}
+
+impl SearchResultSource {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::CompletedIteration => "completed-iteration",
+            Self::NoCompletedIteration => "no-completed-iteration",
+            Self::Book => "book",
+            Self::Tablebase => "tablebase",
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct RootCandidateProgress {
+    pub mv: Move,
+    pub score_cp: i32,
+    pub time_ms: u64,
+}
+
+#[derive(Clone, Debug)]
+pub struct PartialIteration {
+    pub depth: u32,
+    pub alpha: i32,
+    pub beta: i32,
+    pub root_order: Vec<Move>,
+    pub completed_candidates: Vec<RootCandidateProgress>,
+    pub provisional_best: Option<Move>,
+    pub provisional_score_cp: Option<i32>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

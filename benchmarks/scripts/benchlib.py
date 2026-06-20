@@ -35,6 +35,12 @@ STOCKFISH = 'f:/tools/stockfish/stockfish/stockfish-windows-x86-64-avx2.exe'
 DEFAULT_STOCKFISH_REVIEW_DEPTH = 24
 
 
+def canonical_hash(value, n=16):
+    return hashlib.sha256(
+        json.dumps(value, sort_keys=True, separators=(',', ':')).encode('utf8')
+    ).hexdigest()[:n]
+
+
 def sha256(path, n=16):
     h = hashlib.sha256()
     with open(path, 'rb') as f:
@@ -87,14 +93,10 @@ def registered_engine(engine_id, registry=None, depth=30, threads=None):
         'status': row['status'],
         'architecture': row['architecture'],
         'search_profile': profile_id,
-        'search_profile_sha': hashlib.sha256(
-            json.dumps(profile, sort_keys=True, separators=(',', ':')).encode('utf8')
-        ).hexdigest()[:16],
+        'search_profile_sha': canonical_hash(profile),
         'expected_search_options': profile.get('effectiveOptions', {}),
         'policy': row.get('policy', {}),
-        'policy_sha': hashlib.sha256(
-            json.dumps(row.get('policy', {}), sort_keys=True, separators=(',', ':')).encode('utf8')
-        ).hexdigest()[:16],
+        'policy_sha': canonical_hash(row.get('policy', {})),
         'exe': resolve_path(row['serveExe']),
         'uci_exe': resolve_path(row.get('uciExe')),
         'net': resolve_path(row.get('mainNet')),
@@ -265,9 +267,12 @@ class Engine:
         """Fixed-depth search (the process's --depth)."""
         return self._ask(fen)
 
-    def search_time(self, fen, ms):
+    def search_time(self, fen, ms, forced_move=None):
         """Movetime search (depth caps at the process's --depth)."""
-        return self._ask(json.dumps({'cmd': 'go', 'budgetMs': int(ms), 'fen': fen}))
+        request = {'cmd': 'go', 'budgetMs': int(ms), 'fen': fen}
+        if forced_move:
+            request['forcedMoveUci'] = forced_move
+        return self._ask(json.dumps(request))
 
     def close(self):
         try:

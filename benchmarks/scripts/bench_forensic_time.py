@@ -64,8 +64,12 @@ def main() -> None:
 
     E.assert_idle(args.allow_background_load)
     registry = B.load_engine_registry()
-    raw_cfg = B.registered_engine(args.raw, registry, depth=30, threads=1)
-    hybrid_cfg = B.registered_engine(args.hybrid, registry, depth=30, threads=1)
+    raw_cfg = E.enable_root_diagnostics(
+        B.registered_engine(args.raw, registry, depth=30, threads=1)
+    )
+    hybrid_cfg = E.enable_root_diagnostics(
+        B.registered_engine(args.hybrid, registry, depth=30, threads=1)
+    )
     E.assert_exact_pair(raw_cfg, hybrid_cfg)
     budgets = [int(value) for value in args.budgets.split(",")]
     raw_engine = B.Engine(raw_cfg)

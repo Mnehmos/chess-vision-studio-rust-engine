@@ -115,4 +115,56 @@ fn analyze_search_reports_iteration_and_root_order_diagnostics() {
     assert_eq!(value["iterations"].as_array().unwrap().len(), 2);
     assert_eq!(value["iterations"][1]["depth"], 2);
     assert!(!value["rootOrder"].as_array().unwrap().is_empty());
+    assert_eq!(value["attemptedDepth"], 2);
+    assert_eq!(value["termination"], "depth-limit");
+    assert_eq!(value["resultSource"], "completed-iteration");
+    assert!(value["partialIteration"].is_null());
+}
+
+#[test]
+fn timed_search_returns_completed_iteration_and_reports_partial_root() {
+    let mut child = Command::new(env!("CARGO_BIN_EXE_analyze"))
+        .args([
+            "--serve",
+            "--depth",
+            "30",
+            "--no-book",
+            "--no-syzygy",
+            "--root-diagnostics",
+        ])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
+
+    child
+        .stdin
+        .as_mut()
+        .unwrap()
+        .write_all(
+            b"{\"cmd\":\"go\",\"budgetMs\":10,\"fen\":\"4r3/2pk2pp/5p2/2P2b2/r7/3n1p2/P2B2PP/R4K1R w - - 0 32\"}\n",
+        )
+        .unwrap();
+    writeln!(child.stdin.as_mut().unwrap(), "quit").unwrap();
+    let output = child.wait_with_output().unwrap();
+    assert!(output.status.success());
+
+    let line = String::from_utf8(output.stdout).unwrap();
+    let value: Value = serde_json::from_str(line.lines().next().unwrap()).unwrap();
+    assert_eq!(value["termination"], "hard-time");
+    assert_eq!(value["resultSource"], "completed-iteration");
+    let iterations = value["iterations"].as_array().unwrap();
+    let completed = iterations.last().expect("completed iteration");
+    assert_eq!(value["uci"], completed["uci"]);
+    assert_eq!(value["depth"], completed["depth"]);
+    assert!(value["attemptedDepth"].as_u64().unwrap() > value["depth"].as_u64().unwrap());
+    assert_eq!(value["partialIteration"]["depth"], value["attemptedDepth"],);
+    assert!(
+        value["partialIteration"]["completedCandidateCount"]
+            .as_u64()
+            .unwrap()
+            <= value["partialIteration"]["totalCandidateCount"]
+                .as_u64()
+                .unwrap()
+    );
 }

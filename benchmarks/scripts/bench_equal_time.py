@@ -46,6 +46,11 @@ def assert_exact_pair(raw: dict, hybrid: dict) -> None:
         raise SystemExit("invalid equal-time pair:\n  " + "\n  ".join(mismatches))
 
 
+def enable_root_diagnostics(cfg: dict) -> dict:
+    cfg["extra"] = list(cfg.get("extra", [])) + ["--root-diagnostics"]
+    return cfg
+
+
 def assert_idle(allow_background_load: bool) -> None:
     if allow_background_load or os.name != "nt":
         return
@@ -149,6 +154,10 @@ def result_record(result: dict) -> dict:
             moves[index] != moves[index - 1]
             for index in range(1, len(moves))
         ),
+        "attemptedDepth": result.get("attemptedDepth"),
+        "termination": result.get("termination"),
+        "resultSource": result.get("resultSource"),
+        "partialIteration": result.get("partialIteration"),
     }
 
 
@@ -366,8 +375,12 @@ def main() -> None:
 
     assert_idle(args.allow_background_load)
     registry = B.load_engine_registry()
-    raw_cfg = B.registered_engine(args.raw, registry, depth=30, threads=1)
-    hybrid_cfg = B.registered_engine(args.hybrid, registry, depth=30, threads=1)
+    raw_cfg = enable_root_diagnostics(
+        B.registered_engine(args.raw, registry, depth=30, threads=1)
+    )
+    hybrid_cfg = enable_root_diagnostics(
+        B.registered_engine(args.hybrid, registry, depth=30, threads=1)
+    )
     assert_exact_pair(raw_cfg, hybrid_cfg)
     suite = B.load_suite(args.suite)
     count = min(args.limit or len(suite["fens"]), len(suite["fens"]))
