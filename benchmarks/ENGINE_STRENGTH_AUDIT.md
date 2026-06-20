@@ -85,6 +85,14 @@ Run independently:
 - Hybrid helpers versus equal-budget raw depth.
 - Syzygy probe policy and DTZ conversion behavior.
 
+## 2026-06-19 Equal-Time Decision
+
+Hybrid A's quiet-root residual ordering policy failed its mandatory same-budget
+gate against the exact matrix-raw control. It produced no statistically
+reliable gain from 25-2000 ms, no median gain, no depth gain, and one
+catastrophic 100 ms tail regression. Hybrid A is analysis-only; matrix-raw is
+the live candidate. See `EQUAL_TIME_HYBRID_A_2026-06-19.md`.
+
 ## Known Methodology Risks
 
 - `suite-fresh-100` leaked into Gen8-v2 training for 47 of 100 positions.

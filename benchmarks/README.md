@@ -29,6 +29,10 @@ caps correlated samples per game, and writes a reservation file consumed by
 the Gen9 RSI importer. `label_holdout.py` freezes native Stockfish depth-24
 MultiPV labels and danger classifications.
 
+The exact Raw versus Hybrid A equal-time decision is recorded in
+`EQUAL_TIME_HYBRID_A_2026-06-19.md`. Hybrid A failed the play-mode gate and is
+retained for analysis only.
+
 Live-dev discipline, not a laboratory paper: catch regressions fast, preserve
 provenance, compare every change against the same clean baseline.
 

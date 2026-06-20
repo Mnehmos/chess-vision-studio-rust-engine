@@ -191,7 +191,7 @@
       "id": "g9.hybrid-a.raw-plus-residual",
       "displayName": "Gen 9 Quiet Hybrid A Raw + Residual Helper",
       "generation": 9,
-      "status": "live-candidate",
+      "status": "analysis-only",
       "architecture": "raw-h256-main-plus-core104-residual-helper",
       "serveExe": "${CVS_CURRENT_SERVE_EXE:-target/release/analyze.exe}",
       "uciExe": "${CVS_CURRENT_UCI_EXE:-target/release/uci.exe}",
@@ -211,13 +211,14 @@
         "capturesAffected": false,
         "promotionsAffected": false
       },
+      "notes": "Failed the 2026-06-19 paired equal-time gate. Retained for analysis and candidate diversity only.",
       "defaultThreads": 1
     },
     {
       "id": "g9.raw-control.matrix-raw",
-      "displayName": "Gen 9 Matrix Raw Exact Hybrid-A Control",
+      "displayName": "Gen 9 Matrix Raw Play Candidate",
       "generation": 9,
-      "status": "control",
+      "status": "live-candidate",
       "architecture": "raw-768-h256",
       "serveExe": "${CVS_CURRENT_SERVE_EXE:-target/release/analyze.exe}",
       "uciExe": "${CVS_CURRENT_UCI_EXE:-target/release/uci.exe}",
@@ -231,6 +232,7 @@
         "mainEvaluation": "matrix-raw at every static/leaf evaluation",
         "helperRole": "none"
       },
+      "notes": "Exact raw control promoted to live candidate after Hybrid A failed the paired equal-time gate.",
       "defaultThreads": 1
     },
     {

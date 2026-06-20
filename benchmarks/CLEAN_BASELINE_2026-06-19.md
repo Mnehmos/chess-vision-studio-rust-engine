@@ -60,8 +60,8 @@ an idle machine.
 
 ## Decision
 
-Hybrid A is retained as the live candidate because it eliminated the clean
-suite's shared catastrophic miss. This result is not sufficient for promotion
-over raw search at equal time.
+The equal-time gate is complete. Hybrid A did not beat the exact matrix-raw
+control at any tested budget and produced a catastrophic 100 ms regression on
+this same forensic position. See `EQUAL_TIME_HYBRID_A_2026-06-19.md`.
 
-Decision: HOLD FOR EQUAL-TIME GATE
+Decision: ANALYSIS MODE ONLY
