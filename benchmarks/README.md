@@ -16,6 +16,7 @@ python benchmarks/scripts/label_holdout.py
 python benchmarks/scripts/bench_equal_time.py
 python benchmarks/scripts/bench_forensic_time.py
 python benchmarks/scripts/bench_tactical_sentinel.py
+python benchmarks/scripts/bench_sentinel_suite.py
 ```
 
 Use stable registry IDs, not ad hoc names. See `GENERATION_STANDARD.md` and

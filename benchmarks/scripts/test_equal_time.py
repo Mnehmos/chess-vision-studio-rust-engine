@@ -7,24 +7,34 @@ from bench_equal_time import (
     stable_final_depth,
 )
 from bench_forensic_time import transition_summary
+from bench_sentinel_suite import summarize as summarize_sentinel_suite
 from bench_tactical_sentinel import (
     all_repeats_transition,
     child_fen,
-    is_verified_mate_alarm,
+    evidence_class,
     sentinel_config,
 )
 
 
 class EqualTimeTests(unittest.TestCase):
     def test_sentinel_requires_independent_mate_confirmation(self):
-        self.assertTrue(
-            is_verified_mate_alarm({"mate": 4}, {"mate": -4})
+        self.assertEqual(
+            evidence_class({"mate": 4}, {"mate": -4}),
+            "exact-mate",
         )
-        self.assertFalse(
-            is_verified_mate_alarm({"mate": 4}, {"mate": None})
+        self.assertEqual(
+            evidence_class(
+                {"mate": None, "scoreCp": 450},
+                {"mate": None, "scoreCp": -420},
+            ),
+            "verified-major-loss",
         )
-        self.assertFalse(
-            is_verified_mate_alarm({"mate": None}, {"mate": -4})
+        self.assertEqual(
+            evidence_class(
+                {"mate": None, "scoreCp": 450},
+                {"mate": None, "scoreCp": -200},
+            ),
+            "none",
         )
 
     def test_sentinel_child_and_policy_are_explicit(self):
@@ -55,6 +65,19 @@ class EqualTimeTests(unittest.TestCase):
             all_repeats_transition(rows, [10, 25], "verified"),
             25,
         )
+
+    def test_sentinel_suite_summary_separates_precision_and_recall(self):
+        rows = [
+            {"evidenceClass": "verified-major-loss", "cpLoss": 500},
+            {"evidenceClass": "verified-major-loss", "cpLoss": 20},
+            {"evidenceClass": "none", "cpLoss": 400},
+            {"evidenceClass": "none", "cpLoss": 0},
+        ]
+        summary = summarize_sentinel_suite(rows, 300)
+        self.assertEqual(summary["truePositives"], 1)
+        self.assertEqual(summary["falsePositives"], 1)
+        self.assertEqual(summary["falseNegatives"], 1)
+        self.assertEqual(summary["trueNegatives"], 1)
 
     def test_forensic_transition_distinguishes_first_and_sustained_clear(self):
         rows = []

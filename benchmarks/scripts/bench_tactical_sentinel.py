@@ -59,15 +59,30 @@ def sentinel_config(raw_cfg: dict) -> dict:
     return cfg
 
 
-def is_verified_mate_alarm(sentinel: dict, verifier: dict) -> bool:
+def evidence_class(
+    sentinel: dict,
+    verifier: dict,
+    major_loss_cp: int = 300,
+) -> str:
     sentinel_mate = sentinel.get("mate")
     verifier_mate = verifier.get("mate")
-    return (
+    if (
         isinstance(sentinel_mate, int)
         and sentinel_mate > 0
         and isinstance(verifier_mate, int)
         and verifier_mate < 0
-    )
+    ):
+        return "exact-mate"
+    sentinel_score = sentinel.get("scoreCp")
+    verifier_score = verifier.get("scoreCp")
+    if (
+        isinstance(sentinel_score, int)
+        and sentinel_score >= major_loss_cp
+        and isinstance(verifier_score, int)
+        and verifier_score <= -major_loss_cp
+    ):
+        return "verified-major-loss"
+    return "none"
 
 
 def all_repeats_transition(
@@ -89,6 +104,7 @@ def main() -> None:
     parser.add_argument("--candidate", default="g2f3")
     parser.add_argument("--budgets", default="5,10,25,50,100,250,500")
     parser.add_argument("--repeats", type=int, default=3)
+    parser.add_argument("--major-loss-cp", type=int, default=300)
     parser.add_argument("--allow-background-load", action="store_true")
     args = parser.parse_args()
 
@@ -130,7 +146,11 @@ def main() -> None:
                     sentinel = E.result_record(
                         sentinel_engine.search_time(child, budget)
                     )
-                verified = is_verified_mate_alarm(sentinel, verifier)
+                evidence = evidence_class(
+                    sentinel,
+                    verifier,
+                    args.major_loss_cp,
+                )
                 row = {
                     "budgetMs": budget,
                     "repeat": repeat,
@@ -141,7 +161,9 @@ def main() -> None:
                         isinstance(sentinel.get("mate"), int)
                         and sentinel["mate"] > 0
                     ),
-                    "verifiedMateAlarm": verified,
+                    "evidenceClass": evidence,
+                    "verifiedMateAlarm": evidence == "exact-mate",
+                    "verifiedConcern": evidence != "none",
                 }
                 rows.append(row)
                 print(
@@ -149,7 +171,7 @@ def main() -> None:
                     f"sentinel={sentinel['move']} mate={sentinel.get('mate')} "
                     f"d{sentinel['depth']} | "
                     f"verify mate={verifier.get('mate')} d{verifier['depth']} "
-                    f"verified={verified}",
+                    f"evidence={evidence}",
                     flush=True,
                 )
     finally:
@@ -166,6 +188,11 @@ def main() -> None:
         budgets,
         "verifiedMateAlarm",
     )
+    first_concern = all_repeats_transition(
+        rows,
+        budgets,
+        "verifiedConcern",
+    )
     B.write_result(
         "tactical-sentinel-forensic",
         {
@@ -175,10 +202,12 @@ def main() -> None:
             "childFen": child,
             "budgetsMs": budgets,
             "repeats": args.repeats,
+            "majorLossCp": args.major_loss_cp,
             "raw": B.provenance(raw_cfg),
             "sentinel": B.provenance(sentinel_cfg),
             "firstAllRepeatsSentinelMateAlarmMs": first_sentinel,
             "firstAllRepeatsVerifiedMateAlarmMs": first_verified,
+            "firstAllRepeatsVerifiedConcernMs": first_concern,
             "authority": "experimental proof-only; no live move authority",
             "rows": rows,
         },
