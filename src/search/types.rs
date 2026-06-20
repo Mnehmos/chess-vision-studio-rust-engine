@@ -260,6 +260,18 @@ pub struct SearchResult {
     pub pv: Vec<Move>,
     pub depth: u32,
     pub telemetry: Telemetry,
+    pub iterations: Vec<SearchIteration>,
+    pub root_order: Vec<Move>,
+}
+
+#[derive(Clone, Debug)]
+pub struct SearchIteration {
+    pub depth: u32,
+    pub best_move: Option<Move>,
+    pub score_cp: i32,
+    pub nodes: u64,
+    pub time_ms: u64,
+    pub pv: Vec<Move>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

@@ -37,6 +37,21 @@ class EngineRegistryTests(unittest.TestCase):
         ):
             self.assertFalse(options[key], key)
 
+    def test_equal_time_pair_uses_the_same_main_network_and_profile(self):
+        raw = B.registered_engine('g9.raw-control.matrix-raw', self.registry)
+        hybrid = B.registered_engine(
+            'g9.hybrid-a.raw-plus-residual',
+            self.registry,
+        )
+        self.assertEqual(raw['net'], hybrid['net'])
+        self.assertEqual(raw['search_profile_sha'], hybrid['search_profile_sha'])
+        self.assertIsNone(raw['helper_net'])
+        self.assertIsNotNone(hybrid['helper_net'])
+        self.assertEqual(
+            hybrid['policy']['id'],
+            'quiet-root-residual-ordering-v1',
+        )
+
     def test_registry_paths_honor_environment_overrides(self):
         with patch.dict(os.environ, {'CVS_CURRENT_SERVE_EXE': 'custom/analyze.exe'}):
             cfg = B.registered_engine(

@@ -13,6 +13,8 @@ python benchmarks/scripts/bench_generations.py decision --limit 20 --decision-de
 python benchmarks/scripts/test_bench_registry.py
 python benchmarks/scripts/build_clean_holdout.py
 python benchmarks/scripts/label_holdout.py
+python benchmarks/scripts/bench_equal_time.py
+python benchmarks/scripts/bench_forensic_time.py
 ```
 
 Use stable registry IDs, not ad hoc names. See `GENERATION_STANDARD.md` and

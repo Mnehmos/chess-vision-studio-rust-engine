@@ -8,6 +8,7 @@ An engine identity is four independent parts:
 2. Main evaluation model.
 3. Optional helper or ranker model.
 4. Search profile and resource budget.
+5. Helper policy, including scope, multiplier, and clamp.
 
 The canonical name is:
 
@@ -81,7 +82,8 @@ YYYYMMDD-HHMMSS-<gate-or-matrix>.json
 ```
 
 Every result must contain artifact hashes, model metadata, search profile,
-suite hash, hardware, toolchain, threads, and exact budget.
+search-profile hash, helper-policy hash, suite hash, hardware, toolchain,
+threads, and exact budget.
 
 The registry's `effectiveOptions` is the expected profile contract. New
 binaries must also return `{"cmd":"identity"}` with the effective runtime

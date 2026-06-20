@@ -11,7 +11,7 @@ use cvs_bitboard_core::facts::{
     build_teaching_fact_bundle, TeachingFactsOptionsV1, TeachingFactsRequestV1,
 };
 use cvs_bitboard_core::movegen::generate_legal_list;
-use cvs_bitboard_core::search::{RootScope, SearchOptions, Searcher, Telemetry};
+use cvs_bitboard_core::search::{RootScope, SearchIteration, SearchOptions, Searcher, Telemetry};
 use cvs_bitboard_core::{Move, Position};
 use std::io::{BufRead, Write};
 
@@ -193,6 +193,24 @@ fn search_options_json(options: &SearchOptions) -> serde_json::Value {
         "syzygy": options.syzygy,
         "book": options.book,
     })
+}
+
+fn iterations_json(iterations: &[SearchIteration]) -> serde_json::Value {
+    serde_json::Value::Array(
+        iterations
+            .iter()
+            .map(|iteration| {
+                serde_json::json!({
+                    "depth": iteration.depth,
+                    "uci": iteration.best_move.map(|mv| mv.to_uci()),
+                    "scoreCp": iteration.score_cp,
+                    "nodes": iteration.nodes,
+                    "timeMs": iteration.time_ms,
+                    "pv": iteration.pv.iter().map(|mv| mv.to_uci()).collect::<Vec<_>>(),
+                })
+            })
+            .collect(),
+    )
 }
 
 fn main() {
@@ -485,6 +503,8 @@ fn main() {
             "nullCutoffs": t.null_cutoffs,
             "telemetry": telemetry_json(&t),
             "timeMs": t.elapsed_ms,
+            "iterations": iterations_json(&r.iterations),
+            "rootOrder": r.root_order.iter().map(|m| m.to_uci()).collect::<Vec<_>>(),
         })
         .to_string()
     };
@@ -528,6 +548,8 @@ fn main() {
                 "telemetry": telemetry_json(&t),
                 "foreignHints": t.foreign_tt_hints,
                 "foreignCutoffs": t.foreign_tt_cutoffs,
+                "iterations": iterations_json(&r.iterations),
+                "rootOrder": r.root_order.iter().map(|m| m.to_uci()).collect::<Vec<_>>(),
             })
             .to_string()
         };
@@ -612,6 +634,31 @@ fn main() {
                             "registryHash": format!("{:016x}", model.registry_hash()),
                             "ranker": model.is_ranker,
                         })),
+                        "helperPolicy": helper_nnue.as_ref().map(|model| {
+                            if model.is_ranker {
+                                serde_json::json!({
+                                    "id": "quiet-root-ranker-ordering-v1",
+                                    "scope": "root quiet moves only",
+                                    "helperRole": "ordering only",
+                                    "ttMoveAffected": false,
+                                    "capturesAffected": false,
+                                    "promotionsAffected": false,
+                                    "temperature": model.ranker_temperature,
+                                    "orderingClamp": model.ranker_max_bonus,
+                                })
+                            } else {
+                                serde_json::json!({
+                                    "id": "quiet-root-residual-ordering-v1",
+                                    "scope": "root quiet moves only",
+                                    "helperRole": "ordering only",
+                                    "orderingBonusScale": 10,
+                                    "orderingClamp": 4000,
+                                    "ttMoveAffected": false,
+                                    "capturesAffected": false,
+                                    "promotionsAffected": false,
+                                })
+                            }
+                        }),
                     })
                     .to_string(),
                     Ok(req) => match request_position(&req) {
@@ -705,6 +752,8 @@ fn main() {
                             "telemetry": telemetry_json(&t),
                             "foreignHints": t.foreign_tt_hints,
                             "foreignCutoffs": t.foreign_tt_cutoffs,
+                            "iterations": iterations_json(&r.iterations),
+                            "rootOrder": r.root_order.iter().map(|m| m.to_uci()).collect::<Vec<_>>(),
                         })
                         .to_string()
                     }

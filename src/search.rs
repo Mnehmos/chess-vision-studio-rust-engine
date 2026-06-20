@@ -155,6 +155,7 @@ pub struct Searcher {
     pub root_geom_cache: Option<RootGeometryCacheEntry>,
     pub root_attention_cache: Option<RootAttentionCache>,
     pub root_attention_zobrist: Option<u64>,
+    last_root_order: Vec<Move>,
 }
 
 impl Searcher {
@@ -190,6 +191,7 @@ impl Searcher {
             root_geom_cache: None,
             root_attention_cache: None,
             root_attention_zobrist: None,
+            last_root_order: Vec::new(),
         }
     }
 
@@ -248,6 +250,7 @@ impl Searcher {
         self.aborted = false;
         self.root_attention_cache = None;
         self.root_attention_zobrist = None;
+        self.last_root_order.clear();
         // Incremental NNUE: root accumulator rebuilt fresh per search (also
         // bounds f32 drift to the search path length).
         self.acc_top = usize::MAX;
@@ -279,6 +282,8 @@ impl Searcher {
                             pv: vec![mv],
                             depth: 1,
                             telemetry: self.tel,
+                            iterations: Vec::new(),
+                            root_order: vec![mv],
                         };
                     }
                 }
@@ -308,6 +313,8 @@ impl Searcher {
                             pv: vec![mv],
                             depth: 1,
                             telemetry: self.tel,
+                            iterations: Vec::new(),
+                            root_order: vec![mv],
                         };
                     }
                 }
@@ -321,9 +328,12 @@ impl Searcher {
             pv: Vec::new(),
             depth: 0,
             telemetry: self.tel,
+            iterations: Vec::new(),
+            root_order: Vec::new(),
         };
 
         let mut prev_score: Option<i32> = None;
+        let mut iterations = Vec::new();
         // Smart-time state: best-move stability and last score for the
         // iteration-boundary stop/extend decision.
         let mut tm_prev_best: Option<Move> = None;
@@ -368,13 +378,24 @@ impl Searcher {
                 None
             };
             self.tel.elapsed_ms = started.elapsed().as_millis() as u64;
+            let pv = self.extract_pv(pos, best, depth as usize);
+            iterations.push(SearchIteration {
+                depth,
+                best_move: best,
+                score_cp: score,
+                nodes: self.tel.nodes,
+                time_ms: self.tel.elapsed_ms,
+                pv: pv.clone(),
+            });
             result = SearchResult {
                 best_move: best,
                 score_cp: score,
                 mate,
-                pv: self.extract_pv(pos, best, depth as usize),
+                pv,
                 depth,
                 telemetry: self.tel,
+                iterations: iterations.clone(),
+                root_order: self.last_root_order.clone(),
             };
             // A proven mate cannot be improved by searching deeper.
             if score.abs() > MATE_THRESHOLD {
@@ -405,6 +426,7 @@ impl Searcher {
         }
         self.tel.elapsed_ms = started.elapsed().as_millis() as u64;
         result.telemetry = self.tel;
+        result.root_order = self.last_root_order.clone();
         result
     }
 

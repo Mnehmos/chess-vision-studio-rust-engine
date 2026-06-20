@@ -33,6 +33,7 @@ impl Searcher {
             None
         };
         self.order_moves(pos, legal.as_mut_slice(), tt_move, 0);
+        self.last_root_order = legal.as_slice().to_vec();
 
         let mut alpha = alpha0;
         let mut best = -INF;

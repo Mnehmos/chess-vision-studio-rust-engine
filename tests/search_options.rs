@@ -90,3 +90,29 @@ fn analyze_identity_reports_effective_search_options() {
     assert_eq!(value["options"]["rfp"], false);
     assert_eq!(value["options"]["futility"], true);
 }
+
+#[test]
+fn analyze_search_reports_iteration_and_root_order_diagnostics() {
+    let mut child = Command::new(env!("CARGO_BIN_EXE_analyze"))
+        .args(["--serve", "--depth", "2"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap();
+
+    child
+        .stdin
+        .as_mut()
+        .unwrap()
+        .write_all(b"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1\n")
+        .unwrap();
+    writeln!(child.stdin.as_mut().unwrap(), "quit").unwrap();
+    let output = child.wait_with_output().unwrap();
+    assert!(output.status.success());
+
+    let line = String::from_utf8(output.stdout).unwrap();
+    let value: Value = serde_json::from_str(line.lines().next().unwrap()).unwrap();
+    assert_eq!(value["iterations"].as_array().unwrap().len(), 2);
+    assert_eq!(value["iterations"][1]["depth"], 2);
+    assert!(!value["rootOrder"].as_array().unwrap().is_empty());
+}

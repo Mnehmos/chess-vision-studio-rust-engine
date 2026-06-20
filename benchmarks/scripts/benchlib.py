@@ -87,7 +87,14 @@ def registered_engine(engine_id, registry=None, depth=30, threads=None):
         'status': row['status'],
         'architecture': row['architecture'],
         'search_profile': profile_id,
+        'search_profile_sha': hashlib.sha256(
+            json.dumps(profile, sort_keys=True, separators=(',', ':')).encode('utf8')
+        ).hexdigest()[:16],
         'expected_search_options': profile.get('effectiveOptions', {}),
+        'policy': row.get('policy', {}),
+        'policy_sha': hashlib.sha256(
+            json.dumps(row.get('policy', {}), sort_keys=True, separators=(',', ':')).encode('utf8')
+        ).hexdigest()[:16],
         'exe': resolve_path(row['serveExe']),
         'uci_exe': resolve_path(row.get('uciExe')),
         'net': resolve_path(row.get('mainNet')),
@@ -182,6 +189,9 @@ def provenance(cfg):
         'status': cfg.get('status'),
         'architecture': cfg.get('architecture'),
         'search_profile': cfg.get('search_profile'),
+        'search_profile_sha': cfg.get('search_profile_sha'),
+        'policy': cfg.get('policy', {}),
+        'policy_sha': cfg.get('policy_sha'),
         'engine_exe': cfg['exe'],
         'engine_sha': sha256(cfg['exe']) if os.path.exists(cfg['exe']) else None,
         'uci_exe': cfg.get('uci_exe'),
