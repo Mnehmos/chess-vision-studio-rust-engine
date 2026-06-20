@@ -67,10 +67,13 @@ The first sentinel is a proof-only experiment:
 2. Make the move.
 3. Search the opponent's child position with RFP, futility, null move, LMR,
    LMP, SEE pruning, delta pruning, and singular extensions disabled.
-4. Raise a provisional alarm only for a positive mate score.
+4. Raise exact evidence only for a positive mate score.
 5. Require an independent Raw forced-move search to return the corresponding
    negative mate score.
-6. Report the proof; do not select a replacement move.
+6. A non-mate major-loss request additionally requires an independent Raw
+   search to choose another move and improve the forced score by the registered
+   decision margin.
+7. Report the proof or verification request; do not select a replacement move.
 
 This experiment runs only through
 `benchmarks/scripts/bench_tactical_sentinel.py`. It is not connected to UCI,

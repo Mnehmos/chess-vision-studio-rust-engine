@@ -60,6 +60,7 @@ def main() -> None:
     parser.add_argument("--principal-budget", default="100")
     parser.add_argument("--sentinel-budgets", default="5,10,25")
     parser.add_argument("--major-loss-cp", type=int, default=300)
+    parser.add_argument("--decision-margin-cp", type=int, default=50)
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--allow-background-load", action="store_true")
     args = parser.parse_args()
@@ -78,51 +79,45 @@ def main() -> None:
 
     sentinel_engine = B.Engine(sentinel_cfg)
     verifier_engine = B.Engine(raw_cfg)
+    baseline_engine = B.Engine(raw_cfg)
     rows_by_budget: dict[str, list[dict]] = {}
     try:
         E.warm(sentinel_engine, min(budgets))
         E.warm(verifier_engine, min(budgets))
+        E.warm(baseline_engine, min(budgets))
         for budget_index, budget in enumerate(budgets):
             rows = []
             for sequence_index, source_row in enumerate(source_rows):
                 fen = source_row["fen"]
                 candidate = source_row["raw"]["move"]
                 child = S.child_fen(fen, candidate)
-                sentinel_first = (budget_index + sequence_index) % 2 == 0
-                if sentinel_first:
-                    sentinel = E.result_record(
-                        sentinel_engine.search_time(child, budget)
-                    )
-                    verifier = E.result_record(
-                        verifier_engine.search_time(
-                            fen,
-                            budget,
-                            forced_move=candidate,
-                        )
-                    )
-                else:
-                    verifier = E.result_record(
-                        verifier_engine.search_time(
-                            fen,
-                            budget,
-                            forced_move=candidate,
-                        )
-                    )
-                    sentinel = E.result_record(
-                        sentinel_engine.search_time(child, budget)
-                    )
+                sentinel, verifier, baseline, engine_order = S.run_triplet(
+                    sentinel_engine,
+                    verifier_engine,
+                    baseline_engine,
+                    fen,
+                    child,
+                    candidate,
+                    budget,
+                    budget_index + sequence_index,
+                )
                 rows.append(
                     {
                         "positionIndex": source_row["positionIndex"],
                         "fen": fen,
                         "candidate": candidate,
                         "cpLoss": source_row["raw"]["cpLoss"],
+                        "engineOrder": engine_order,
                         "sentinel": sentinel,
                         "verifier": verifier,
+                        "baseline": baseline,
                         "evidenceClass": S.evidence_class(
                             sentinel,
                             verifier,
+                            baseline,
+                            candidate,
                             args.major_loss_cp,
+                            args.decision_margin_cp,
                         ),
                     }
                 )
@@ -138,6 +133,7 @@ def main() -> None:
     finally:
         sentinel_engine.close()
         verifier_engine.close()
+        baseline_engine.close()
 
     B.write_result(
         "tactical-sentinel-suite",
@@ -148,6 +144,7 @@ def main() -> None:
             "principalBudgetMs": int(args.principal_budget),
             "sentinelBudgetsMs": budgets,
             "majorLossCp": args.major_loss_cp,
+            "decisionMarginCp": args.decision_margin_cp,
             "raw": B.provenance(raw_cfg),
             "sentinel": B.provenance(sentinel_cfg),
             "summaries": {

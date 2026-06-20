@@ -62,7 +62,10 @@ def sentinel_config(raw_cfg: dict) -> dict:
 def evidence_class(
     sentinel: dict,
     verifier: dict,
+    baseline: dict | None = None,
+    candidate: str | None = None,
     major_loss_cp: int = 300,
+    decision_margin_cp: int = 50,
 ) -> str:
     sentinel_mate = sentinel.get("mate")
     verifier_mate = verifier.get("mate")
@@ -80,6 +83,11 @@ def evidence_class(
         and sentinel_score >= major_loss_cp
         and isinstance(verifier_score, int)
         and verifier_score <= -major_loss_cp
+        and baseline is not None
+        and candidate is not None
+        and baseline.get("move") != candidate
+        and isinstance(baseline.get("scoreCp"), int)
+        and baseline["scoreCp"] - verifier_score >= decision_margin_cp
     ):
         return "verified-major-loss"
     return "none"
@@ -97,6 +105,39 @@ def all_repeats_transition(
     return None
 
 
+def run_triplet(
+    sentinel_engine: B.Engine,
+    verifier_engine: B.Engine,
+    baseline_engine: B.Engine,
+    fen: str,
+    child: str,
+    candidate: str,
+    budget: int,
+    rotation: int,
+) -> tuple[dict, dict, dict, list[str]]:
+    output = {}
+    actions = {
+        "sentinel": lambda: E.result_record(
+            sentinel_engine.search_time(child, budget)
+        ),
+        "verifier": lambda: E.result_record(
+            verifier_engine.search_time(
+                fen,
+                budget,
+                forced_move=candidate,
+            )
+        ),
+        "baseline": lambda: E.result_record(
+            baseline_engine.search_time(fen, budget)
+        ),
+    }
+    base_order = ["sentinel", "verifier", "baseline"]
+    order = base_order[rotation % 3 :] + base_order[: rotation % 3]
+    for name in order:
+        output[name] = actions[name]()
+    return output["sentinel"], output["verifier"], output["baseline"], order
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--raw", default=E.DEFAULT_RAW)
@@ -105,6 +146,7 @@ def main() -> None:
     parser.add_argument("--budgets", default="5,10,25,50,100,250,500")
     parser.add_argument("--repeats", type=int, default=3)
     parser.add_argument("--major-loss-cp", type=int, default=300)
+    parser.add_argument("--decision-margin-cp", type=int, default=50)
     parser.add_argument("--allow-background-load", action="store_true")
     args = parser.parse_args()
 
@@ -117,46 +159,39 @@ def main() -> None:
 
     sentinel_engine = B.Engine(sentinel_cfg)
     verifier_engine = B.Engine(raw_cfg)
+    baseline_engine = B.Engine(raw_cfg)
     rows = []
     try:
         E.warm(sentinel_engine, min(budgets))
         E.warm(verifier_engine, min(budgets))
+        E.warm(baseline_engine, min(budgets))
         for budget_index, budget in enumerate(budgets):
             for repeat in range(args.repeats):
-                sentinel_first = (budget_index + repeat) % 2 == 0
-                if sentinel_first:
-                    sentinel = E.result_record(
-                        sentinel_engine.search_time(child, budget)
-                    )
-                    verifier = E.result_record(
-                        verifier_engine.search_time(
-                            args.fen,
-                            budget,
-                            forced_move=args.candidate,
-                        )
-                    )
-                else:
-                    verifier = E.result_record(
-                        verifier_engine.search_time(
-                            args.fen,
-                            budget,
-                            forced_move=args.candidate,
-                        )
-                    )
-                    sentinel = E.result_record(
-                        sentinel_engine.search_time(child, budget)
-                    )
+                sentinel, verifier, baseline, engine_order = run_triplet(
+                    sentinel_engine,
+                    verifier_engine,
+                    baseline_engine,
+                    args.fen,
+                    child,
+                    args.candidate,
+                    budget,
+                    budget_index + repeat,
+                )
                 evidence = evidence_class(
                     sentinel,
                     verifier,
+                    baseline,
+                    args.candidate,
                     args.major_loss_cp,
+                    args.decision_margin_cp,
                 )
                 row = {
                     "budgetMs": budget,
                     "repeat": repeat,
-                    "firstEngine": "sentinel" if sentinel_first else "verifier",
+                    "engineOrder": engine_order,
                     "sentinel": sentinel,
                     "verifier": verifier,
+                    "baseline": baseline,
                     "sentinelMateAlarm": (
                         isinstance(sentinel.get("mate"), int)
                         and sentinel["mate"] > 0
@@ -177,6 +212,7 @@ def main() -> None:
     finally:
         sentinel_engine.close()
         verifier_engine.close()
+        baseline_engine.close()
 
     first_sentinel = all_repeats_transition(
         rows,
@@ -203,6 +239,7 @@ def main() -> None:
             "budgetsMs": budgets,
             "repeats": args.repeats,
             "majorLossCp": args.major_loss_cp,
+            "decisionMarginCp": args.decision_margin_cp,
             "raw": B.provenance(raw_cfg),
             "sentinel": B.provenance(sentinel_cfg),
             "firstAllRepeatsSentinelMateAlarmMs": first_sentinel,

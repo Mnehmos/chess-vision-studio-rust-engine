@@ -26,6 +26,8 @@ class EqualTimeTests(unittest.TestCase):
             evidence_class(
                 {"mate": None, "scoreCp": 450},
                 {"mate": None, "scoreCp": -420},
+                {"move": "h2h4", "scoreCp": -300},
+                "g2f3",
             ),
             "verified-major-loss",
         )
@@ -33,6 +35,17 @@ class EqualTimeTests(unittest.TestCase):
             evidence_class(
                 {"mate": None, "scoreCp": 450},
                 {"mate": None, "scoreCp": -200},
+                {"move": "h2h4", "scoreCp": -100},
+                "g2f3",
+            ),
+            "none",
+        )
+        self.assertEqual(
+            evidence_class(
+                {"mate": None, "scoreCp": 450},
+                {"mate": None, "scoreCp": -420},
+                {"move": "g2f3", "scoreCp": -300},
+                "g2f3",
             ),
             "none",
         )
