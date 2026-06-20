@@ -9,6 +9,19 @@ from pathlib import Path
 LICHESS_DATA_PATH = 'f:/Github/chess-vision-studio/arena/out/lichess-dataset.jsonl'
 SELFPLAY_DATA_PATH = 'F:/tools/gen9-disagreement-seeds.jsonl'
 BASE_TRAIN_PATH = 'F:/tools/gen9-train.jsonl'
+RESERVED_HOLDOUT_PATH = 'benchmarks/suites/holdout-reserved-20260619.txt'
+
+def fen_key(fen):
+    fields = fen.strip().split()
+    if len(fields) < 4:
+        raise ValueError(f'invalid FEN: {fen}')
+    return ' '.join(fields[:4])
+
+def load_reserved(path):
+    if not path or not os.path.exists(path):
+        return set()
+    with open(path, encoding='utf8') as f:
+        return {fen_key(line) for line in f if line.strip()}
 
 def load_fens(path):
     fens = {}
@@ -21,7 +34,7 @@ def load_fens(path):
             try:
                 data = json.loads(line)
                 fen = data['fen']
-                fens[fen] = data
+                fens[fen_key(fen)] = data
             except Exception:
                 pass
     return fens
@@ -50,6 +63,7 @@ def main():
     parser.add_argument('--data-dir', default='training/gen9/gen9-cvs')
     parser.add_argument('--out-dir', default='target-cvs')
     parser.add_argument('--engine', default='target/release/analyze.exe')
+    parser.add_argument('--reserved-fens', default=RESERVED_HOLDOUT_PATH)
     args = parser.parse_args()
 
     print("=== Gen 9 RSI Loop Orchestrator ===")
@@ -59,6 +73,14 @@ def main():
     base_data = load_fens(args.base_data)
     print(f"Loaded {len(base_data)} positions from base.")
     seen_fens = set(base_data)
+    reserved = load_reserved(args.reserved_fens)
+    overlap = seen_fens & reserved
+    if overlap:
+        raise SystemExit(
+            f"Refusing to train: {len(overlap)} reserved holdout positions already exist "
+            f"in {args.base_data}"
+        )
+    print(f"Loaded {len(reserved)} reserved holdout positions.")
 
     # 2. Loading new Lichess bot review data
     new_rows = []
@@ -67,8 +89,8 @@ def main():
         lichess_data = load_fens(args.lichess_data)
         print(f"Loaded {len(lichess_data)} positions from Lichess reviews.")
         for fen, row in lichess_data.items():
-            if fen not in seen_fens:
-                row_fmt = normalize_row(fen, row)
+            if fen not in seen_fens and fen not in reserved:
+                row_fmt = normalize_row(row['fen'], row)
                 if row_fmt is None:
                     continue
                 new_rows.append(row_fmt)
@@ -82,8 +104,8 @@ def main():
         selfplay_data = load_fens(args.selfplay_data)
         print(f"Loaded {len(selfplay_data)} positions from self-play.")
         for fen, row in selfplay_data.items():
-            if fen not in seen_fens:
-                row_fmt = normalize_row(fen, row)
+            if fen not in seen_fens and fen not in reserved:
+                row_fmt = normalize_row(row['fen'], row)
                 if row_fmt is None:
                     continue
                 new_rows.append(row_fmt)

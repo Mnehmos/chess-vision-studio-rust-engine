@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "positionKey": "first four FEN fields",
+  "notes": "These files cover the known Gen7-Gen9 training corpora and all pre-existing benchmark suites. Globs are resolved relative to the repository unless absolute.",
+  "inputs": [
+    {
+      "generation": 7,
+      "pattern": "F:/tools/labels-sf-d12-shard-*.jsonl",
+      "format": "jsonl"
+    },
+    {
+      "generation": 8,
+      "pattern": "F:/tools/gen8-train-corpus.jsonl",
+      "format": "jsonl"
+    },
+    {
+      "generation": 8,
+      "pattern": "F:/tools/gen8-train-v2.jsonl",
+      "format": "jsonl"
+    },
+    {
+      "generation": 9,
+      "pattern": "F:/tools/gen9-train.jsonl",
+      "format": "jsonl"
+    },
+    {
+      "generation": 9,
+      "pattern": "training/gen9/gen9-cvs-deltas.jsonl",
+      "format": "jsonl"
+    },
+    {
+      "generation": "benchmark",
+      "pattern": "benchmarks/suites/suite-dev-100.txt",
+      "format": "fen"
+    },
+    {
+      "generation": "benchmark",
+      "pattern": "benchmarks/suites/suite-fresh-100.txt",
+      "format": "fen"
+    },
+    {
+      "generation": "benchmark",
+      "pattern": "benchmarks/suites/suite-hard-100.txt",
+      "format": "fen"
+    }
+  ]
+}

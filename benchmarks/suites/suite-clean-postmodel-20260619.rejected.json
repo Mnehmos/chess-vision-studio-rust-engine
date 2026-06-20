@@ -1,0 +1,407 @@
+{
+  "maxAbsScoreCp": 3000,
+  "positions": [
+    {
+      "key": "8/1p5p/2ppBkp1/8/3qp3/8/Pr4PP/4RK2 b - -",
+      "fen": "8/1p5p/2ppBkp1/8/3qp3/8/Pr4PP/4RK2 b - - 1 31",
+      "bestMove": "d4f2",
+      "scoreCp": 9999,
+      "secondMove": "b2f2",
+      "secondScoreCp": 9997,
+      "danger": true,
+      "dangerReasons": [
+        "best_gives_check"
+      ],
+      "depth": 24,
+      "nodes": 9011,
+      "timeSec": 0.004
+    },
+    {
+      "key": "r2kr3/1pp1nR1R/3pQ3/p7/6p1/P3P3/1PP3PP/2K5 b - -",
+      "fen": "r2kr3/1pp1nR1R/3pQ3/p7/6p1/P3P3/1PP3PP/2K5 b - - 6 35",
+      "bestMove": "a8a6",
+      "scoreCp": -9997,
+      "secondMove": "a8b8",
+      "secondScoreCp": -9997,
+      "danger": false,
+      "dangerReasons": [],
+      "depth": 24,
+      "nodes": 8513,
+      "timeSec": 0.003
+    },
+    {
+      "key": "1r5r/ppp3pp/5pn1/2kR4/8/2P1pBBN/2P3PP/1R4K1 b - -",
+      "fen": "1r5r/ppp3pp/5pn1/2kR4/8/2P1pBBN/2P3PP/1R4K1 b - - 7 21",
+      "bestMove": "c5c6",
+      "scoreCp": -9996,
+      "secondMove": "c5c4",
+      "secondScoreCp": -9996,
+      "danger": true,
+      "dangerReasons": [
+        "in_check"
+      ],
+      "depth": 24,
+      "nodes": 19260,
+      "timeSec": 0.018
+    },
+    {
+      "key": "6k1/5pbp/3p2p1/R3B3/1P5P/5b1n/2PPqPP1/6K1 w - -",
+      "fen": "6k1/5pbp/3p2p1/R3B3/1P5P/5b1n/2PPqPP1/6K1 w - - 1 30",
+      "bestMove": "g1h2",
+      "scoreCp": -9997,
+      "secondMove": "g1h1",
+      "secondScoreCp": -9998,
+      "danger": true,
+      "dangerReasons": [
+        "in_check"
+      ],
+      "depth": 24,
+      "nodes": 18575,
+      "timeSec": 0.008
+    },
+    {
+      "key": "r3Nnrk/2q4p/p3p1n1/1pB1P3/P5P1/7P/1PP2QB1/3R1R1K w - -",
+      "fen": "r3Nnrk/2q4p/p3p1n1/1pB1P3/P5P1/7P/1PP2QB1/3R1R1K w - - 5 38",
+      "bestMove": "e8c7",
+      "scoreCp": 9991,
+      "secondMove": "f2f6",
+      "secondScoreCp": 9991,
+      "danger": true,
+      "dangerReasons": [
+        "best_is_capture"
+      ],
+      "depth": 24,
+      "nodes": 1572826,
+      "timeSec": 1.012
+    },
+    {
+      "key": "4N2k/3n1Q1p/p7/4p3/P3B1P1/1p5P/1PP5/5R1K w - -",
+      "fen": "4N2k/3n1Q1p/p7/4p3/P3B1P1/1p5P/1PP5/5R1K w - - 0 46",
+      "bestMove": "f7h7",
+      "scoreCp": 9999,
+      "secondMove": "f7g7",
+      "secondScoreCp": 9999,
+      "danger": true,
+      "dangerReasons": [
+        "best_is_capture",
+        "best_gives_check"
+      ],
+      "depth": 24,
+      "nodes": 2445,
+      "timeSec": 0.001
+    },
+    {
+      "key": "r2k1b2/p3pp2/2Q2npr/3PB2p/1P1PP3/7P/1P3PP1/R3K1NR w KQ -",
+      "fen": "r2k1b2/p3pp2/2Q2npr/3PB2p/1P1PP3/7P/1P3PP1/R3K1NR w KQ - 1 18",
+      "bestMove": "c6a8",
+      "scoreCp": 9998,
+      "secondMove": "e5c7",
+      "secondScoreCp": 9997,
+      "danger": true,
+      "dangerReasons": [
+        "best_is_capture",
+        "best_gives_check"
+      ],
+      "depth": 24,
+      "nodes": 13405,
+      "timeSec": 0.007
+    },
+    {
+      "key": "QR6/5B2/4nb1B/4p2p/2k4P/6PK/5P2/3q4 w - -",
+      "fen": "QR6/5B2/4nb1B/4p2p/2k4P/6PK/5P2/3q4 w - - 3 47",
+      "bestMove": "f7e6",
+      "scoreCp": 9996,
+      "secondMove": "a8c6",
+      "secondScoreCp": 9995,
+      "danger": true,
+      "dangerReasons": [
+        "best_is_capture",
+        "best_gives_check"
+      ],
+      "depth": 24,
+      "nodes": 49040,
+      "timeSec": 0.034
+    },
+    {
+      "key": "7k/8/3p4/PPpP1pn1/7p/1K1r3P/1P6/2q5 w - -",
+      "fen": "7k/8/3p4/PPpP1pn1/7p/1K1r3P/1P6/2q5 w - - 0 45",
+      "bestMove": "b3a2",
+      "scoreCp": -9997,
+      "secondMove": "b3a4",
+      "secondScoreCp": -9999,
+      "danger": true,
+      "dangerReasons": [
+        "in_check"
+      ],
+      "depth": 24,
+      "nodes": 1826,
+      "timeSec": 0.001
+    },
+    {
+      "key": "4rrk1/1b3pbp/pp4p1/8/P1Np1q2/1P3P1K/1BP4P/R2QR3 b - -",
+      "fen": "4rrk1/1b3pbp/pp4p1/8/P1Np1q2/1P3P1K/1BP4P/R2QR3 b - - 0 26",
+      "bestMove": "b7f3",
+      "scoreCp": 9995,
+      "secondMove": "e8e1",
+      "secondScoreCp": 9987,
+      "danger": true,
+      "dangerReasons": [
+        "best_is_capture"
+      ],
+      "depth": 24,
+      "nodes": 538982,
+      "timeSec": 0.323
+    },
+    {
+      "key": "7b/5p1k/8/5K2/1p2r1PP/8/2P5/8 b - -",
+      "fen": "7b/5p1k/8/5K2/1p2r1PP/8/2P5/8 b - - 1 51",
+      "bestMove": "e4c4",
+      "scoreCp": 9989,
+      "secondMove": "e4e5",
+      "secondScoreCp": 9988,
+      "danger": false,
+      "dangerReasons": [],
+      "depth": 24,
+      "nodes": 591901,
+      "timeSec": 0.275
+    },
+    {
+      "key": "rN4k1/4RQ1p/6p1/p1p1P1B1/P4P2/7P/6PK/8 b - -",
+      "fen": "rN4k1/4RQ1p/6p1/p1p1P1B1/P4P2/7P/6PK/8 b - - 0 47",
+      "bestMove": "g8h8",
+      "scoreCp": -9999,
+      "secondMove": null,
+      "secondScoreCp": null,
+      "danger": true,
+      "dangerReasons": [
+        "in_check"
+      ],
+      "depth": 24,
+      "nodes": 48,
+      "timeSec": 0.001
+    },
+    {
+      "key": "8/2p5/pp6/7B/4k2P/2B5/PPP5/2K2R2 b - -",
+      "fen": "8/2p5/pp6/7B/4k2P/2B5/PPP5/2K2R2 b - - 1 36",
+      "bestMove": "e4e3",
+      "scoreCp": -9991,
+      "secondMove": "a6a5",
+      "secondScoreCp": -9991,
+      "danger": false,
+      "dangerReasons": [],
+      "depth": 24,
+      "nodes": 2929634,
+      "timeSec": 1.471
+    },
+    {
+      "key": "8/2p4P/8/1pk5/8/5B2/PpPB4/1K2R3 w - -",
+      "fen": "8/2p4P/8/1pk5/8/5B2/PpPB4/1K2R3 w - - 2 46",
+      "bestMove": "h7h8q",
+      "scoreCp": 9996,
+      "secondMove": "e1e6",
+      "secondScoreCp": 9996,
+      "danger": false,
+      "dangerReasons": [],
+      "depth": 24,
+      "nodes": 25468,
+      "timeSec": 0.015
+    },
+    {
+      "key": "5k2/6p1/6K1/6P1/8/5P2/8/8 w - -",
+      "fen": "5k2/6p1/6K1/6P1/8/5P2/8/8 w - - 5 52",
+      "bestMove": "g6h7",
+      "scoreCp": 9984,
+      "secondMove": "f3f4",
+      "secondScoreCp": 7279,
+      "danger": true,
+      "dangerReasons": [
+        "multipv_gap_100"
+      ],
+      "depth": 24,
+      "nodes": 7707669,
+      "timeSec": 2.206
+    },
+    {
+      "key": "8/P4p2/7p/Bk4p1/6P1/2pK3P/8/8 b - -",
+      "fen": "8/P4p2/7p/Bk4p1/6P1/2pK3P/8/8 b - - 0 48",
+      "bestMove": "h6h5",
+      "scoreCp": -9985,
+      "secondMove": "c3c2",
+      "secondScoreCp": -9985,
+      "danger": false,
+      "dangerReasons": [],
+      "depth": 24,
+      "nodes": 3265249,
+      "timeSec": 1.57
+    },
+    {
+      "key": "r1b5/3k1Q2/8/8/2pp4/8/1PP3PP/1NB3K1 b - -",
+      "fen": "r1b5/3k1Q2/8/8/2pp4/8/1PP3PP/1NB3K1 b - - 0 29",
+      "bestMove": "d7d6",
+      "scoreCp": -9984,
+      "secondMove": "d7c6",
+      "secondScoreCp": -9985,
+      "danger": true,
+      "dangerReasons": [
+        "in_check"
+      ],
+      "depth": 24,
+      "nodes": 1129467,
+      "timeSec": 0.61
+    },
+    {
+      "key": "5k2/8/4Q3/1P6/2PB2PP/N2b4/5K2/8 w - -",
+      "fen": "5k2/8/4Q3/1P6/2PB2PP/N2b4/5K2/8 w - - 7 51",
+      "bestMove": "d4f6",
+      "scoreCp": 9997,
+      "secondMove": "d4c5",
+      "secondScoreCp": 9996,
+      "danger": false,
+      "dangerReasons": [],
+      "depth": 24,
+      "nodes": 66983,
+      "timeSec": 0.034
+    },
+    {
+      "key": "7k/7p/1pp3p1/p3p3/1n4P1/1PKP4/1P1P3P/2B2r2 w - -",
+      "fen": "7k/7p/1pp3p1/p3p3/1n4P1/1PKP4/1P1P3P/2B2r2 w - - 0 27",
+      "bestMove": "h2h3",
+      "scoreCp": -9999,
+      "secondMove": "d3d4",
+      "secondScoreCp": -9999,
+      "danger": false,
+      "dangerReasons": [],
+      "depth": 24,
+      "nodes": 355,
+      "timeSec": 0.001
+    },
+    {
+      "key": "r4r1k/pp4pp/n1pP4/8/1PP2p2/P5R1/6PP/R1BQ2K1 w - -",
+      "fen": "r4r1k/pp4pp/n1pP4/8/1PP2p2/P5R1/6PP/R1BQ2K1 w - - 0 24",
+      "bestMove": "g3g7",
+      "scoreCp": 9987,
+      "secondMove": "g3f3",
+      "secondScoreCp": 886,
+      "danger": true,
+      "dangerReasons": [
+        "best_is_capture",
+        "multipv_gap_100"
+      ],
+      "depth": 24,
+      "nodes": 13635261,
+      "timeSec": 8.387
+    },
+    {
+      "key": "4r1k1/8/p3N2R/1p2Rp1P/r7/5P2/6PK/8 w - -",
+      "fen": "4r1k1/8/p3N2R/1p2Rp1P/r7/5P2/6PK/8 w - - 1 42",
+      "bestMove": "h6g6",
+      "scoreCp": 8256,
+      "secondMove": "e5f5",
+      "secondScoreCp": 4796,
+      "danger": true,
+      "dangerReasons": [
+        "best_gives_check",
+        "multipv_gap_100"
+      ],
+      "depth": 24,
+      "nodes": 130170650,
+      "timeSec": 58.499
+    },
+    {
+      "key": "4R3/3R4/p4k1P/1p6/8/5P2/6PK/8 w - -",
+      "fen": "4R3/3R4/p4k1P/1p6/8/5P2/6PK/8 w - - 3 52",
+      "bestMove": "h6h7",
+      "scoreCp": 9996,
+      "secondMove": "e8e4",
+      "secondScoreCp": 9995,
+      "danger": false,
+      "dangerReasons": [],
+      "depth": 24,
+      "nodes": 64156,
+      "timeSec": 0.032
+    },
+    {
+      "key": "6k1/8/3p2p1/1P1P2P1/5P2/2b2K2/8/q1r5 w - -",
+      "fen": "6k1/8/3p2p1/1P1P2P1/5P2/2b2K2/8/q1r5 w - - 0 55",
+      "bestMove": "f3e4",
+      "scoreCp": -9996,
+      "secondMove": "b5b6",
+      "secondScoreCp": -9996,
+      "danger": false,
+      "dangerReasons": [],
+      "depth": 24,
+      "nodes": 55754,
+      "timeSec": 0.023
+    },
+    {
+      "key": "8/5p1p/p6k/P4P1P/8/4r1b1/8/7K b - -",
+      "fen": "8/5p1p/p6k/P4P1P/8/4r1b1/8/7K b - - 7 45",
+      "bestMove": "h6h5",
+      "scoreCp": 9995,
+      "secondMove": "f7f6",
+      "secondScoreCp": 9994,
+      "danger": true,
+      "dangerReasons": [
+        "best_is_capture"
+      ],
+      "depth": 24,
+      "nodes": 66111,
+      "timeSec": 0.04
+    },
+    {
+      "key": "7k/p2P4/2N1Q3/2q4p/6p1/6P1/P7/5B1K b - -",
+      "fen": "7k/p2P4/2N1Q3/2q4p/6p1/6P1/P7/5B1K b - - 1 41",
+      "bestMove": "h8g7",
+      "scoreCp": -9996,
+      "secondMove": "c5f8",
+      "secondScoreCp": -9996,
+      "danger": false,
+      "dangerReasons": [],
+      "depth": 24,
+      "nodes": 101497,
+      "timeSec": 0.055
+    },
+    {
+      "key": "4rrk1/ppp2pbp/2p3p1/5b2/P1Pq2n1/1P3P2/Q2PN1PP/R1B1KB1R b Q -",
+      "fen": "4rrk1/ppp2pbp/2p3p1/5b2/P1Pq2n1/1P3P2/Q2PN1PP/R1B1KB1R b Q - 6 15",
+      "bestMove": "e8e2",
+      "scoreCp": 9994,
+      "secondMove": "d4f2",
+      "secondScoreCp": 9994,
+      "danger": true,
+      "dangerReasons": [
+        "best_is_capture",
+        "best_gives_check"
+      ],
+      "depth": 24,
+      "nodes": 5339217,
+      "timeSec": 3.869
+    },
+    {
+      "key": "8/8/4p3/k3P3/7K/8/3b2q1/8 w - -",
+      "fen": "8/8/4p3/k3P3/7K/8/3b2q1/8 w - - 0 71",
+      "bestMove": "h4h5",
+      "scoreCp": -9999,
+      "secondMove": null,
+      "secondScoreCp": null,
+      "danger": false,
+      "dangerReasons": [],
+      "depth": 24,
+      "nodes": 132,
+      "timeSec": 0.001
+    },
+    {
+      "key": "2k2b1r/2p2p1p/2B2p2/1R2p3/5P1N/P6P/6P1/3R3K w - -",
+      "fen": "2k2b1r/2p2p1p/2B2p2/1R2p3/5P1N/P6P/6P1/3R3K w - - 0 26",
+      "bestMove": "b5a5",
+      "scoreCp": 9998,
+      "secondMove": "c6b7",
+      "secondScoreCp": 9997,
+      "danger": false,
+      "dangerReasons": [],
+      "depth": 24,
+      "nodes": 7934,
+      "timeSec": 0.003
+    }
+  ]
+}

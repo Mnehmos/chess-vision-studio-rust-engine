@@ -1,0 +1,1586 @@
+{
+  "schemaVersion": 1,
+  "suite": "suite-clean-postmodel-20260619",
+  "positionKey": "first four FEN fields",
+  "source": {
+    "path": "F:\\Github\\chess-vision-studio-rust-engine\\benchmarks\\sources\\lichess-post-model-20260618T194300Z-20260620T000430Z.pgn",
+    "sha256": "81ccf8c42ed089db07e777d7d72676e5d64522d9a6b2d79ce87b30aceb5fabc6",
+    "modelCutoffUtc": "2026-06-18T19:43:00.475Z",
+    "fetchedUntilUtc": "2026-06-20T00:04:30Z",
+    "account": "ChessVisionStudioEng",
+    "games": [
+      {
+        "gameId": "6fOMeFAj",
+        "site": "https://lichess.org/6fOMeFAj",
+        "date": "2026.06.19",
+        "time": "23:37:55",
+        "result": "1-0",
+        "timeControl": "300+3",
+        "candidatePositions": 63
+      },
+      {
+        "gameId": "uG9tDtZx",
+        "site": "https://lichess.org/uG9tDtZx",
+        "date": "2026.06.19",
+        "time": "22:51:29",
+        "result": "0-1",
+        "timeControl": "300+3",
+        "candidatePositions": 130
+      },
+      {
+        "gameId": "hhU8iBq4",
+        "site": "https://lichess.org/hhU8iBq4",
+        "date": "2026.06.19",
+        "time": "21:49:59",
+        "result": "1-0",
+        "timeControl": "300+3",
+        "candidatePositions": 113
+      },
+      {
+        "gameId": "O4Ur3XKA",
+        "site": "https://lichess.org/O4Ur3XKA",
+        "date": "2026.06.19",
+        "time": "21:38:58",
+        "result": "1-0",
+        "timeControl": "180+2",
+        "candidatePositions": 87
+      },
+      {
+        "gameId": "lIBYkRlE",
+        "site": "https://lichess.org/lIBYkRlE",
+        "date": "2026.06.19",
+        "time": "20:59:07",
+        "result": "1-0",
+        "timeControl": "300+0",
+        "candidatePositions": 47
+      },
+      {
+        "gameId": "1iPTYCg6",
+        "site": "https://lichess.org/1iPTYCg6",
+        "date": "2026.06.19",
+        "time": "20:42:47",
+        "result": "0-1",
+        "timeControl": "300+0",
+        "candidatePositions": 50
+      },
+      {
+        "gameId": "ZFio8XUQ",
+        "site": "https://lichess.org/ZFio8XUQ",
+        "date": "2026.06.19",
+        "time": "20:32:37",
+        "result": "0-1",
+        "timeControl": "180+2",
+        "candidatePositions": 108
+      },
+      {
+        "gameId": "AHmCeDEM",
+        "site": "https://lichess.org/AHmCeDEM",
+        "date": "2026.06.19",
+        "time": "20:21:36",
+        "result": "0-1",
+        "timeControl": "300+3",
+        "candidatePositions": 48
+      },
+      {
+        "gameId": "8sZ5Aiku",
+        "site": "https://lichess.org/8sZ5Aiku",
+        "date": "2026.06.19",
+        "time": "20:13:42",
+        "result": "1-0",
+        "timeControl": "180+2",
+        "candidatePositions": 35
+      },
+      {
+        "gameId": "unFl3ZS5",
+        "site": "https://lichess.org/unFl3ZS5",
+        "date": "2026.06.19",
+        "time": "19:49:41",
+        "result": "0-1",
+        "timeControl": "180+2",
+        "candidatePositions": 64
+      },
+      {
+        "gameId": "eEZPO5S6",
+        "site": "https://lichess.org/eEZPO5S6",
+        "date": "2026.06.19",
+        "time": "19:41:12",
+        "result": "1-0",
+        "timeControl": "60+0",
+        "candidatePositions": 85
+      },
+      {
+        "gameId": "uQfzNWID",
+        "site": "https://lichess.org/uQfzNWID",
+        "date": "2026.06.19",
+        "time": "19:32:37",
+        "result": "1-0",
+        "timeControl": "300+3",
+        "candidatePositions": 41
+      },
+      {
+        "gameId": "lZULgtV5",
+        "site": "https://lichess.org/lZULgtV5",
+        "date": "2026.06.19",
+        "time": "18:52:30",
+        "result": "1-0",
+        "timeControl": "600+0",
+        "candidatePositions": 97
+      },
+      {
+        "gameId": "eWxB7mts",
+        "site": "https://lichess.org/eWxB7mts",
+        "date": "2026.06.19",
+        "time": "18:02:37",
+        "result": "1-0",
+        "timeControl": "180+1",
+        "candidatePositions": 125
+      },
+      {
+        "gameId": "oeCq4KLs",
+        "site": "https://lichess.org/oeCq4KLs",
+        "date": "2026.06.19",
+        "time": "17:47:45",
+        "result": "1-0",
+        "timeControl": "300+0",
+        "candidatePositions": 77
+      },
+      {
+        "gameId": "RFqUJggW",
+        "site": "https://lichess.org/RFqUJggW",
+        "date": "2026.06.19",
+        "time": "17:32:36",
+        "result": "0-1",
+        "timeControl": "240+0",
+        "candidatePositions": 96
+      },
+      {
+        "gameId": "od3XZVOs",
+        "site": "https://lichess.org/od3XZVOs",
+        "date": "2026.06.19",
+        "time": "16:47:27",
+        "result": "1-0",
+        "timeControl": "60+0",
+        "candidatePositions": 47
+      },
+      {
+        "gameId": "zKltoaeg",
+        "site": "https://lichess.org/zKltoaeg",
+        "date": "2026.06.19",
+        "time": "16:39:26",
+        "result": "1-0",
+        "timeControl": "300+3",
+        "candidatePositions": 41
+      },
+      {
+        "gameId": "oLAawGCa",
+        "site": "https://lichess.org/oLAawGCa",
+        "date": "2026.06.19",
+        "time": "16:24:26",
+        "result": "0-1",
+        "timeControl": "600+0",
+        "candidatePositions": 86
+      },
+      {
+        "gameId": "drjvJDDc",
+        "site": "https://lichess.org/drjvJDDc",
+        "date": "2026.06.19",
+        "time": "16:20:27",
+        "result": "1-0",
+        "timeControl": "300+0",
+        "candidatePositions": 0
+      },
+      {
+        "gameId": "FQGWMJWp",
+        "site": "https://lichess.org/FQGWMJWp",
+        "date": "2026.06.19",
+        "time": "16:18:26",
+        "result": "1-0",
+        "timeControl": "60+0",
+        "candidatePositions": 35
+      },
+      {
+        "gameId": "os7pPm50",
+        "site": "https://lichess.org/os7pPm50",
+        "date": "2026.06.19",
+        "time": "16:05:11",
+        "result": "0-1",
+        "timeControl": "180+2",
+        "candidatePositions": 28
+      },
+      {
+        "gameId": "CA0c9c28",
+        "site": "https://lichess.org/CA0c9c28",
+        "date": "2026.06.19",
+        "time": "15:45:26",
+        "result": "0-1",
+        "timeControl": "600+0",
+        "candidatePositions": 204
+      },
+      {
+        "gameId": "gfzP3T29",
+        "site": "https://lichess.org/gfzP3T29",
+        "date": "2026.06.19",
+        "time": "15:37:26",
+        "result": "0-1",
+        "timeControl": "180+2",
+        "candidatePositions": 16
+      },
+      {
+        "gameId": "jyuAId8O",
+        "site": "https://lichess.org/jyuAId8O",
+        "date": "2026.06.19",
+        "time": "15:30:25",
+        "result": "0-1",
+        "timeControl": "300+3",
+        "candidatePositions": 42
+      },
+      {
+        "gameId": "0bHmiY3S",
+        "site": "https://lichess.org/0bHmiY3S",
+        "date": "2026.06.19",
+        "time": "15:24:24",
+        "result": "1-0",
+        "timeControl": "300+0",
+        "candidatePositions": 57
+      },
+      {
+        "gameId": "6JsM5PpN",
+        "site": "https://lichess.org/6JsM5PpN",
+        "date": "2026.06.19",
+        "time": "05:12:04",
+        "result": "1-0",
+        "timeControl": "180+2",
+        "candidatePositions": 0
+      },
+      {
+        "gameId": "j4M1uSq7",
+        "site": "https://lichess.org/j4M1uSq7",
+        "date": "2026.06.19",
+        "time": "04:02:54",
+        "result": "1-0",
+        "timeControl": "180+0",
+        "candidatePositions": 93
+      },
+      {
+        "gameId": "Ej9M7YJt",
+        "site": "https://lichess.org/Ej9M7YJt",
+        "date": "2026.06.19",
+        "time": "03:36:18",
+        "result": "0-1",
+        "timeControl": "180+2",
+        "candidatePositions": 16
+      },
+      {
+        "gameId": "hZUladHB",
+        "site": "https://lichess.org/hZUladHB",
+        "date": "2026.06.19",
+        "time": "03:32:13",
+        "result": "0-1",
+        "timeControl": "300+3",
+        "candidatePositions": 2
+      },
+      {
+        "gameId": "KgdWmXSK",
+        "site": "https://lichess.org/KgdWmXSK",
+        "date": "2026.06.19",
+        "time": "03:22:19",
+        "result": "1-0",
+        "timeControl": "300+0",
+        "candidatePositions": 175
+      },
+      {
+        "gameId": "Iy6v2okm",
+        "site": "https://lichess.org/Iy6v2okm",
+        "date": "2026.06.19",
+        "time": "03:11:18",
+        "result": "1-0",
+        "timeControl": "300+0",
+        "candidatePositions": 25
+      },
+      {
+        "gameId": "UoUYeYTm",
+        "site": "https://lichess.org/UoUYeYTm",
+        "date": "2026.06.19",
+        "time": "02:37:09",
+        "result": "0-1",
+        "timeControl": "600+2",
+        "candidatePositions": 82
+      },
+      {
+        "gameId": "oGqiQAs0",
+        "site": "https://lichess.org/oGqiQAs0",
+        "date": "2026.06.19",
+        "time": "02:20:07",
+        "result": "0-1",
+        "timeControl": "60+0",
+        "candidatePositions": 103
+      },
+      {
+        "gameId": "kWewmQqK",
+        "site": "https://lichess.org/kWewmQqK",
+        "date": "2026.06.19",
+        "time": "02:11:18",
+        "result": "1/2-1/2",
+        "timeControl": "180+2",
+        "candidatePositions": 108
+      },
+      {
+        "gameId": "X7EdPUbQ",
+        "site": "https://lichess.org/X7EdPUbQ",
+        "date": "2026.06.19",
+        "time": "01:14:57",
+        "result": "0-1",
+        "timeControl": "300+0",
+        "candidatePositions": 46
+      },
+      {
+        "gameId": "bXFxGSUp",
+        "site": "https://lichess.org/bXFxGSUp",
+        "date": "2026.06.19",
+        "time": "01:13:17",
+        "result": "1-0",
+        "timeControl": "60+0",
+        "candidatePositions": 83
+      },
+      {
+        "gameId": "EfEfCR8J",
+        "site": "https://lichess.org/EfEfCR8J",
+        "date": "2026.06.19",
+        "time": "00:41:23",
+        "result": "1-0",
+        "timeControl": "600+0",
+        "candidatePositions": 79
+      },
+      {
+        "gameId": "hoNPixGN",
+        "site": "https://lichess.org/hoNPixGN",
+        "date": "2026.06.19",
+        "time": "00:34:42",
+        "result": "1-0",
+        "timeControl": "180+1",
+        "candidatePositions": 86
+      },
+      {
+        "gameId": "42QXqwje",
+        "site": "https://lichess.org/42QXqwje",
+        "date": "2026.06.19",
+        "time": "00:17:16",
+        "result": "1-0",
+        "timeControl": "60+0",
+        "candidatePositions": 0
+      }
+    ]
+  },
+  "selection": {
+    "salt": "cvs-clean-holdout-20260619-v1",
+    "target": 120,
+    "minPly": 12,
+    "maxPerGame": 4,
+    "minPlyGap": 10,
+    "candidatePositions": 2720,
+    "contaminatedCandidates": 44,
+    "cleanCandidates": 2676,
+    "selectedByPhase": {
+      "middlegame": 57,
+      "opening": 30,
+      "endgame": 5
+    },
+    "selectedGames": 36
+  },
+  "reserved": {
+    "path": "benchmarks\\suites\\holdout-reserved-20260619.txt",
+    "positions": 3031,
+    "games": 40
+  },
+  "exclusions": [
+    {
+      "generation": 7,
+      "path": "F:\\tools\\labels-sf-d12-shard-00.jsonl",
+      "sha256": "0efad76f6f2f76d72f8f1abb4cd9d245fe785dbbe8d30c8d3365510f6de003a1",
+      "rows": 530931,
+      "malformed": 0,
+      "matchedCandidates": 0
+    },
+    {
+      "generation": 7,
+      "path": "F:\\tools\\labels-sf-d12-shard-01.jsonl",
+      "sha256": "3f7dc6bcdeb79c9f42ca89f62edbea5ce40930630d23d930cdd8c74c70925837",
+      "rows": 534100,
+      "malformed": 0,
+      "matchedCandidates": 0
+    },
+    {
+      "generation": 7,
+      "path": "F:\\tools\\labels-sf-d12-shard-02.jsonl",
+      "sha256": "5c248aff52887595b7cf43d80c85e652789316a98088ee588d125c6b0954fa6c",
+      "rows": 534093,
+      "malformed": 0,
+      "matchedCandidates": 0
+    },
+    {
+      "generation": 7,
+      "path": "F:\\tools\\labels-sf-d12-shard-03.jsonl",
+      "sha256": "1cfe2df00af4e919dda8e72b8089668655270b8c9245f4d58f96bcfed906e2c9",
+      "rows": 535324,
+      "malformed": 0,
+      "matchedCandidates": 0
+    },
+    {
+      "generation": 7,
+      "path": "F:\\tools\\labels-sf-d12-shard-04.jsonl",
+      "sha256": "f291aa02393869d96b8d500d3c68b1e9f5fdd38f2cae44f81b593737bf54d798",
+      "rows": 536998,
+      "malformed": 0,
+      "matchedCandidates": 0
+    },
+    {
+      "generation": 7,
+      "path": "F:\\tools\\labels-sf-d12-shard-05.jsonl",
+      "sha256": "ded80e2eb3fbc43d542c0275da12f84939ad4a02f41a4559946fd357d461fe0f",
+      "rows": 534657,
+      "malformed": 0,
+      "matchedCandidates": 0
+    },
+    {
+      "generation": 7,
+      "path": "F:\\tools\\labels-sf-d12-shard-06.jsonl",
+      "sha256": "bd9693228806b7365d3f21d287777810b42efd53d96eccb46c418713400e3942",
+      "rows": 536192,
+      "malformed": 0,
+      "matchedCandidates": 0
+    },
+    {
+      "generation": 7,
+      "path": "F:\\tools\\labels-sf-d12-shard-07.jsonl",
+      "sha256": "ac58125db7cf54417869d78415481c2a34a7a2107eba68d0716aaa68a58b20ee",
+      "rows": 535938,
+      "malformed": 0,
+      "matchedCandidates": 0
+    },
+    {
+      "generation": 7,
+      "path": "F:\\tools\\labels-sf-d12-shard-08.jsonl",
+      "sha256": "953189b90493187ea2c5d3d34e2d108b1524391c58d02816cac1d27e00007e00",
+      "rows": 531398,
+      "malformed": 0,
+      "matchedCandidates": 0
+    },
+    {
+      "generation": 7,
+      "path": "F:\\tools\\labels-sf-d12-shard-09.jsonl",
+      "sha256": "ef7ddd9f40c1755de9a3435f115c8bbacb8be5590c37e552d8921469d18c1a43",
+      "rows": 534317,
+      "malformed": 0,
+      "matchedCandidates": 0
+    },
+    {
+      "generation": 7,
+      "path": "F:\\tools\\labels-sf-d12-shard-10.jsonl",
+      "sha256": "cb4f8507b0ad04a675ee2ea19b079ad4a3764520c6dbd6cfa5d2809f65c00a3e",
+      "rows": 536444,
+      "malformed": 0,
+      "matchedCandidates": 0
+    },
+    {
+      "generation": 7,
+      "path": "F:\\tools\\labels-sf-d12-shard-11.jsonl",
+      "sha256": "e16d26cb5855dde175f9fbf1640993b231d924c1e134ef4f3b55dcaa800990f2",
+      "rows": 535895,
+      "malformed": 0,
+      "matchedCandidates": 0
+    },
+    {
+      "generation": 7,
+      "path": "F:\\tools\\labels-sf-d12-shard-12.jsonl",
+      "sha256": "e0ec4daffdedc9d50ed24501f141576beb5c0c8c5a3f21fb604cb4ec84a22d04",
+      "rows": 531115,
+      "malformed": 0,
+      "matchedCandidates": 0
+    },
+    {
+      "generation": 7,
+      "path": "F:\\tools\\labels-sf-d12-shard-13.jsonl",
+      "sha256": "2830edb5910136d035b9fa317688219aa2933861c5b52b3243d860164e7cc03f",
+      "rows": 532151,
+      "malformed": 0,
+      "matchedCandidates": 0
+    },
+    {
+      "generation": 8,
+      "path": "F:\\tools\\gen8-train-corpus.jsonl",
+      "sha256": "a6953c0a01aebfaa073c010cf3e5277d9520a91f16b0718dac8826625e71079d",
+      "rows": 6159020,
+      "malformed": 0,
+      "matchedCandidates": 44
+    },
+    {
+      "generation": 8,
+      "path": "F:\\tools\\gen8-train-v2.jsonl",
+      "sha256": "0efa553b53ac75f9f0c7351d2b522d8e32dccf33e547c369d2985fa4d76007ce",
+      "rows": 5041938,
+      "malformed": 0,
+      "matchedCandidates": 0
+    },
+    {
+      "generation": 9,
+      "path": "F:\\tools\\gen9-train.jsonl",
+      "sha256": "6d9e4efe168d23c63a82a7c72bbea3346e082e79a969ce872e1300e6d321b5ee",
+      "rows": 7861317,
+      "malformed": 0,
+      "matchedCandidates": 0
+    },
+    {
+      "generation": 9,
+      "path": "F:\\Github\\chess-vision-studio-rust-engine\\training\\gen9\\gen9-cvs-deltas.jsonl",
+      "sha256": "456c330ee3bf280950884d3413e75915e09a0ede6cf2373e8a5a008bebd86014",
+      "rows": 9999,
+      "malformed": 0,
+      "matchedCandidates": 0
+    },
+    {
+      "generation": "benchmark",
+      "path": "F:\\Github\\chess-vision-studio-rust-engine\\benchmarks\\suites\\suite-dev-100.txt",
+      "sha256": "d0f553383f1b2e4cd2785d2ed695d4f7e277425d5d04ac3d8ac3b27837762398",
+      "rows": 100,
+      "malformed": 0,
+      "matchedCandidates": 0
+    },
+    {
+      "generation": "benchmark",
+      "path": "F:\\Github\\chess-vision-studio-rust-engine\\benchmarks\\suites\\suite-fresh-100.txt",
+      "sha256": "23275256e9ba122c406a569f70f6d3436ec2d850d16f61b3e32049035ddde1f1",
+      "rows": 100,
+      "malformed": 0,
+      "matchedCandidates": 0
+    },
+    {
+      "generation": "benchmark",
+      "path": "F:\\Github\\chess-vision-studio-rust-engine\\benchmarks\\suites\\suite-hard-100.txt",
+      "sha256": "fa4e2cd8e2f196a8db12bfd593929de1857c209e9d93ff7ffb8eea5c042afad4",
+      "rows": 100,
+      "malformed": 0,
+      "matchedCandidates": 0
+    }
+  ],
+  "positions": [
+    {
+      "fen": "r2qk2r/pp1nbpp1/2p1pn1p/7P/3P1B2/5NN1/PPP1QPP1/R4RK1 b kq - 5 13",
+      "key": "r2qk2r/pp1nbpp1/2p1pn1p/7P/3P1B2/5NN1/PPP1QPP1/R4RK1 b kq -",
+      "gameId": "0bHmiY3S",
+      "ply": 25,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "300+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "15:24:24"
+    },
+    {
+      "fen": "r4rk1/ppn2pp1/2p1p2p/4n2P/PBP1N2q/8/1P2QPP1/3R1RK1 w - - 2 22",
+      "key": "r4rk1/ppn2pp1/2p1p2p/4n2P/PBP1N2q/8/1P2QPP1/3R1RK1 w - -",
+      "gameId": "0bHmiY3S",
+      "ply": 42,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "300+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "15:24:24"
+    },
+    {
+      "fen": "r4qk1/pp4p1/2p1p2p/5p1n/P1P1N3/5PP1/1P5Q/3R1RK1 w - - 0 29",
+      "key": "r4qk1/pp4p1/2p1p2p/5p1n/P1P1N3/5PP1/1P5Q/3R1RK1 w - -",
+      "gameId": "0bHmiY3S",
+      "ply": 56,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "300+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "15:24:24"
+    },
+    {
+      "fen": "r1bq1rk1/1p3pbp/2pp1np1/p3p3/1P2n3/Q1N2N2/P1PPBPPP/R1B2RK1 b - - 0 12",
+      "key": "r1bq1rk1/1p3pbp/2pp1np1/p3p3/1P2n3/Q1N2N2/P1PPBPPP/R1B2RK1 b - -",
+      "gameId": "1iPTYCg6",
+      "ply": 23,
+      "phase": "opening",
+      "result": "0-1",
+      "timeControl": "300+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "20:42:47"
+    },
+    {
+      "fen": "5rk1/1pq2pbp/2pp2p1/r2np1B1/6b1/1QP2N2/P1P1BPPP/R2R2K1 b - - 1 17",
+      "key": "5rk1/1pq2pbp/2pp2p1/r2np1B1/6b1/1QP2N2/P1P1BPPP/R2R2K1 b - -",
+      "gameId": "1iPTYCg6",
+      "ply": 33,
+      "phase": "middlegame",
+      "result": "0-1",
+      "timeControl": "300+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "20:42:47"
+    },
+    {
+      "fen": "5r1k/1p4bp/1qppB1p1/1r6/4p3/Q1B5/P1P2nPP/R5K1 w - - 5 25",
+      "key": "5r1k/1p4bp/1qppB1p1/1r6/4p3/Q1B5/P1P2nPP/R5K1 w - -",
+      "gameId": "1iPTYCg6",
+      "ply": 48,
+      "phase": "middlegame",
+      "result": "0-1",
+      "timeControl": "300+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "20:42:47"
+    },
+    {
+      "fen": "r1b2rk1/ppppnppp/2nb1q2/8/8/P1N1BN2/1PPQ1PPP/2KR1B1R w - - 5 11",
+      "key": "r1b2rk1/ppppnppp/2nb1q2/8/8/P1N1BN2/1PPQ1PPP/2KR1B1R w - -",
+      "gameId": "6fOMeFAj",
+      "ply": 20,
+      "phase": "opening",
+      "result": "1-0",
+      "timeControl": "300+3",
+      "utcDate": "2026.06.19",
+      "utcTime": "23:37:55"
+    },
+    {
+      "fen": "r1b2r2/ppppnkpB/1qn2p2/8/7R/P1N1PN2/1PPQ2PP/2K4R b - - 0 19",
+      "key": "r1b2r2/ppppnkpB/1qn2p2/8/7R/P1N1PN2/1PPQ2PP/2K4R b - -",
+      "gameId": "6fOMeFAj",
+      "ply": 37,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "300+3",
+      "utcDate": "2026.06.19",
+      "utcTime": "23:37:55"
+    },
+    {
+      "fen": "r1b1kr2/ppp1n2B/1q1p1p2/4n2R/3N1Qp1/P1N1P3/1PP3PP/2K2R2 b - - 3 24",
+      "key": "r1b1kr2/ppp1n2B/1q1p1p2/4n2R/3N1Qp1/P1N1P3/1PP3PP/2K2R2 b - -",
+      "gameId": "6fOMeFAj",
+      "ply": 47,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "300+3",
+      "utcDate": "2026.06.19",
+      "utcTime": "23:37:55"
+    },
+    {
+      "fen": "r2k1b1r/ppp2ppp/5n2/8/1n2p1b1/P1N2P2/1PP3PP/R1B1KBNR w KQ - 0 10",
+      "key": "r2k1b1r/ppp2ppp/5n2/8/1n2p1b1/P1N2P2/1PP3PP/R1B1KBNR w KQ -",
+      "gameId": "8sZ5Aiku",
+      "ply": 18,
+      "phase": "opening",
+      "result": "1-0",
+      "timeControl": "180+2",
+      "utcDate": "2026.06.19",
+      "utcTime": "20:13:42"
+    },
+    {
+      "fen": "r1bqk2r/p4pbp/3p1np1/1p2p3/1P2N3/Q4N2/P1PP1PPP/R1B1K2R b KQkq - 0 12",
+      "key": "r1bqk2r/p4pbp/3p1np1/1p2p3/1P2N3/Q4N2/P1PP1PPP/R1B1K2R b KQkq -",
+      "gameId": "AHmCeDEM",
+      "ply": 23,
+      "phase": "opening",
+      "result": "0-1",
+      "timeControl": "300+3",
+      "utcDate": "2026.06.19",
+      "utcTime": "20:21:36"
+    },
+    {
+      "fen": "R5k1/4qpbp/2rpb1p1/1P1np3/1P6/5N2/1BPP1PPP/5RK1 b - - 0 21",
+      "key": "R5k1/4qpbp/2rpb1p1/1P1np3/1P6/5N2/1BPP1PPP/5RK1 b - -",
+      "gameId": "AHmCeDEM",
+      "ply": 41,
+      "phase": "middlegame",
+      "result": "0-1",
+      "timeControl": "300+3",
+      "utcDate": "2026.06.19",
+      "utcTime": "20:21:36"
+    },
+    {
+      "fen": "r2k1b1r/ppp2ppp/4bn2/8/4P3/2N2P2/PPP4P/R1B1KB1R w KQ - 1 10",
+      "key": "r2k1b1r/ppp2ppp/4bn2/8/4P3/2N2P2/PPP4P/R1B1KB1R w KQ -",
+      "gameId": "CA0c9c28",
+      "ply": 18,
+      "phase": "middlegame",
+      "result": "0-1",
+      "timeControl": "600+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "15:45:26"
+    },
+    {
+      "fen": "r1k4r/1ppb1pp1/p2b1n1p/8/P2NP3/4BP2/1PP4P/2KR1B1R w - - 4 15",
+      "key": "r1k4r/1ppb1pp1/p2b1n1p/8/P2NP3/4BP2/1PP4P/2KR1B1R w - -",
+      "gameId": "CA0c9c28",
+      "ply": 28,
+      "phase": "middlegame",
+      "result": "0-1",
+      "timeControl": "600+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "15:45:26"
+    },
+    {
+      "fen": "r3b3/1p1k1p2/p1p1nbp1/P7/1P2PP1p/2PBB3/3KN3/7R w - - 1 39",
+      "key": "r3b3/1p1k1p2/p1p1nbp1/P7/1P2PP1p/2PBB3/3KN3/7R w - -",
+      "gameId": "CA0c9c28",
+      "ply": 76,
+      "phase": "middlegame",
+      "result": "0-1",
+      "timeControl": "600+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "15:45:26"
+    },
+    {
+      "fen": "2kr4/1pnbbp2/pBp5/P3Pp2/1P1N3p/2PB4/2K5/7R w - - 0 45",
+      "key": "2kr4/1pnbbp2/pBp5/P3Pp2/1P1N3p/2PB4/2K5/7R w - -",
+      "gameId": "CA0c9c28",
+      "ply": 88,
+      "phase": "middlegame",
+      "result": "0-1",
+      "timeControl": "600+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "15:45:26"
+    },
+    {
+      "fen": "r1b1kbnr/1pqnpp1p/p5p1/2p1P3/P4P2/2NBBN2/1PP1Q1PP/R4R1K w kq - 4 14",
+      "key": "r1b1kbnr/1pqnpp1p/p5p1/2p1P3/P4P2/2NBBN2/1PP1Q1PP/R4R1K w kq -",
+      "gameId": "EfEfCR8J",
+      "ply": 26,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "600+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "00:41:23"
+    },
+    {
+      "fen": "1rq2k1r/3nbp1p/p3p2n/1pp1PPp1/P3N1P1/4BB1P/1PP1Q3/3R1R1K w - - 0 27",
+      "key": "1rq2k1r/3nbp1p/p3p2n/1pp1PPp1/P3N1P1/4BB1P/1PP1Q3/3R1R1K w - -",
+      "gameId": "EfEfCR8J",
+      "ply": 52,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "600+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "00:41:23"
+    },
+    {
+      "fen": "r1bqk2r/1pp2ppp/2n5/p2pp3/6nR/P2P2P1/1PPKPb2/RNBQ1BN1 b kq - 1 9",
+      "key": "r1bqk2r/1pp2ppp/2n5/p2pp3/6nR/P2P2P1/1PPKPb2/RNBQ1BN1 b kq -",
+      "gameId": "Ej9M7YJt",
+      "ply": 17,
+      "phase": "opening",
+      "result": "0-1",
+      "timeControl": "180+2",
+      "utcDate": "2026.06.19",
+      "utcTime": "03:36:18"
+    },
+    {
+      "fen": "r2q1rk1/1pp1bppp/2p1bn2/p7/3PP3/2P2B2/PP2NPPP/R1BQ1RK1 w - - 1 12",
+      "key": "r2q1rk1/1pp1bppp/2p1bn2/p7/3PP3/2P2B2/PP2NPPP/R1BQ1RK1 w - -",
+      "gameId": "FQGWMJWp",
+      "ply": 22,
+      "phase": "opening",
+      "result": "1-0",
+      "timeControl": "60+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "16:18:26"
+    },
+    {
+      "fen": "r2q1r2/1pp1bpkp/2p1b3/p3P1NQ/3PB2n/1PP5/P4PP1/R1B2RK1 b - - 1 20",
+      "key": "r2q1r2/1pp1bpkp/2p1b3/p3P1NQ/3PB2n/1PP5/P4PP1/R1B2RK1 b - -",
+      "gameId": "FQGWMJWp",
+      "ply": 39,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "60+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "16:18:26"
+    },
+    {
+      "fen": "r1b1kb1r/p1pBpp2/3p1np1/7p/1P1PP3/2N3BP/1PP2PP1/R2QK1NR b KQkq - 0 11",
+      "key": "r1b1kb1r/p1pBpp2/3p1np1/7p/1P1PP3/2N3BP/1PP2PP1/R2QK1NR b KQkq -",
+      "gameId": "Iy6v2okm",
+      "ply": 21,
+      "phase": "opening",
+      "result": "1-0",
+      "timeControl": "300+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "03:11:18"
+    },
+    {
+      "fen": "2rqkb1r/ppp2p1p/2n1b1p1/5n2/4P3/2P2NP1/PP3BBP/RN1QK2R b KQk - 0 11",
+      "key": "2rqkb1r/ppp2p1p/2n1b1p1/5n2/4P3/2P2NP1/PP3BBP/RN1QK2R b KQk -",
+      "gameId": "KgdWmXSK",
+      "ply": 21,
+      "phase": "opening",
+      "result": "1-0",
+      "timeControl": "300+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "03:22:19"
+    },
+    {
+      "fen": "2r2rk1/7p/2p3pb/3p1b2/8/2P3PB/PP3N1P/R2K3R b - - 5 23",
+      "key": "2r2rk1/7p/2p3pb/3p1b2/8/2P3PB/PP3N1P/R2K3R b - -",
+      "gameId": "KgdWmXSK",
+      "ply": 45,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "300+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "03:22:19"
+    },
+    {
+      "fen": "8/6k1/8/4r1pp/P7/1KpB2P1/2Rb1r1P/7R b - - 2 38",
+      "key": "8/6k1/8/4r1pp/P7/1KpB2P1/2Rb1r1P/7R b - -",
+      "gameId": "KgdWmXSK",
+      "ply": 75,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "300+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "03:22:19"
+    },
+    {
+      "fen": "8/r5k1/6B1/7P/P4rp1/1Kp5/3b3P/R4R2 b - - 10 47",
+      "key": "8/r5k1/6B1/7P/P4rp1/1Kp5/3b3P/R4R2 b - -",
+      "gameId": "KgdWmXSK",
+      "ply": 93,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "300+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "03:22:19"
+    },
+    {
+      "fen": "rnbqkb1r/pppppp2/n5p1/4P2p/2PP4/P4N2/1P3PPP/RNBQKB1R w KQkq - 1 7",
+      "key": "rnbqkb1r/pppppp2/n5p1/4P2p/2PP4/P4N2/1P3PPP/RNBQKB1R w KQkq -",
+      "gameId": "O4Ur3XKA",
+      "ply": 12,
+      "phase": "opening",
+      "result": "1-0",
+      "timeControl": "180+2",
+      "utcDate": "2026.06.19",
+      "utcTime": "21:38:58"
+    },
+    {
+      "fen": "rn1qk2r/pbp1ppb1/6p1/7p/2Pp4/P4N2/3N1PPP/1RBQKB1R b Kkq - 1 12",
+      "key": "rn1qk2r/pbp1ppb1/6p1/7p/2Pp4/P4N2/3N1PPP/1RBQKB1R b Kkq -",
+      "gameId": "O4Ur3XKA",
+      "ply": 23,
+      "phase": "opening",
+      "result": "1-0",
+      "timeControl": "180+2",
+      "utcDate": "2026.06.19",
+      "utcTime": "21:38:58"
+    },
+    {
+      "fen": "3n4/p7/P2k1bBB/4p2p/3p3P/6PK/5P2/2R5 b - - 2 39",
+      "key": "3n4/p7/P2k1bBB/4p2p/3p3P/6PK/5P2/2R5 b - -",
+      "gameId": "O4Ur3XKA",
+      "ply": 77,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "180+2",
+      "utcDate": "2026.06.19",
+      "utcTime": "21:38:58"
+    },
+    {
+      "fen": "rn1qk2r/1p1nppbp/3p2p1/2pP4/p1P1P2P/2N1BP2/PP2BP2/R2QK2R w KQkq - 0 11",
+      "key": "rn1qk2r/1p1nppbp/3p2p1/2pP4/p1P1P2P/2N1BP2/PP2BP2/R2QK2R w KQkq -",
+      "gameId": "RFqUJggW",
+      "ply": 20,
+      "phase": "opening",
+      "result": "0-1",
+      "timeControl": "240+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "17:32:36"
+    },
+    {
+      "fen": "1n3rk1/1R1npp1p/3p2p1/2pPq2P/2P1P3/4BP2/r3BP2/3Q1K1R w - - 1 19",
+      "key": "1n3rk1/1R1npp1p/3p2p1/2pPq2P/2P1P3/4BP2/r3BP2/3Q1K1R w - -",
+      "gameId": "RFqUJggW",
+      "ply": 36,
+      "phase": "middlegame",
+      "result": "0-1",
+      "timeControl": "240+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "17:32:36"
+    },
+    {
+      "fen": "rnr3k1/3npp1p/3p2pP/2pP2B1/2P1qP2/5B2/5PK1/1RQ4R b - - 1 26",
+      "key": "rnr3k1/3npp1p/3p2pP/2pP2B1/2P1qP2/5B2/5PK1/1RQ4R b - -",
+      "gameId": "RFqUJggW",
+      "ply": 51,
+      "phase": "middlegame",
+      "result": "0-1",
+      "timeControl": "240+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "17:32:36"
+    },
+    {
+      "fen": "2r3k1/1R2Bp1p/r4P1P/2pP4/2P2q2/5B1R/5PK1/8 b - - 0 35",
+      "key": "2r3k1/1R2Bp1p/r4P1P/2pP4/2P2q2/5B1R/5PK1/8 b - -",
+      "gameId": "RFqUJggW",
+      "ply": 69,
+      "phase": "middlegame",
+      "result": "0-1",
+      "timeControl": "240+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "17:32:36"
+    },
+    {
+      "fen": "r2q1rk1/pp1nppbp/3p1np1/2pP4/2P1P1b1/2N1BN2/PP2BPPP/R2Q1RK1 b - - 0 9",
+      "key": "r2q1rk1/pp1nppbp/3p1np1/2pP4/2P1P1b1/2N1BN2/PP2BPPP/R2Q1RK1 b - -",
+      "gameId": "UoUYeYTm",
+      "ply": 17,
+      "phase": "opening",
+      "result": "0-1",
+      "timeControl": "600+2",
+      "utcDate": "2026.06.19",
+      "utcTime": "02:37:09"
+    },
+    {
+      "fen": "r2qr1k1/1p2pp1n/p2p2p1/2pPB2p/2PbP3/2N2B2/PPQ2PPP/R4RK1 b - - 0 16",
+      "key": "r2qr1k1/1p2pp1n/p2p2p1/2pPB2p/2PbP3/2N2B2/PPQ2PPP/R4RK1 b - -",
+      "gameId": "UoUYeYTm",
+      "ply": 31,
+      "phase": "middlegame",
+      "result": "0-1",
+      "timeControl": "600+2",
+      "utcDate": "2026.06.19",
+      "utcTime": "02:37:09"
+    },
+    {
+      "fen": "2r1r3/1p4k1/p2p4/P1pP1pn1/2P4p/1Q1KP2P/1P4q1/2NR4 w - - 0 37",
+      "key": "2r1r3/1p4k1/p2p4/P1pP1pn1/2P4p/1Q1KP2P/1P4q1/2NR4 w - -",
+      "gameId": "UoUYeYTm",
+      "ply": 72,
+      "phase": "middlegame",
+      "result": "0-1",
+      "timeControl": "600+2",
+      "utcDate": "2026.06.19",
+      "utcTime": "02:37:09"
+    },
+    {
+      "fen": "r2qkb1r/1b1npppp/pp1p1n2/2p5/4P3/1PNB1N2/P1PP1PPP/R1BQR1K1 b kq - 2 8",
+      "key": "r2qkb1r/1b1npppp/pp1p1n2/2p5/4P3/1PNB1N2/P1PP1PPP/R1BQR1K1 b kq -",
+      "gameId": "X7EdPUbQ",
+      "ply": 15,
+      "phase": "opening",
+      "result": "0-1",
+      "timeControl": "300+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "01:14:57"
+    },
+    {
+      "fen": "r2q1rk1/1b3pbp/pp3np1/2pnp3/P1B5/1P3N2/1BPPQPPP/R3R1K1 b - - 3 17",
+      "key": "r2q1rk1/1b3pbp/pp3np1/2pnp3/P1B5/1P3N2/1BPPQPPP/R3R1K1 b - -",
+      "gameId": "X7EdPUbQ",
+      "ply": 33,
+      "phase": "middlegame",
+      "result": "0-1",
+      "timeControl": "300+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "01:14:57"
+    },
+    {
+      "fen": "rnbqk2r/1p2ppbp/p2P1np1/2B5/8/2N2N2/PPP3PP/R2QKB1R b KQkq - 0 9",
+      "key": "rnbqk2r/1p2ppbp/p2P1np1/2B5/8/2N2N2/PPP3PP/R2QKB1R b KQkq -",
+      "gameId": "ZFio8XUQ",
+      "ply": 17,
+      "phase": "opening",
+      "result": "0-1",
+      "timeControl": "180+2",
+      "utcDate": "2026.06.19",
+      "utcTime": "20:32:37"
+    },
+    {
+      "fen": "2rq1rk1/3n1pb1/p2P1npp/P2bp1N1/1p2N3/3BBQ2/1PP3PP/R4RK1 b - - 0 18",
+      "key": "2rq1rk1/3n1pb1/p2P1npp/P2bp1N1/1p2N3/3BBQ2/1PP3PP/R4RK1 b - -",
+      "gameId": "ZFio8XUQ",
+      "ply": 35,
+      "phase": "middlegame",
+      "result": "0-1",
+      "timeControl": "180+2",
+      "utcDate": "2026.06.19",
+      "utcTime": "20:32:37"
+    },
+    {
+      "fen": "6k1/3r1pb1/B5p1/8/1p4n1/5R2/1PP1r1PP/6K1 w - - 0 34",
+      "key": "6k1/3r1pb1/B5p1/8/1p4n1/5R2/1PP1r1PP/6K1 w - -",
+      "gameId": "ZFio8XUQ",
+      "ply": 66,
+      "phase": "middlegame",
+      "result": "0-1",
+      "timeControl": "180+2",
+      "utcDate": "2026.06.19",
+      "utcTime": "20:32:37"
+    },
+    {
+      "fen": "rnb1k1nr/4p1bp/1qp2pp1/p2pP3/Pp1P4/3BBN1P/NPP2PP1/R2QK2R b KQkq - 1 11",
+      "key": "rnb1k1nr/4p1bp/1qp2pp1/p2pP3/Pp1P4/3BBN1P/NPP2PP1/R2QK2R b KQkq -",
+      "gameId": "bXFxGSUp",
+      "ply": 21,
+      "phase": "opening",
+      "result": "1-0",
+      "timeControl": "60+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "01:13:17"
+    },
+    {
+      "fen": "r1q2knr/4p1bp/2p3p1/p1BpP3/P7/2P4P/N4PP1/3QRRK1 w - - 1 25",
+      "key": "r1q2knr/4p1bp/2p3p1/p1BpP3/P7/2P4P/N4PP1/3QRRK1 w - -",
+      "gameId": "bXFxGSUp",
+      "ply": 48,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "60+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "01:13:17"
+    },
+    {
+      "fen": "r1qn1k1r/3Rp2p/2p2Npb/p1B1P3/P1Q2P2/1R5P/6P1/6K1 b - - 12 36",
+      "key": "r1qn1k1r/3Rp2p/2p2Npb/p1B1P3/P1Q2P2/1R5P/6P1/6K1 b - -",
+      "gameId": "bXFxGSUp",
+      "ply": 71,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "60+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "01:13:17"
+    },
+    {
+      "fen": "r1b4r/1pp2ppp/p3k3/4n3/8/4B3/PPP1BPPP/2KR3R w - - 2 15",
+      "key": "r1b4r/1pp2ppp/p3k3/4n3/8/4B3/PPP1BPPP/2KR3R w - -",
+      "gameId": "eEZPO5S6",
+      "ply": 28,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "60+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "19:41:12"
+    },
+    {
+      "fen": "r7/1pp5/p3k2B/4np2/6P1/8/PPP1B2P/2KR4 w - - 0 25",
+      "key": "r7/1pp5/p3k2B/4np2/6P1/8/PPP1B2P/2KR4 w - -",
+      "gameId": "eEZPO5S6",
+      "ply": 48,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "60+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "19:41:12"
+    },
+    {
+      "fen": "r2qkb1r/p4ppp/2p1pn2/5b2/3P4/5N2/PPP2PPP/RNBQ1RK1 b kq - 1 8",
+      "key": "r2qkb1r/p4ppp/2p1pn2/5b2/3P4/5N2/PPP2PPP/RNBQ1RK1 b kq -",
+      "gameId": "eWxB7mts",
+      "ply": 15,
+      "phase": "opening",
+      "result": "1-0",
+      "timeControl": "180+1",
+      "utcDate": "2026.06.19",
+      "utcTime": "18:02:37"
+    },
+    {
+      "fen": "5rk1/p1q3pp/2p1pb2/2Pr1p2/2QPn3/P4N1P/1P3PP1/1RB2RK1 w - - 3 18",
+      "key": "5rk1/p1q3pp/2p1pb2/2Pr1p2/2QPn3/P4N1P/1P3PP1/1RB2RK1 w - -",
+      "gameId": "eWxB7mts",
+      "ply": 34,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "180+1",
+      "utcDate": "2026.06.19",
+      "utcTime": "18:02:37"
+    },
+    {
+      "fen": "r5k1/6p1/7p/1RP1p3/7P/5Pp1/4K1P1/8 b - - 0 36",
+      "key": "r5k1/6p1/7p/1RP1p3/7P/5Pp1/4K1P1/8 b - -",
+      "gameId": "eWxB7mts",
+      "ply": 71,
+      "phase": "endgame",
+      "result": "1-0",
+      "timeControl": "180+1",
+      "utcDate": "2026.06.19",
+      "utcTime": "18:02:37"
+    },
+    {
+      "fen": "rn1qkb1r/p3pp1p/2p2np1/1p1p1b2/3P1B2/2N2N2/PPPQPPPP/2KR1B1R b kq - 3 7",
+      "key": "rn1qkb1r/p3pp1p/2p2np1/1p1p1b2/3P1B2/2N2N2/PPPQPPPP/2KR1B1R b kq -",
+      "gameId": "gfzP3T29",
+      "ply": 13,
+      "phase": "opening",
+      "result": "0-1",
+      "timeControl": "180+2",
+      "utcDate": "2026.06.19",
+      "utcTime": "15:37:26"
+    },
+    {
+      "fen": "rn2kbnr/pp2ppp1/8/3q3p/3P2b1/5N2/PP2BPPP/RNBQK2R b KQkq - 1 7",
+      "key": "rn2kbnr/pp2ppp1/8/3q3p/3P2b1/5N2/PP2BPPP/RNBQK2R b KQkq -",
+      "gameId": "hhU8iBq4",
+      "ply": 13,
+      "phase": "opening",
+      "result": "1-0",
+      "timeControl": "300+3",
+      "utcDate": "2026.06.19",
+      "utcTime": "21:49:59"
+    },
+    {
+      "fen": "r4rk1/p3bpp1/1qp1pn2/1N2NbBp/3P4/7P/PP3PP1/2RQ1RK1 w - - 0 17",
+      "key": "r4rk1/p3bpp1/1qp1pn2/1N2NbBp/3P4/7P/PP3PP1/2RQ1RK1 w - -",
+      "gameId": "hhU8iBq4",
+      "ply": 32,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "300+3",
+      "utcDate": "2026.06.19",
+      "utcTime": "21:49:59"
+    },
+    {
+      "fen": "r4rk1/5pp1/1qNP1b2/5p1p/p7/7P/PP3PP1/2RQ1RK1 w - - 0 23",
+      "key": "r4rk1/5pp1/1qNP1b2/5p1p/p7/7P/PP3PP1/2RQ1RK1 w - -",
+      "gameId": "hhU8iBq4",
+      "ply": 44,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "300+3",
+      "utcDate": "2026.06.19",
+      "utcTime": "21:49:59"
+    },
+    {
+      "fen": "5r2/3P1pk1/5b2/5Qpp/1q3p2/7P/2R2PPK/3R4 w - - 0 33",
+      "key": "5r2/3P1pk1/5b2/5Qpp/1q3p2/7P/2R2PPK/3R4 w - -",
+      "gameId": "hhU8iBq4",
+      "ply": 64,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "300+3",
+      "utcDate": "2026.06.19",
+      "utcTime": "21:49:59"
+    },
+    {
+      "fen": "2kr1bnr/1pp2ppp/p1n1p3/q7/3P2b1/P1N1BN2/1PP1BPPP/R2QK2R w KQ - 0 9",
+      "key": "2kr1bnr/1pp2ppp/p1n1p3/q7/3P2b1/P1N1BN2/1PP1BPPP/R2QK2R w KQ -",
+      "gameId": "hoNPixGN",
+      "ply": 16,
+      "phase": "opening",
+      "result": "1-0",
+      "timeControl": "180+1",
+      "utcDate": "2026.06.19",
+      "utcTime": "00:34:42"
+    },
+    {
+      "fen": "3r4/1Qpk1p2/1B2p2p/pP4p1/P7/2qr1BPP/5PK1/1R6 b - - 0 29",
+      "key": "3r4/1Qpk1p2/1B2p2p/pP4p1/P7/2qr1BPP/5PK1/1R6 b - -",
+      "gameId": "hoNPixGN",
+      "ply": 57,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "180+1",
+      "utcDate": "2026.06.19",
+      "utcTime": "00:34:42"
+    },
+    {
+      "fen": "8/2pk1p2/2q4p/1P4p1/P3p3/6PP/5BK1/8 w - - 0 38",
+      "key": "8/2pk1p2/2q4p/1P4p1/P3p3/6PP/5BK1/8 w - -",
+      "gameId": "hoNPixGN",
+      "ply": 74,
+      "phase": "endgame",
+      "result": "1-0",
+      "timeControl": "180+1",
+      "utcDate": "2026.06.19",
+      "utcTime": "00:34:42"
+    },
+    {
+      "fen": "r1bqkb1r/1p2nppp/p1n5/1B2p3/8/5N2/PPPP1PPP/RNBQ1RK1 w kq - 0 7",
+      "key": "r1bqkb1r/1p2nppp/p1n5/1B2p3/8/5N2/PPPP1PPP/RNBQ1RK1 w kq -",
+      "gameId": "j4M1uSq7",
+      "ply": 12,
+      "phase": "opening",
+      "result": "1-0",
+      "timeControl": "180+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "04:02:54"
+    },
+    {
+      "fen": "R1b1k2r/r2q2b1/5NP1/4n3/2ppQ3/8/1PP3PP/1NB2RK1 b k - 0 22",
+      "key": "R1b1k2r/r2q2b1/5NP1/4n3/2ppQ3/8/1PP3PP/1NB2RK1 b k -",
+      "gameId": "j4M1uSq7",
+      "ply": 43,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "180+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "04:02:54"
+    },
+    {
+      "fen": "rnbq1rk1/pp2ppbp/2p3p1/4N3/1n6/2NB2Q1/PPPP1PPP/R1B1K2R b KQ - 9 10",
+      "key": "rnbq1rk1/pp2ppbp/2p3p1/4N3/1n6/2NB2Q1/PPPP1PPP/R1B1K2R b KQ -",
+      "gameId": "jyuAId8O",
+      "ply": 19,
+      "phase": "opening",
+      "result": "0-1",
+      "timeControl": "300+3",
+      "utcDate": "2026.06.19",
+      "utcTime": "15:30:25"
+    },
+    {
+      "fen": "r4r1k/pp2pp1p/2p1b1p1/8/1n2N3/1PKP4/1P1P1PPP/2B1R3 b - - 6 19",
+      "key": "r4r1k/pp2pp1p/2p1b1p1/8/1n2N3/1PKP4/1P1P1PPP/2B1R3 b - -",
+      "gameId": "jyuAId8O",
+      "ply": 37,
+      "phase": "middlegame",
+      "result": "0-1",
+      "timeControl": "300+3",
+      "utcDate": "2026.06.19",
+      "utcTime": "15:30:25"
+    },
+    {
+      "fen": "rn2kbnr/1ppqppp1/6p1/p2p4/3P4/2P1P3/PPQ1NPPP/RNB1K2R b KQkq - 3 7",
+      "key": "rn2kbnr/1ppqppp1/6p1/p2p4/3P4/2P1P3/PPQ1NPPP/RNB1K2R b KQkq -",
+      "gameId": "kWewmQqK",
+      "ply": 13,
+      "phase": "opening",
+      "result": "1/2-1/2",
+      "timeControl": "180+2",
+      "utcDate": "2026.06.19",
+      "utcTime": "02:11:18"
+    },
+    {
+      "fen": "r4rk1/1ppq1pp1/2nb1np1/p2p4/P7/1PP1P2P/1BQNNPP1/4RK1R b - - 4 16",
+      "key": "r4rk1/1ppq1pp1/2nb1np1/p2p4/P7/1PP1P2P/1BQNNPP1/4RK1R b - -",
+      "gameId": "kWewmQqK",
+      "ply": 31,
+      "phase": "middlegame",
+      "result": "1/2-1/2",
+      "timeControl": "180+2",
+      "utcDate": "2026.06.19",
+      "utcTime": "02:11:18"
+    },
+    {
+      "fen": "3rr1k1/1n1q1pp1/1p1b2p1/p1ppn2P/P7/1PP1PN2/1BQNRPP1/6KR b - - 1 24",
+      "key": "3rr1k1/1n1q1pp1/1p1b2p1/p1ppn2P/P7/1PP1PN2/1BQNRPP1/6KR b - -",
+      "gameId": "kWewmQqK",
+      "ply": 47,
+      "phase": "middlegame",
+      "result": "1/2-1/2",
+      "timeControl": "180+2",
+      "utcDate": "2026.06.19",
+      "utcTime": "02:11:18"
+    },
+    {
+      "fen": "3r2k1/1n4p1/5qp1/pp2r3/P1pR4/2P1P3/1BQ2PP1/6KR w - - 0 32",
+      "key": "3r2k1/1n4p1/5qp1/pp2r3/P1pR4/2P1P3/1BQ2PP1/6KR w - -",
+      "gameId": "kWewmQqK",
+      "ply": 62,
+      "phase": "middlegame",
+      "result": "1/2-1/2",
+      "timeControl": "180+2",
+      "utcDate": "2026.06.19",
+      "utcTime": "02:11:18"
+    },
+    {
+      "fen": "r1b2rk1/pppp1ppp/n4n2/2qP4/2N1P3/P1N5/1PP1BRPP/R1BQ2K1 w - - 1 12",
+      "key": "r1b2rk1/pppp1ppp/n4n2/2qP4/2N1P3/P1N5/1PP1BRPP/R1BQ2K1 w - -",
+      "gameId": "lIBYkRlE",
+      "ply": 22,
+      "phase": "opening",
+      "result": "1-0",
+      "timeControl": "300+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "20:59:07"
+    },
+    {
+      "fen": "r4rk1/1b1q1p1p/p5p1/1p1Pp2n/4N2P/PP3P2/1P3QP1/1B1R1RK1 b - - 3 24",
+      "key": "r4rk1/1b1q1p1p/p5p1/1p1Pp2n/4N2P/PP3P2/1P3QP1/1B1R1RK1 b - -",
+      "gameId": "lZULgtV5",
+      "ply": 47,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "600+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "18:52:30"
+    },
+    {
+      "fen": "r5k1/8/p3N1pp/1p2Rp2/7P/PP3P2/1r4P1/5RK1 w - - 0 35",
+      "key": "r5k1/8/p3N1pp/1p2Rp2/7P/PP3P2/1r4P1/5RK1 w - -",
+      "gameId": "lZULgtV5",
+      "ply": 68,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "600+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "18:52:30"
+    },
+    {
+      "fen": "rn1qk2r/pp1nppbp/2pp2p1/3P4/2PNP1b1/2N5/PP2BPPP/R1BQK2R b KQkq - 1 8",
+      "key": "rn1qk2r/pp1nppbp/2pp2p1/3P4/2PNP1b1/2N5/PP2BPPP/R1BQK2R b KQkq -",
+      "gameId": "oGqiQAs0",
+      "ply": 15,
+      "phase": "opening",
+      "result": "0-1",
+      "timeControl": "60+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "02:20:07"
+    },
+    {
+      "fen": "r1r3k1/pp2pp1p/3p2p1/3Pb3/1Pq5/P1N4P/1QR2PP1/2R3K1 w - - 1 23",
+      "key": "r1r3k1/pp2pp1p/3p2p1/3Pb3/1Pq5/P1N4P/1QR2PP1/2R3K1 w - -",
+      "gameId": "oGqiQAs0",
+      "ply": 44,
+      "phase": "middlegame",
+      "result": "0-1",
+      "timeControl": "60+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "02:20:07"
+    },
+    {
+      "fen": "8/6kp/3p2p1/R2P1p2/1P6/p4P1P/Nbr3P1/4K3 w - - 1 34",
+      "key": "8/6kp/3p2p1/R2P1p2/1P6/p4P1P/Nbr3P1/4K3 w - -",
+      "gameId": "oGqiQAs0",
+      "ply": 66,
+      "phase": "endgame",
+      "result": "0-1",
+      "timeControl": "60+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "02:20:07"
+    },
+    {
+      "fen": "rnbqk2r/1p2ppbp/p4np1/2pp4/3P1B2/2NBPN1P/PPP2PP1/R2QK2R w KQkq - 0 8",
+      "key": "rnbqk2r/1p2ppbp/p4np1/2pp4/3P1B2/2NBPN1P/PPP2PP1/R2QK2R w KQkq -",
+      "gameId": "oLAawGCa",
+      "ply": 14,
+      "phase": "opening",
+      "result": "0-1",
+      "timeControl": "600+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "16:24:26"
+    },
+    {
+      "fen": "1r4k1/1B3p1p/pP4p1/2P5/PP2P3/b6P/5PP1/6K1 b - - 0 29",
+      "key": "1r4k1/1B3p1p/pP4p1/2P5/PP2P3/b6P/5PP1/6K1 b - -",
+      "gameId": "oLAawGCa",
+      "ply": 57,
+      "phase": "endgame",
+      "result": "0-1",
+      "timeControl": "600+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "16:24:26"
+    },
+    {
+      "fen": "6k1/1Pb2p1p/p5p1/P7/4PP2/6PP/7K/2r5 b - - 0 36",
+      "key": "6k1/1Pb2p1p/p5p1/P7/4PP2/6PP/7K/2r5 b - -",
+      "gameId": "oLAawGCa",
+      "ply": 71,
+      "phase": "endgame",
+      "result": "0-1",
+      "timeControl": "600+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "16:24:26"
+    },
+    {
+      "fen": "r2q1rk1/1b1p1p1p/p1n1pnp1/8/1P2P3/2N1B1Q1/1PP1BPPP/2KR3R b - - 0 14",
+      "key": "r2q1rk1/1b1p1p1p/p1n1pnp1/8/1P2P3/2N1B1Q1/1PP1BPPP/2KR3R b - -",
+      "gameId": "od3XZVOs",
+      "ply": 27,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "60+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "16:47:27"
+    },
+    {
+      "fen": "r4rk1/1b1p1p1p/p5p1/3p4/4P3/6Q1/1BPKBPPP/2n4R w - - 0 21",
+      "key": "r4rk1/1b1p1p1p/p5p1/3p4/4P3/6Q1/1BPKBPPP/2n4R w - -",
+      "gameId": "od3XZVOs",
+      "ply": 40,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "60+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "16:47:27"
+    },
+    {
+      "fen": "r1bq1rk1/pppnppbp/5np1/3P4/2P5/2N2N2/PP1PBPPP/R1BQK2R b KQ - 2 7",
+      "key": "r1bq1rk1/pppnppbp/5np1/3P4/2P5/2N2N2/PP1PBPPP/R1BQK2R b KQ -",
+      "gameId": "oeCq4KLs",
+      "ply": 13,
+      "phase": "opening",
+      "result": "1-0",
+      "timeControl": "300+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "17:47:45"
+    },
+    {
+      "fen": "r4rk1/p1qnppbp/b4np1/2pP4/2P5/2N2N2/PP2BPPP/R1BQR1K1 w - - 1 13",
+      "key": "r4rk1/p1qnppbp/b4np1/2pP4/2P5/2N2N2/PP2BPPP/R1BQR1K1 w - -",
+      "gameId": "oeCq4KLs",
+      "ply": 24,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "300+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "17:47:45"
+    },
+    {
+      "fen": "2b5/p5nk/2PP3p/2P3q1/2BN2p1/6P1/P4Q2/6K1 w - - 4 35",
+      "key": "2b5/p5nk/2PP3p/2P3q1/2BN2p1/6P1/P4Q2/6K1 w - -",
+      "gameId": "oeCq4KLs",
+      "ply": 68,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "300+0",
+      "utcDate": "2026.06.19",
+      "utcTime": "17:47:45"
+    },
+    {
+      "fen": "r1bq1rk1/ppp2pbp/2p3p1/8/P1P1p1n1/1PN5/3PPPPP/R1BQKBR1 w Q - 3 10",
+      "key": "r1bq1rk1/ppp2pbp/2p3p1/8/P1P1p1n1/1PN5/3PPPPP/R1BQKBR1 w Q -",
+      "gameId": "os7pPm50",
+      "ply": 18,
+      "phase": "opening",
+      "result": "0-1",
+      "timeControl": "180+2",
+      "utcDate": "2026.06.19",
+      "utcTime": "16:05:11"
+    },
+    {
+      "fen": "Q4rk1/p2qp1bp/2n3p1/2ppPn2/3P3P/8/PPP1N1P1/R1B1KB1R w KQ - 1 15",
+      "key": "Q4rk1/p2qp1bp/2n3p1/2ppPn2/3P3P/8/PPP1N1P1/R1B1KB1R w KQ -",
+      "gameId": "uG9tDtZx",
+      "ply": 28,
+      "phase": "middlegame",
+      "result": "0-1",
+      "timeControl": "300+3",
+      "utcDate": "2026.06.19",
+      "utcTime": "22:51:29"
+    },
+    {
+      "fen": "4k3/p2qp2p/6pb/4P3/1n5P/5R2/PP1B2P1/RN1K1n2 w - - 2 25",
+      "key": "4k3/p2qp2p/6pb/4P3/1n5P/5R2/PP1B2P1/RN1K1n2 w - -",
+      "gameId": "uG9tDtZx",
+      "ply": 48,
+      "phase": "middlegame",
+      "result": "0-1",
+      "timeControl": "300+3",
+      "utcDate": "2026.06.19",
+      "utcTime": "22:51:29"
+    },
+    {
+      "fen": "4k3/p7/4p3/4P1bp/PP6/NKB5/6q1/R7 b - - 3 38",
+      "key": "4k3/p7/4p3/4P1bp/PP6/NKB5/6q1/R7 b - -",
+      "gameId": "uG9tDtZx",
+      "ply": 75,
+      "phase": "middlegame",
+      "result": "0-1",
+      "timeControl": "300+3",
+      "utcDate": "2026.06.19",
+      "utcTime": "22:51:29"
+    },
+    {
+      "fen": "r1b1k1nr/ppp2ppp/2pb4/4p3/4q3/2P2N2/PP2BPPP/RNBQK2R w KQkq - 1 8",
+      "key": "r1b1k1nr/ppp2ppp/2pb4/4p3/4q3/2P2N2/PP2BPPP/RNBQK2R w KQkq -",
+      "gameId": "uQfzNWID",
+      "ply": 14,
+      "phase": "opening",
+      "result": "1-0",
+      "timeControl": "300+3",
+      "utcDate": "2026.06.19",
+      "utcTime": "19:32:37"
+    },
+    {
+      "fen": "r1b2rk1/pppqnppp/2pb4/4p1N1/2N2P2/2P5/PP2B1PP/R1BQ1RK1 w - - 1 13",
+      "key": "r1b2rk1/pppqnppp/2pb4/4p1N1/2N2P2/2P5/PP2B1PP/R1BQ1RK1 w - -",
+      "gameId": "uQfzNWID",
+      "ply": 24,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "300+3",
+      "utcDate": "2026.06.19",
+      "utcTime": "19:32:37"
+    },
+    {
+      "fen": "1r3rk1/ppR2p2/2p5/4nNNp/8/2P5/PP4PP/5RK1 b - - 2 23",
+      "key": "1r3rk1/ppR2p2/2p5/4nNNp/8/2P5/PP4PP/5RK1 b - -",
+      "gameId": "uQfzNWID",
+      "ply": 45,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "300+3",
+      "utcDate": "2026.06.19",
+      "utcTime": "19:32:37"
+    },
+    {
+      "fen": "rnq1kbnr/pNp3pp/5pb1/3pp3/3P1P2/8/PPP1P1PP/RNBQKB1R w KQkq - 1 8",
+      "key": "rnq1kbnr/pNp3pp/5pb1/3pp3/3P1P2/8/PPP1P1PP/RNBQKB1R w KQkq -",
+      "gameId": "unFl3ZS5",
+      "ply": 14,
+      "phase": "opening",
+      "result": "0-1",
+      "timeControl": "180+2",
+      "utcDate": "2026.06.19",
+      "utcTime": "19:49:41"
+    },
+    {
+      "fen": "r3k2r/2p3pp/p1n1qpb1/2Pp4/5p2/2N1P3/PPP3PP/R1BQK2R b KQkq - 1 15",
+      "key": "r3k2r/2p3pp/p1n1qpb1/2Pp4/5p2/2N1P3/PPP3PP/R1BQK2R b KQkq -",
+      "gameId": "unFl3ZS5",
+      "ply": 29,
+      "phase": "middlegame",
+      "result": "0-1",
+      "timeControl": "180+2",
+      "utcDate": "2026.06.19",
+      "utcTime": "19:49:41"
+    },
+    {
+      "fen": "7r/2pk2pp/2n2p2/2P2b2/r4p2/8/PP1B1KPP/4R2R b - - 7 26",
+      "key": "7r/2pk2pp/2n2p2/2P2b2/r4p2/8/PP1B1KPP/4R2R b - -",
+      "gameId": "unFl3ZS5",
+      "ply": 51,
+      "phase": "middlegame",
+      "result": "0-1",
+      "timeControl": "180+2",
+      "utcDate": "2026.06.19",
+      "utcTime": "19:49:41"
+    },
+    {
+      "fen": "4r3/2pk2pp/5p2/2P2b2/r7/3n1p2/P2B2PP/R4K1R w - - 0 32",
+      "key": "4r3/2pk2pp/5p2/2P2b2/r7/3n1p2/P2B2PP/R4K1R w - -",
+      "gameId": "unFl3ZS5",
+      "ply": 62,
+      "phase": "middlegame",
+      "result": "0-1",
+      "timeControl": "180+2",
+      "utcDate": "2026.06.19",
+      "utcTime": "19:49:41"
+    },
+    {
+      "fen": "r3kb1r/pppbpppp/5n2/3Pn3/2P1qP1N/7P/PP2B1P1/RNBQ1RK1 b kq - 0 11",
+      "key": "r3kb1r/pppbpppp/5n2/3Pn3/2P1qP1N/7P/PP2B1P1/RNBQ1RK1 b kq -",
+      "gameId": "zKltoaeg",
+      "ply": 21,
+      "phase": "opening",
+      "result": "1-0",
+      "timeControl": "300+3",
+      "utcDate": "2026.06.19",
+      "utcTime": "16:39:26"
+    },
+    {
+      "fen": "1k1r1b1r/pppbpppp/5n2/q2P4/5P1N/P1N4P/1B2B1P1/1R1Q1R1K w - - 1 17",
+      "key": "1k1r1b1r/pppbpppp/5n2/q2P4/5P1N/P1N4P/1B2B1P1/1R1Q1R1K w - -",
+      "gameId": "zKltoaeg",
+      "ply": 32,
+      "phase": "middlegame",
+      "result": "1-0",
+      "timeControl": "300+3",
+      "utcDate": "2026.06.19",
+      "utcTime": "16:39:26"
+    }
+  ],
+  "finalization": {
+    "initialLabels": 120,
+    "accepted": 92,
+    "rejected": 28,
+    "maxAbsScoreCp": 3000,
+    "reason": "exclude forced-mate and already-decided positions"
+  }
+}

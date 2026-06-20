@@ -11,10 +11,20 @@ python benchmarks/scripts/bench_generations.py smoke --depth 2
 python benchmarks/scripts/bench_generations.py speed --times 50,250 --threads 1 --repeats 3
 python benchmarks/scripts/bench_generations.py decision --limit 20 --decision-depth 8
 python benchmarks/scripts/test_bench_registry.py
+python benchmarks/scripts/build_clean_holdout.py
+python benchmarks/scripts/label_holdout.py
 ```
 
 Use stable registry IDs, not ad hoc names. See `GENERATION_STANDARD.md` and
-`ENGINE_STRENGTH_AUDIT.md`.
+`ENGINE_STRENGTH_AUDIT.md`. The frozen clean-suite audit is in
+`CLEAN_HOLDOUT_2026-06-19.md`.
+
+`suite-clean-postmodel-20260619` is built from whole Lichess games played after
+the latest current-model artifact. `build_clean_holdout.py` scans every
+candidate against the known Gen7-Gen9 corpora using the first four FEN fields,
+caps correlated samples per game, and writes a reservation file consumed by
+the Gen9 RSI importer. `label_holdout.py` freezes native Stockfish depth-24
+MultiPV labels and danger classifications.
 
 Live-dev discipline, not a laboratory paper: catch regressions fast, preserve
 provenance, compare every change against the same clean baseline.
