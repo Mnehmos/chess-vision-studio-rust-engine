@@ -50,9 +50,15 @@ def assert_idle(allow_background_load: bool) -> None:
     if allow_background_load or os.name != "nt":
         return
     script = (
-        "$rows=Get-CimInstance Win32_Process | Where-Object { "
-        "$_.Name -eq 'analyze.exe' -or "
+        "$activeEngines=Get-Process -ErrorAction SilentlyContinue | Where-Object { "
+        "($_.ProcessName -eq 'analyze' -or $_.ProcessName -like 'stockfish*') "
+        "-and $_.HandleCount -gt 0 };"
+        "$bots=Get-CimInstance Win32_Process | Where-Object { "
+        "$_.Name -match '^(node|cmd)\\.exe$' -and "
         "$_.CommandLine -match 'arena[/\\\\]lichess[/\\\\]run.ts|lichess:bot' };"
+        "$rows=@($activeEngines | Select-Object Name,Id,"
+        "@{Name='ProcessId';Expression={$_.Id}},Path);"
+        "$rows+=@($bots | Select-Object Name,ProcessId,CommandLine);"
         "$rows | Select-Object Name,ProcessId,CommandLine | ConvertTo-Json -Compress"
     )
     output = subprocess.check_output(
