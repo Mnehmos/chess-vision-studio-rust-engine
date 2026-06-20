@@ -141,6 +141,7 @@ def result_record(result: dict) -> dict:
     return {
         "move": final_move,
         "scoreCp": result.get("scoreCp"),
+        "mate": result.get("mate"),
         "depth": result.get("depth"),
         "nodes": result.get("nodes"),
         "qNodes": result.get("qNodes"),

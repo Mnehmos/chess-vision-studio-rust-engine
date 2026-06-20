@@ -142,6 +142,25 @@ class EqualTimeTests(unittest.TestCase):
         ]
         self.assertEqual(stable_final_depth(iterations, "e2e4"), 3)
 
+    def test_result_record_preserves_exact_mate_evidence(self):
+        from bench_equal_time import result_record
+
+        record = result_record(
+            {
+                "uci": "e7e1",
+                "scoreCp": 999995,
+                "mate": 5,
+                "depth": 8,
+                "nodes": 100,
+                "qNodes": 10,
+                "timeMs": 20,
+                "pv": ["e7e1"],
+                "iterations": [],
+                "rootOrder": ["e7e1"],
+            }
+        )
+        self.assertEqual(record["mate"], 5)
+
     def test_bootstrap_is_deterministic(self):
         first = bootstrap_mean_ci([-10, 0, 5, 20], "seed", samples=1000)
         second = bootstrap_mean_ci([-10, 0, 5, 20], "seed", samples=1000)
