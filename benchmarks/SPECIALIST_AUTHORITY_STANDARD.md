@@ -61,7 +61,7 @@ the completed iteration's root order or move.
 
 ## Tactical Sentinel v1
 
-The first sentinel is a proof-only experiment:
+The first sentinel is a non-authoritative evidence experiment:
 
 1. Accept a proposed principal move.
 2. Make the move.

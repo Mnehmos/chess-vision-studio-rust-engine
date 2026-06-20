@@ -35,8 +35,12 @@ The exact Raw versus Hybrid A equal-time decision is recorded in
 `EQUAL_TIME_HYBRID_A_2026-06-19.md`. Hybrid A failed the play-mode gate and is
 retained for analysis only.
 
-Specialist authority and the proof-only tactical sentinel gates are defined in
+Specialist authority and the non-authoritative tactical sentinel gates are defined in
 `SPECIALIST_AUTHORITY_STANDARD.md`.
+
+The first forensic and clean-suite sentinel result is recorded in
+`TACTICAL_SENTINEL_V1_2026-06-19.md`. It is a verification-request capability
+screen, not a live promotion.
 
 Live-dev discipline, not a laboratory paper: catch regressions fast, preserve
 provenance, compare every change against the same clean baseline.

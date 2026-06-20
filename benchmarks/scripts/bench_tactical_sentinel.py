@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Proof-only tactical sentinel capability gate.
+"""Non-authoritative tactical sentinel capability gate.
 
 The sentinel never chooses a live move. It searches the child position after a
 proposed move with reduced pruning, and a separate Raw forced-move search must
@@ -245,7 +245,7 @@ def main() -> None:
             "firstAllRepeatsSentinelMateAlarmMs": first_sentinel,
             "firstAllRepeatsVerifiedMateAlarmMs": first_verified,
             "firstAllRepeatsVerifiedConcernMs": first_concern,
-            "authority": "experimental proof-only; no live move authority",
+            "authority": "experimental evidence only; no live move authority",
             "rows": rows,
         },
     )

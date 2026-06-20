@@ -93,6 +93,16 @@ reliable gain from 25-2000 ms, no median gain, no depth gain, and one
 catastrophic 100 ms tail regression. Hybrid A is analysis-only; matrix-raw is
 the live candidate. See `EQUAL_TIME_HYBRID_A_2026-06-19.md`.
 
+## 2026-06-19 Tactical Sentinel Gate
+
+The completed-iteration audit confirmed that interrupted root work never
+replaces the last completed result. Tactical Sentinel v1 then screened
+candidate-specific verification requests without live authority. A 10 ms
+policy caught the clean suite's 9316 cp tactical miss at 25-250 ms principal
+budgets with zero false positives, but found no exact mate through five seconds
+and missed a 309 cp endgame error. It advances only to a concurrent,
+resource-matched prototype. See `TACTICAL_SENTINEL_V1_2026-06-19.md`.
+
 ## Known Methodology Risks
 
 - `suite-fresh-100` leaked into Gen8-v2 training for 47 of 100 positions.
