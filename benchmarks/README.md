@@ -17,7 +17,8 @@ python benchmarks/scripts/label_holdout.py
 
 Use stable registry IDs, not ad hoc names. See `GENERATION_STANDARD.md` and
 `ENGINE_STRENGTH_AUDIT.md`. The frozen clean-suite audit is in
-`CLEAN_HOLDOUT_2026-06-19.md`.
+`CLEAN_HOLDOUT_2026-06-19.md`; its first comparison is in
+`CLEAN_BASELINE_2026-06-19.md`.
 
 `suite-clean-postmodel-20260619` is built from whole Lichess games played after
 the latest current-model artifact. `build_clean_holdout.py` scans every

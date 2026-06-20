@@ -240,6 +240,7 @@ Promoted and experimental work is tracked in:
 - `benchmarks/ENGINE_STRENGTH_AUDIT.md`
 - `benchmarks/BASELINE_2026-06-19.md`
 - `benchmarks/CLEAN_HOLDOUT_2026-06-19.md`
+- `benchmarks/CLEAN_BASELINE_2026-06-19.md`
 
 Current Gen8 discipline:
 
