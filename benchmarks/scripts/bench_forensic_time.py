@@ -10,6 +10,48 @@ import bench_equal_time as E
 import benchlib as B
 
 
+def transition_summary(
+    rows: list[dict],
+    budgets: list[int],
+    bad_move: str,
+) -> tuple[dict, dict, dict]:
+    per_budget = {}
+    for budget in budgets:
+        budget_rows = [row for row in rows if row["budgetMs"] == budget]
+        per_budget[str(budget)] = {
+            side: {
+                "avoidedBadMove": sum(
+                    row[side]["move"] != bad_move for row in budget_rows
+                ),
+                "repeats": len(budget_rows),
+                "moves": [row[side]["move"] for row in budget_rows],
+            }
+            for side in ("raw", "hybrid")
+        }
+
+    first_all_repeats = {}
+    first_sustained = {}
+    for side in ("raw", "hybrid"):
+        clear = [
+            per_budget[str(budget)][side]["avoidedBadMove"]
+            == per_budget[str(budget)][side]["repeats"]
+            for budget in budgets
+        ]
+        first_all_repeats[side] = next(
+            (budget for budget, is_clear in zip(budgets, clear) if is_clear),
+            None,
+        )
+        first_sustained[side] = next(
+            (
+                budget
+                for index, budget in enumerate(budgets)
+                if all(clear[index:])
+            ),
+            None,
+        )
+    return per_budget, first_all_repeats, first_sustained
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--raw", default=E.DEFAULT_RAW)
@@ -64,30 +106,11 @@ def main() -> None:
         raw_engine.close()
         hybrid_engine.close()
 
-    transitions = {}
-    per_budget = {}
-    for budget in budgets:
-        budget_rows = [row for row in rows if row["budgetMs"] == budget]
-        per_budget[str(budget)] = {
-            side: {
-                "avoidedBadMove": sum(
-                    row[side]["move"] != "g2f3" for row in budget_rows
-                ),
-                "repeats": len(budget_rows),
-                "moves": [row[side]["move"] for row in budget_rows],
-            }
-            for side in ("raw", "hybrid")
-        }
-    for side in ("raw", "hybrid"):
-        transitions[side] = next(
-            (
-                budget
-                for budget in budgets
-                if per_budget[str(budget)][side]["avoidedBadMove"]
-                == per_budget[str(budget)][side]["repeats"]
-            ),
-            None,
-        )
+    per_budget, first_all_repeats, first_sustained = transition_summary(
+        rows,
+        budgets,
+        "g2f3",
+    )
     B.write_result(
         "forensic-time-ladder",
         {
@@ -100,7 +123,8 @@ def main() -> None:
                 "raw": B.provenance(raw_cfg),
                 "hybrid": B.provenance(hybrid_cfg),
             },
-            "firstStableBudgetAvoidingBadMove": transitions,
+            "firstAllRepeatsAvoidingBadMove": first_all_repeats,
+            "firstSustainedBudgetAvoidingBadMove": first_sustained,
             "perBudget": per_budget,
             "rows": rows,
         },
