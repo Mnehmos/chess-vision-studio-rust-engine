@@ -22,6 +22,7 @@ pub fn position_facts(pos: &Position) -> PositionFacts {
         opponent_available_motifs: FactCollection::uncomputed("not_requested"),
         opponent_available_pins: FactCollection::uncomputed("not_requested"),
         hazards: FactCollection::uncomputed("motifs_not_requested"),
+        square_facts: crate::facts::square_control::square_control_facts(pos),
     }
 }
 
@@ -56,4 +57,11 @@ pub fn square_name(square: u8) -> String {
     let file = (b'a' + square % 8) as char;
     let rank = (b'1' + square / 8) as char;
     format!("{file}{rank}")
+}
+
+/// Build a [`crate::facts::types::PieceRef`] for whatever piece occupies `square`,
+/// or `None` when the square is empty. Shared by the attack/control fact builders.
+pub fn piece_ref_for_square(pos: &Position, square: u8) -> Option<crate::facts::types::PieceRef> {
+    pos.piece_at(square)
+        .map(|(color, piece)| crate::facts::piece_safety::piece_ref(color, piece, square))
 }

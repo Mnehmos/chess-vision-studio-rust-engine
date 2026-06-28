@@ -83,6 +83,7 @@ pub fn build_teaching_fact_bundle(
         "capture_opportunities".to_string(),
         "king_safety".to_string(),
         "pawn_structure".to_string(),
+        "square_control".to_string(),
     ];
     if include_motifs {
         validators.push("fork_validation".to_string());

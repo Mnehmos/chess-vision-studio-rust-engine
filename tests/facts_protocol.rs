@@ -117,7 +117,7 @@ fn golden_fixtures_are_byte_stable() {
 }
 
 #[test]
-fn registry_v5_provenance_lists_every_active_validator() {
+fn registry_provenance_lists_every_active_validator() {
     let bundle = build_teaching_fact_bundle(&request_with_motifs(
         "4k3/8/8/8/8/8/4P3/4K3 w - - 0 1",
         "e2e4",
@@ -139,6 +139,7 @@ fn registry_v5_provenance_lists_every_active_validator() {
             "capture_opportunities",
             "king_safety",
             "pawn_structure",
+            "square_control",
             "fork_validation",
             "pin_validation",
         ]

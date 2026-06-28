@@ -56,6 +56,7 @@ pub struct PositionFacts {
     pub opponent_available_motifs: FactCollection<MotifOpportunity>,
     pub opponent_available_pins: FactCollection<PinOpportunity>,
     pub hazards: FactCollection<HazardFact>,
+    pub square_facts: FactCollection<SquareFact>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
@@ -316,6 +317,19 @@ pub struct HazardFact {
     pub magnitude_cp: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub move_uci: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SquareFact {
+    pub square: String,
+    pub occupied: bool,
+    pub attacked_by_white: Vec<PieceRef>,
+    pub attacked_by_black: Vec<PieceRef>,
+    pub controlled_by_white: bool,
+    pub controlled_by_black: bool,
+    pub legal_movers_white: FactCollection<PieceRef>,
+    pub legal_movers_black: FactCollection<PieceRef>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
