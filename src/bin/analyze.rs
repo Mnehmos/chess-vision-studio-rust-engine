@@ -103,6 +103,8 @@ fn telemetry_json(t: &Telemetry) -> serde_json::Value {
         "hashMoveCutoffPct",
         pct(t.hash_move_cutoffs, t.beta_cutoffs)
     );
+    field!("iidSearches", t.iid_searches);
+    field!("iidFound", t.iid_found);
     field!("firstMoveCutoffs", t.first_move_cutoffs);
     field!(
         "firstMoveCutoffPct",

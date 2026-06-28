@@ -93,7 +93,19 @@ impl Searcher {
             }
         }
         if self.opts.use_tt {
-            self.store(self.tt_key(pos), depth, best, Flag::Exact, best_move);
+            // Bound-correct flag: inside the aspiration loop this node is searched
+            // with the narrow window (alpha0, beta). On a fail-low `best` is only
+            // an upper bound and on a fail-high a lower bound — storing it as Exact
+            // pollutes the table and lets a bound satisfy an Exact cutoff on the
+            // next iteration's re-search.
+            let flag = if best <= alpha0 {
+                Flag::Upper
+            } else if best >= beta {
+                Flag::Lower
+            } else {
+                Flag::Exact
+            };
+            self.store(self.tt_key(pos), depth, best, flag, best_move);
         }
         self.root_progress = None;
         (best, best_move)
@@ -331,6 +343,43 @@ impl Searcher {
             if score >= beta {
                 self.tel.null_cutoffs += 1;
                 return beta;
+            }
+        }
+
+        // Internal Iterative Deepening (move-ordering patch). The strength audit
+        // pins the search ceiling on ordering: ~82% of TT probes are cold, so a
+        // node often enters the move loop with no principal move and the
+        // first-move cutoff rate sits near 35% (strong engines ~90%+). When this
+        // node has no hint and is deep enough to be worth it, search it once at a
+        // reduced depth purely to populate the TT, then re-probe to seed
+        // `tt_move`. The node's own (alpha,beta) is reused, so non-PV (zero-
+        // window) nodes get a cheap IID; the depth reduction bounds the nested
+        // recursion. Gated behind --iid for a clean A/B.
+        const IID_MIN_DEPTH: i32 = 7;
+        const IID_DEPTH_REDUCTION: i32 = 2;
+        if self.opts.iid
+            && tt_move.is_none()
+            && depth >= IID_MIN_DEPTH
+            && self.excluded_move.is_none()
+        {
+            self.tel.iid_searches += 1;
+            self.negamax(
+                pos,
+                depth - IID_DEPTH_REDUCTION,
+                alpha,
+                beta,
+                ply,
+                allow_null,
+            );
+            if self.aborted {
+                return self.static_eval(pos);
+            }
+            if let Some(e) = self.tt_probe(self.tt_key(pos)) {
+                if e.mv.is_some() {
+                    self.tel.iid_found += 1;
+                    tt_move = e.mv;
+                    tt_move_lane = e.lane;
+                }
             }
         }
 

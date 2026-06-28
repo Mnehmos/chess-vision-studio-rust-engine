@@ -100,6 +100,10 @@ pub struct SearchOptions {
     pub cvs_helpers: usize,
     pub lane: Lane,
     pub singular: bool,
+    /// Internal Iterative Deepening: at a node with no TT move hint, a reduced
+    /// search populates the TT so move ordering has a real first move. Targets
+    /// the audited move-ordering bottleneck (82% cold TT probes, ~35% first-cut).
+    pub iid: bool,
     pub syzygy: bool,
     pub book: bool,
     pub root_diagnostics: bool,
@@ -141,6 +145,7 @@ impl Default for SearchOptions {
             cvs_helpers: 0,
             lane: Lane::Fast,
             singular: false,
+            iid: false,
             syzygy: true,
             book: true,
             root_diagnostics: false,
@@ -189,6 +194,7 @@ impl SearchOptions {
         self.improving = toggle("--improving", "--no-improving", self.improving);
         self.king_activity = toggle("--king-activity", "--no-king-activity", self.king_activity);
         self.singular = toggle("--singular", "--no-singular", self.singular);
+        self.iid = toggle("--iid", "--no-iid", self.iid);
         self.syzygy = toggle("--syzygy", "--no-syzygy", self.syzygy);
         self.book = toggle("--book-enabled", "--no-book", self.book);
         self.root_diagnostics = toggle(
@@ -226,6 +232,10 @@ pub struct Telemetry {
     pub beta_cutoffs: u64,
     pub hash_move_cutoffs: u64,
     pub first_move_cutoffs: u64,
+    /// IID: nodes where a reduced search was run to seed a missing TT move,
+    /// and the subset where the re-probe then yielded a usable move hint.
+    pub iid_searches: u64,
+    pub iid_found: u64,
     pub cutoff_move_index_sum: u64,
     pub cutoff_move_index_count: u64,
     pub legal_move_nodes: u64,

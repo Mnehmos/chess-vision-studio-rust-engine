@@ -98,12 +98,16 @@ impl Searcher {
                     (pos.piece_at(prev.to), pos.piece_at(mv.from))
                 {
                     let ci = Self::conthist_idx(pp, prev.to, cp, mv.to);
-                    self.conthist[ci] += depth * depth;
-                    if self.conthist[ci] >= HISTORY_CAP {
-                        for h in self.conthist.iter_mut() {
-                            *h /= 2;
-                        }
-                    }
+                    // Gravity-bounded to ±8192 — the SAME scale as the butterfly
+                    // history it is summed with at ordering time. The old uncapped
+                    // depth² update saturated near +16384 (2× history) and was
+                    // never penalized, so it swamped the history signal (including
+                    // the malus that drives the first-move-cutoff rate) and made
+                    // --conthist a net regression.
+                    const D: i32 = 8192;
+                    let bonus = (150 * depth).min(1500);
+                    let e = &mut self.conthist[ci];
+                    *e += bonus - *e * bonus.abs() / D;
                 }
             }
         }
@@ -326,10 +330,14 @@ impl Searcher {
             if killers[1] == Some(*m) {
                 return 699_999 + self.lane_bonus(pos, *m, ply);
             }
-            if counter == Some(*m) {
-                return 650_000 + self.lane_bonus(pos, *m, ply);
-            }
             let mut s = self.history[Self::history_idx(side, *m)] + self.lane_bonus(pos, *m, ply);
+            if counter == Some(*m) {
+                // Countermove as an additive bonus within the quiet band (≈ half
+                // the ±8192 history bound) — reorders among quiets rather than
+                // hard-promoting an often-stale countermove above genuine high-
+                // history quiets (the old fixed 650k tier regressed).
+                s += 4096;
+            }
             if let Some((pp, pt)) = ch_key {
                 if let Some((_, cp)) = pos.piece_at(m.from) {
                     s += self.conthist[Self::conthist_idx(pp, pt, cp, m.to)];
