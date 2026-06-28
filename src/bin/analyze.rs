@@ -328,6 +328,11 @@ fn main() {
     // searching — the training-data faucet for head fitting (TS orchestration
     // does the regression; Rust owns extraction).
     let features_mode = args.iter().any(|a| a == "--features");
+    // --smarttime: soft/hard time split for clock-budgeted `go <ms>` picks (the
+    // Lichess bot's path), porting uci.rs's gauntlet-proven smarttime to serve mode.
+    // The bot passes ms ≈ clock/30 + 0.8·inc (uci's non-smart budget), so soft ≈
+    // ms·1.2 (≈ uci t/25) and hard ≈ ms·4.8 capped at ms·5 (≈ uci t/6) reproduce it.
+    let smarttime = args.iter().any(|a| a == "--smarttime");
     // --cvs-deltas: batch quiet-move delta/anchor feature extraction.
     if args.iter().any(|a| a == "--cvs-deltas") {
         let path = fens_path.expect("--cvs-deltas requires --fens");
@@ -558,6 +563,15 @@ fn main() {
                 searcher.root_scope = RootScope::Only(mv);
             }
             let search_opts = match timed_ms {
+                Some(ms) if smarttime => {
+                    let soft = ms + ms / 5;
+                    let hard = (soft * 4).min(ms * 5);
+                    SearchOptions {
+                        soft_time_ms: Some(soft),
+                        max_time_ms: Some(hard),
+                        ..opts
+                    }
+                }
                 Some(ms) => SearchOptions {
                     max_time_ms: Some(ms),
                     ..opts
@@ -768,9 +782,19 @@ fn main() {
                 match Position::from_fen(gfen) {
                     Ok(mut pos) => {
                         let mut searcher = make_searcher(base, rung2);
-                        let timed = SearchOptions {
-                            max_time_ms: Some(ms),
-                            ..opts
+                        let timed = if smarttime {
+                            let soft = ms + ms / 5;
+                            let hard = (soft * 4).min(ms * 5);
+                            SearchOptions {
+                                soft_time_ms: Some(soft),
+                                max_time_ms: Some(hard),
+                                ..opts
+                            }
+                        } else {
+                            SearchOptions {
+                                max_time_ms: Some(ms),
+                                ..opts
+                            }
                         };
                         let r = searcher.search(&mut pos, timed);
                         let t = r.telemetry;
