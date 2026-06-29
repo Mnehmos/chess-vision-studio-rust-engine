@@ -112,6 +112,11 @@ pub struct SearchOptions {
     pub syzygy: bool,
     pub book: bool,
     pub root_diagnostics: bool,
+    /// Root safe-quiet ordering (--rootsafequiet): at the root, boost quiet moves
+    /// whose destination is NOT controlled by the opponent (a "safe quiet") so the
+    /// calm, sound improvements CVS empirically skips get tried earlier among quiets.
+    /// Ordering-only within the quiet band -> cannot change the alpha-beta value.
+    pub root_safe_quiet: bool,
 }
 
 impl Default for SearchOptions {
@@ -156,6 +161,7 @@ impl Default for SearchOptions {
             syzygy: true,
             book: true,
             root_diagnostics: false,
+            root_safe_quiet: false,
         }
     }
 }
@@ -217,6 +223,7 @@ impl SearchOptions {
             "--no-shuffled-geometry",
             self.shuffled_geometry,
         );
+        self.root_safe_quiet = toggle("--rootsafequiet", "--no-rootsafequiet", self.root_safe_quiet);
         self
     }
 }

@@ -331,6 +331,17 @@ impl Searcher {
                 return 699_999 + self.lane_bonus(pos, *m, ply);
             }
             let mut s = self.history[Self::history_idx(side, *m)] + self.lane_bonus(pos, *m, ply);
+            // Root safe-quiet boost (--rootsafequiet): targets the measured #1 weakness
+            // (missed-safe-quiet, 57-58% of POSITIONAL/KING_DEFENSE misses vs SF-d24).
+            // At the root, a quiet whose destination the opponent does NOT control is a
+            // calm, sound improvement CVS tends to skip — lift it toward the top of the
+            // quiet band (+8000 ≈ the history bound). Ordering-only -> value-preserving.
+            if self.opts.root_safe_quiet
+                && ply == 0
+                && !crate::attacks::is_square_attacked(pos, m.to, pos.stm.flip(), pos.all)
+            {
+                s += 8_000;
+            }
             if counter == Some(*m) {
                 // Countermove as an additive bonus within the quiet band (≈ half
                 // the ±8192 history bound) — reorders among quiets rather than
