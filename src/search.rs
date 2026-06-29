@@ -37,6 +37,33 @@ pub use types::*;
 pub const MATE_SCORE: i32 = 1_000_000;
 pub const MATE_THRESHOLD: i32 = MATE_SCORE - 1000;
 const INF: i32 = MATE_SCORE * 2;
+
+/// BUG1 mate-TT: search mate scores are root-relative (`±(MATE_SCORE - ply_from_root)`),
+/// but the TT is keyed by position, which can occur at different plies. Convert to a
+/// node-intrinsic mate distance before STORING so the same position always stores the
+/// same mate distance; convert back to root-relative on PROBE. No-op for non-mate scores.
+#[inline]
+pub fn mate_store_adjust(score: i32, ply: i32) -> i32 {
+    if score > MATE_THRESHOLD {
+        score + ply
+    } else if score < -MATE_THRESHOLD {
+        score - ply
+    } else {
+        score
+    }
+}
+
+/// Inverse of [`mate_store_adjust`]: node-intrinsic stored score → root-relative at `ply`.
+#[inline]
+pub fn mate_probe_adjust(score: i32, ply: i32) -> i32 {
+    if score > MATE_THRESHOLD {
+        score - ply
+    } else if score < -MATE_THRESHOLD {
+        score + ply
+    } else {
+        score
+    }
+}
 const MAX_QUIESCENCE_PLY: u32 = 64;
 // Forcing quiet-check quiescence extensions (the d4 lesson: chess danger is not
 // only captures). Same caps as the TS searcher.
@@ -467,8 +494,9 @@ impl Searcher {
         }
     }
 
-    fn store(&mut self, key: u64, depth: i32, score: i32, flag: Flag, mv: Option<Move>) {
+    fn store(&mut self, key: u64, depth: i32, score: i32, flag: Flag, mv: Option<Move>, ply: i32) {
         let (gen, lane) = (self.tt_generation, self.opts.lane.id());
+        let score = if self.opts.matett { mate_store_adjust(score, ply) } else { score };
         if self.opts.tt2 {
             self.tt.store2(key, depth, score, flag, mv, gen, lane);
         } else {
@@ -621,5 +649,53 @@ impl Searcher {
         }
 
         cache
+    }
+}
+
+#[cfg(test)]
+mod mate_tt_tests {
+    use super::{mate_probe_adjust, mate_store_adjust, MATE_SCORE, MATE_THRESHOLD};
+
+    #[test]
+    fn non_mate_scores_unchanged() {
+        for &s in &[0, 50, -50, MATE_THRESHOLD - 1, -(MATE_THRESHOLD - 1)] {
+            assert_eq!(mate_store_adjust(s, 7), s, "store no-op for non-mate {s}");
+            assert_eq!(mate_probe_adjust(s, 7), s, "probe no-op for non-mate {s}");
+        }
+    }
+
+    #[test]
+    fn store_probe_roundtrip_same_ply() {
+        for &s in &[MATE_SCORE - 8, -(MATE_SCORE - 8), MATE_SCORE - 1, -(MATE_SCORE - 1)] {
+            for &ply in &[0, 3, 12, 40] {
+                assert_eq!(mate_probe_adjust(mate_store_adjust(s, ply), ply), s);
+            }
+        }
+    }
+
+    #[test]
+    fn mate_distance_preserved_across_plies() {
+        // "Mate in 3 from the node", found at ply 5: root-relative = MATE_SCORE-(5+3).
+        let (node_distance, store_ply) = (3, 5);
+        let root_rel_at_store = MATE_SCORE - (store_ply + node_distance);
+        let stored = mate_store_adjust(root_rel_at_store, store_ply);
+        assert_eq!(stored, MATE_SCORE - node_distance, "node-intrinsic = mate in 3");
+        // Probe the SAME entry at a different ply (2): root-relative re-derives correctly.
+        let probe_ply = 2;
+        let root_rel_at_probe = mate_probe_adjust(stored, probe_ply);
+        assert_eq!(root_rel_at_probe, MATE_SCORE - (probe_ply + node_distance));
+        // The node mate distance is preserved regardless of the probing ply.
+        assert_eq!((MATE_SCORE - root_rel_at_probe) - probe_ply, node_distance);
+    }
+
+    #[test]
+    fn loss_side_symmetric() {
+        // Being mated in 3, found at ply 5.
+        let (node_distance, store_ply) = (3, 5);
+        let root_rel = -(MATE_SCORE - (store_ply + node_distance));
+        let stored = mate_store_adjust(root_rel, store_ply);
+        assert_eq!(stored, -(MATE_SCORE - node_distance));
+        let recovered = mate_probe_adjust(stored, 2);
+        assert_eq!(recovered, -(MATE_SCORE - (2 + node_distance)));
     }
 }

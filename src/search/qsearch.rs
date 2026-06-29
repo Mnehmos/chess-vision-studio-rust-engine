@@ -72,7 +72,7 @@ impl Searcher {
         let stand = self.leaf_eval(pos, false, false);
         if stand >= beta {
             if self.opts.qsearch_tt && self.opts.use_tt && beta.abs() < MATE_THRESHOLD {
-                self.store(qkey, 0, beta, Flag::Lower, None);
+                self.store(qkey, 0, beta, Flag::Lower, None, ply as i32);
             }
             return beta; // fail-hard stand-pat, like the TS reference
         }
@@ -139,7 +139,7 @@ impl Searcher {
             } else {
                 Flag::Exact
             };
-            self.store(qkey, 0, score, flag, None);
+            self.store(qkey, 0, score, flag, None, ply as i32);
         }
         score
     }

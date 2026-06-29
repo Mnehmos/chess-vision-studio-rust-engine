@@ -105,7 +105,7 @@ impl Searcher {
             } else {
                 Flag::Exact
             };
-            self.store(self.tt_key(pos), depth, best, flag, best_move);
+            self.store(self.tt_key(pos), depth, best, flag, best_move, 0);
         }
         self.root_progress = None;
         (best, best_move)
@@ -155,8 +155,13 @@ impl Searcher {
         if self.opts.use_tt && !(checked && rule_draw) {
             self.tel.tt_probes += 1;
             let probe_key = self.tt_key(pos);
-            if let Some(e) = self.tt_probe(probe_key) {
+            if let Some(mut e) = self.tt_probe(probe_key) {
                 self.tel.tt_entries += 1;
+                // BUG1 mate-TT: stored mate scores are node-intrinsic; convert back to
+                // root-relative at this ply before any cutoff/bound use below.
+                if self.opts.matett {
+                    e.score = super::mate_probe_adjust(e.score, ply as i32);
+                }
                 tt_move = e.mv;
                 tt_move_lane = e.lane;
                 // Transfer telemetry: this node consumed a move hint written by
@@ -214,7 +219,7 @@ impl Searcher {
                             _ => Flag::Exact,
                         };
                         if self.opts.use_tt {
-                            self.store(self.tt_key(pos), depth, score, flag, None);
+                            self.store(self.tt_key(pos), depth, score, flag, None, ply as i32);
                         }
                         return score;
                     }
@@ -306,7 +311,7 @@ impl Searcher {
                 // nodes RFP cuts are re-probed empty every ID iteration
                 // (measured 19% any-entry rate at d8).
                 if self.opts.tt_prune_store && self.opts.use_tt {
-                    self.store(self.tt_key(pos), depth, beta, Flag::Lower, None);
+                    self.store(self.tt_key(pos), depth, beta, Flag::Lower, None, ply as i32);
                 }
                 return beta;
             }
@@ -576,7 +581,7 @@ impl Searcher {
                     }
                 }
                 if self.opts.use_tt {
-                    self.store(key, depth, best, Flag::Lower, best_move);
+                    self.store(key, depth, best, Flag::Lower, best_move, ply as i32);
                 }
                 return best;
             }
@@ -587,7 +592,7 @@ impl Searcher {
             } else {
                 Flag::Upper
             };
-            self.store(key, depth, best, flag, best_move);
+            self.store(key, depth, best, flag, best_move, ply as i32);
         }
         best
     }
