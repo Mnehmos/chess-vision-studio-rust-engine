@@ -121,14 +121,27 @@ CVS_RUST_EXE=../chess-vision-studio-rust-engine/target/release/analyze.exe
 CVS_RUST_DEPTH=6
 CVS_RUST_BASE=arena/out/value-weights-mixed.json
 CVS_RUST_RUNG2=arena/out/rung2-weights-mixed.json
+CVS_RUST_NNUE=arena/out/gen8-raw-h256-v2.json
+CVS_RUST_THREADS=1
+CVS_RUST_CVS_HELPERS=0
 CVS_RUST_FUTILITY=1
-CVS_RUST_RFP=0
+CVS_RUST_RFP=1
+CVS_RUST_TTPS=1
+CVS_RUST_QTT=1
+CVS_RUST_HISTMALUS=1
+CVS_RUST_HISTLMR=1
 ```
 
 The app labels this native path as **CVS Engine**. Move grading and dataset
 analysis are powered by **native Stockfish** (a pooled UCI subprocess, labeled
 **Stockfish · native** in the app; WASM is an automatic fallback when no binary is
 present).
+
+Keep `CVS_RUST_THREADS=1` and `CVS_RUST_CVS_HELPERS=0` for normal app/dataset
+analysis unless you are running an explicit same-budget SMP or specialist-lane
+benchmark. The app bridge scales its process pool down when per-process search
+threads are enabled, but multi-process fan-out and multi-threaded search still
+share the same CPU budget.
 
 ## Binaries
 

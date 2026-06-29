@@ -75,6 +75,12 @@ bound is at least same-units.
 **Recommended path: ship Channel A first (provably safe, likely most of the
 gain), measure, then cautiously open Channel B with eval-kind tagging.**
 
+Implementation note, 2026-06-29: the Level-1 Channel-A read path is now live.
+TT entries carry specialist-lane provenance. Root search keeps foreign-lane TT
+moves as ordering hints, but it refuses foreign-lane scores/bounds for cutoffs,
+singular-extension probes, and qsearch bounds. Channel B is still gated behind
+eval-family provenance plus a same-budget benchmark promotion.
+
 ## Mapping to existing code (the diff is tiny)
 
 `search_smp` (src/search.rs) already constructs each helper as an independent
@@ -93,10 +99,11 @@ match helper_eval {
 ```
 
 Pieces already in place: `Arc<SharedTt>` (lock-free, XOR-verified), per-thread
-killers/history, the `with_nnue` eval swap, the `cvs_trace` hook, and the
-`registry_hash` model-compat guard. What's missing for a real prototype: a
-trained `cvs_nnue` (next on the build list) and an `eval-kind` tag on TT entries
-for Channel B.
+killers/history, lane provenance on TT entries, Channel-A foreign-bound
+isolation on read, the `with_nnue` eval swap, the `cvs_trace` hook, and the
+`registry_hash` model-compat guard. What's missing for Channel B: an
+eval-family tag, authority rules for mixed-eval bounds, and a same-budget
+benchmark that proves bound sharing beats move-hint-only Channel A.
 
 ## Topology knob
 
@@ -168,9 +175,10 @@ Lane 7  PawnEndgameScout    passers, king activity, rook-behind-passer, races (l
   (king lane extends on rising danger; tactics lane extends checks/captures;
   quiet-defense lane reduces pruning on defensive resources). Powerful, gated.
 
-## TT provenance (the prerequisite for Levels 2-3 and Channel A safety)
+## TT provenance (the prerequisite for Levels 2-3 and Channel B)
 
-Each TT entry carries its source so the main thread knows how much to trust it:
+Each TT entry carries its lane source so the main thread knows how much to trust
+it:
 
 ```
 source_lane: u8     // which specialist wrote it
@@ -178,9 +186,10 @@ eval_family: u8     // Fast | RawNNUE | CvsNNUE | KingSafety | SEE | Tactics | P
 trust:              // same family -> move+score+bound; foreign -> move (ordering) only
 ```
 
-We have 2 spare bits in the packed TtEntry today; full lane tagging needs a
-small entry-width bump or a side array. This is the concrete next TT change,
-but it lands with Level 2, not before.
+Current packed TT entries store the 2-bit specialist lane, enough for Level-1
+Channel-A read isolation and transfer telemetry. Full Channel-B bound sharing
+still needs an eval-family/provenance expansion so a reader can distinguish
+same-eval bounds from mixed-eval suggestions.
 
 ## Anti-vibes metric (per lane — the soul of it)
 

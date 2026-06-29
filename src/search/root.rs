@@ -169,11 +169,15 @@ impl Searcher {
                 if e.mv.is_some() && e.lane != self.opts.lane.id() {
                     self.tel.foreign_tt_hints[(e.lane & 3) as usize] += 1;
                 }
+                let same_lane = e.lane == self.opts.lane.id();
                 // rule50-v2: near the 50-move boundary every stored score is
                 // suspect (graph-history interaction) — keep the move hint,
                 // refuse the cutoff. Mirrors SF's rule50_count() >= 96 guard.
                 let r50_block = self.opts.rule50_scale && pos.halfmove >= 96;
-                if e.depth >= depth && !r50_block {
+                // Channel-A specialist isolation: foreign lanes can seed move
+                // ordering through `tt_move`, but their eval-profiled scores and
+                // bounds must not prune a different lane's tree.
+                if same_lane && e.depth >= depth && !r50_block {
                     self.tel.tt_hits += 1;
                     match e.flag {
                         Flag::Exact => {
@@ -236,7 +240,11 @@ impl Searcher {
             && !(checked && rule_draw)
         {
             if let Some(e) = self.tt_probe(self.tt_key(pos)) {
-                if e.depth >= depth - 3 && e.flag != Flag::Upper && e.score.abs() < MATE_THRESHOLD {
+                if e.lane == self.opts.lane.id()
+                    && e.depth >= depth - 3
+                    && e.flag != Flag::Upper
+                    && e.score.abs() < MATE_THRESHOLD
+                {
                     let rdepth = (depth - 1) / 2;
                     let margin = 2 * depth as i32;
                     let s_beta = e.score - margin;

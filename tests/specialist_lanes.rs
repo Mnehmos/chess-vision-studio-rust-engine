@@ -5,11 +5,10 @@
 //!   1. FOUNDATION invariants — testable today against the heterogeneous
 //!      mechanic (`cvs_helpers`). These MUST hold or the lane design is unsafe
 //!      to build on. They run and pass now.
-//!   2. LANE-DESIGN tests — the real verification of each specialist lane and
-//!      the Channel-A safety property. They need code that isn't built yet
-//!      (ordering lanes, eval-kind TT tags, per-lane telemetry), so they are
-//!      `#[ignore]`d with the exact assertion documented. Each becomes live as
-//!      its feature lands.
+//!   2. LANE-DESIGN tests — verification of each specialist lane and the
+//!      Channel-A safety property. Ordering lanes, TT lane provenance, and
+//!      foreign-hint telemetry are live; full score/PV identity remains ignored
+//!      until eval-family tags and deterministic same-budget telemetry land.
 use cvs_bitboard_core::movegen::generate_legal;
 use cvs_bitboard_core::search::{Lane, SearchOptions, Searcher};
 use cvs_bitboard_core::Position;
@@ -118,9 +117,10 @@ fn timed_heterogeneous_search_terminates() {
 /// move hints, never as score/bound cutoffs), the search RESULT (score, and on
 /// a fixed seed the PV) must be IDENTICAL to single-thread — only faster.
 /// Ordering changes which move is searched first, never the alpha-beta value.
-/// Requires: eval-kind TT tags + a read path that drops foreign bounds.
+/// Requires: eval-kind TT tags plus deterministic same-budget telemetry. The
+/// read path already drops foreign bounds.
 #[test]
-#[ignore = "needs eval-kind TT tagging (Channel-A read path) — Level 2 prerequisite"]
+#[ignore = "needs eval-kind TT tagging and deterministic Channel-A identity gate"]
 fn channel_a_ordering_only_preserves_score() {
     // let fen = "...quiet midgame...";
     // let single = search(threads=1);

@@ -44,7 +44,9 @@ impl Searcher {
             self.tel.tt_probes += 1;
             if let Some(e) = self.tt_probe(qkey) {
                 self.tel.tt_entries += 1;
-                if e.score.abs() < MATE_THRESHOLD {
+                // Specialist Channel-A isolation: qsearch entries carry no move
+                // hint, so a foreign-lane qTT entry has no safe cross-lane use.
+                if e.lane == self.opts.lane.id() && e.score.abs() < MATE_THRESHOLD {
                     match e.flag {
                         Flag::Exact => {
                             self.tel.tt_cutoffs += 1;
