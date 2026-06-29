@@ -473,7 +473,15 @@ impl Searcher {
             // not just sorted on — strong-history quiets escape the reduction,
             // proven-bad ones (negative entries exist only under --histmalus)
             // are reduced an extra ply. SF: r -= statScore*445/4096.
-            let mut lmr_r: i32 = i32::from(reduce);
+            let mut lmr_r: i32 = if reduce {
+                if self.opts.loglmr {
+                    super::log_lmr_reduction(depth, move_index as usize).max(1)
+                } else {
+                    1
+                }
+            } else {
+                0
+            };
             if reduce && self.opts.hist_lmr {
                 let h = self.history[Self::history_idx(side, mv)];
                 if h > 2048 {

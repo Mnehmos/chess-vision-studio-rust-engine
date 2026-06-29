@@ -64,6 +64,23 @@ pub fn mate_probe_adjust(score: i32, ply: i32) -> i32 {
         score
     }
 }
+
+/// Log-based LMR reduction (--loglmr): `r ≈ 0.75 + ln(d)·ln(i)/2.25` — the standard
+/// shape strong engines use, replacing the flat 1-ply tier (depth/move-index aware:
+/// reduce later + deeper moves more). Precomputed once into a 64×64 table.
+pub fn log_lmr_reduction(depth: i32, move_index: usize) -> i32 {
+    static TABLE: std::sync::OnceLock<[[i32; 64]; 64]> = std::sync::OnceLock::new();
+    let t = TABLE.get_or_init(|| {
+        let mut t = [[0i32; 64]; 64];
+        for d in 1..64usize {
+            for i in 1..64usize {
+                t[d][i] = (0.75 + (d as f64).ln() * (i as f64).ln() / 2.25) as i32;
+            }
+        }
+        t
+    });
+    t[(depth.max(0) as usize).min(63)][move_index.min(63)]
+}
 const MAX_QUIESCENCE_PLY: u32 = 64;
 // Forcing quiet-check quiescence extensions (the d4 lesson: chess danger is not
 // only captures). Same caps as the TS searcher.

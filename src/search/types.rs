@@ -84,6 +84,8 @@ pub struct SearchOptions {
     /// BUG1: ply-adjust mate scores on TT store/probe so a mate score stored at one
     /// ply reads correctly when probed at another (node-intrinsic TT mate distance).
     pub matett: bool,
+    /// Log-based LMR reduction (r ≈ 0.75 + ln(d)·ln(i)/2.25) vs the flat 1-ply tier.
+    pub loglmr: bool,
     pub conthist: bool,
     pub tt_prune_store: bool,
     pub rule50_scale: bool,
@@ -128,6 +130,7 @@ impl Default for SearchOptions {
             futility: true,
             lmp: false,
             matett: false,
+            loglmr: false,
             see_prune: false,
             delta_prune: false,
             countermove: false,
@@ -181,6 +184,7 @@ impl SearchOptions {
         self.futility = toggle("--futility", "--no-futility", self.futility);
         self.lmp = toggle("--lmp", "--no-lmp", self.lmp);
         self.matett = toggle("--matett", "--no-matett", self.matett);
+        self.loglmr = toggle("--loglmr", "--no-loglmr", self.loglmr);
         self.see_prune = toggle("--seeprune", "--no-seeprune", self.see_prune);
         self.delta_prune = toggle("--delta", "--no-delta", self.delta_prune);
         self.countermove = toggle("--countermove", "--no-countermove", self.countermove);
