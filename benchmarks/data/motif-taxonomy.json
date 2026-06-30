@@ -59,6 +59,7 @@
     { "slug": "multi-square-counting", "name": "Multi-square Counting", "category": "tactical", "family": "counting", "parent": "counting", "definition": "Forced material gain via captures across several squares.", "detectedBy": null },
     { "slug": "hanging-piece", "name": "Hanging Piece", "category": "tactical", "family": "material", "definition": "An undefended (or under-defended) piece can be won for free.", "detectedBy": "facts::piece_safety(loose/SEE)" },
     { "slug": "trapped-piece", "name": "Trapped Piece", "category": "tactical", "family": "material", "definition": "A piece has no safe square and will be lost.", "detectedBy": null },
+    { "slug": "domination", "name": "Domination", "category": "tactical", "family": "material", "definition": "A piece is lost despite nominally having squares — every escape is covered.", "detectedBy": null },
     { "slug": "win-the-exchange", "name": "Win the Exchange", "category": "tactical", "family": "material", "definition": "Win a rook for a minor piece.", "detectedBy": null },
     { "slug": "hook-and-ladder", "name": "Hook and Ladder", "category": "tactical", "family": "material", "definition": "A trick where stacked major pieces win material via an in-between capture.", "detectedBy": null },
     { "slug": "simplification", "name": "Simplification", "category": "tactical", "family": "material", "definition": "Trade pieces to reach a winning endgame.", "detectedBy": null },
@@ -84,6 +85,7 @@
     { "slug": "underpromotion", "name": "Underpromotion", "category": "tactical", "family": "pawns", "definition": "Promote to a non-queen for a fork, check, or to avoid stalemate.", "detectedBy": null },
     { "slug": "promotion-threat", "name": "Promotion Threat", "category": "tactical", "family": "pawns", "definition": "The threat to promote drives the tactic without promoting.", "detectedBy": "facts::promotion_pressure(#2)" },
     { "slug": "underpromotion-threat", "name": "Underpromotion Threat", "category": "tactical", "family": "pawns", "definition": "A threatened underpromotion influences the outcome.", "detectedBy": null },
+    { "slug": "pawn-breakthrough", "name": "Pawn Breakthrough", "category": "tactical", "family": "pawns", "definition": "A pawn sacrifice that forces through an unstoppable passed pawn.", "detectedBy": null },
 
     { "slug": "weak-back-rank", "name": "Weak Back Rank", "category": "tactical", "family": "king-attack", "definition": "Exploit a king hemmed in on its back rank by its own pawns.", "detectedBy": null },
     { "slug": "exposed-king", "name": "Exposed King", "category": "tactical", "family": "king-attack", "definition": "An open/under-defended king enables the tactic.", "detectedBy": null },
@@ -106,7 +108,13 @@
     { "slug": "backwards-move", "name": "Backwards Move", "category": "tactical", "family": "move-types", "definition": "A retreating move is the key, easily-missed resource.", "detectedBy": null },
     { "slug": "long-lateral-move", "name": "Long Lateral Move", "category": "tactical", "family": "move-types", "definition": "A long sideways slider move is the key, easily-missed resource.", "detectedBy": null },
 
+    { "slug": "battery", "name": "Battery", "category": "tactical", "family": "battery", "definition": "Two pieces aligned on a file/rank/diagonal to multiply force.", "detectedBy": null },
+    { "slug": "queen-bishop-battery", "name": "Queen + Bishop Battery", "category": "tactical", "family": "battery", "parent": "battery", "definition": "Queen and bishop doubled on the same diagonal.", "detectedBy": null },
+    { "slug": "two-rooks-battery", "name": "Two Rooks Battery", "category": "tactical", "family": "battery", "parent": "battery", "definition": "Two rooks doubled on a file or rank.", "detectedBy": null },
+    { "slug": "alekhines-gun", "name": "Alekhine's Gun", "category": "tactical", "family": "battery", "parent": "battery", "definition": "Doubled rooks backed by the queen on the same file.", "detectedBy": null },
+
     { "slug": "zugzwang", "name": "Zugzwang", "category": "tactical", "family": "zugzwang", "definition": "Any move worsens the opponent's position.", "detectedBy": null },
+    { "slug": "triangulation", "name": "Triangulation", "category": "tactical", "family": "zugzwang", "definition": "Lose a tempo with the king to put the opponent in zugzwang.", "detectedBy": null },
 
     { "slug": "anastasias-mate", "name": "Anastasia's Mate", "category": "mate", "family": "rook-knight", "definition": "King trapped on the edge; rook/queen mates while a knight blocks escape.", "detectedBy": null },
     { "slug": "arabian-mate", "name": "Arabian Mate", "category": "mate", "family": "rook-knight", "definition": "Rook + knight mate the king in the corner.", "detectedBy": null },
