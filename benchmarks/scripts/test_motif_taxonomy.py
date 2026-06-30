@@ -12,11 +12,11 @@ import motif_taxonomy as t  # noqa: E402
 import route_candidates as r  # noqa: E402
 
 
-def test_loads_and_has_both_categories():
+def test_loads_and_has_all_categories():
     tax = t.load_taxonomy()
     cats = {m["category"] for m in tax["motifs"]}
-    assert cats == {"tactical", "positional"}
-    assert len(tax["motifs"]) >= 60  # tactical + positional combined
+    assert cats == {"tactical", "mate", "positional"}
+    assert len(tax["motifs"]) >= 120  # tactical + mate + positional combined
 
 
 def test_slugs_unique_and_validate():
@@ -29,7 +29,7 @@ def test_slugs_unique_and_validate():
 def test_coverage_partitions_total():
     cov = t.coverage()
     assert cov["detected"] + cov["gaps"] == cov["total"]
-    assert cov["tactical"]["total"] + cov["positional"]["total"] == cov["total"]
+    assert sum(cov[c]["total"] for c in t.CATEGORIES) == cov["total"]
     # known detectors exist (fork/pin/pawn-structure are wired); and there ARE gaps (the roadmap)
     assert cov["detected"] >= 5 and cov["gaps"] >= 1
 
