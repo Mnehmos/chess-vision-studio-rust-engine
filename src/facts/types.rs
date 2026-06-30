@@ -52,11 +52,13 @@ pub struct PositionFacts {
     pub available_motifs: FactCollection<MotifOpportunity>,
     pub available_pins: FactCollection<PinOpportunity>,
     pub available_skewers: FactCollection<SkewerOpportunity>,
+    pub available_discoveries: FactCollection<DiscoveryOpportunity>,
     /// Analysis-only legal opportunities for the side that is not to move.
     /// These let the application prove a motif was newly allowed by a move.
     pub opponent_available_motifs: FactCollection<MotifOpportunity>,
     pub opponent_available_pins: FactCollection<PinOpportunity>,
     pub opponent_available_skewers: FactCollection<SkewerOpportunity>,
+    pub opponent_available_discoveries: FactCollection<DiscoveryOpportunity>,
     pub hazards: FactCollection<HazardFact>,
     pub square_facts: FactCollection<SquareFact>,
 }
@@ -330,6 +332,36 @@ pub struct SkewerOpportunity {
     /// Whether the skewering move gives check (true for a king skewer).
     pub gives_check: bool,
     /// Estimated material won when the front piece steps aside, in centipawns.
+    pub material_gain: i32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscoveryOpportunity {
+    /// Subtype: "discovered_attack" | "discovered_check" | "double_check".
+    pub kind: String,
+    /// Validator that proved it — "discovery_validation".
+    pub validator: String,
+    /// The single move that creates the discovery (long UCI).
+    pub move_uci: String,
+    /// The piece that moves off the line, at its post-move square (promoted type if a promotion).
+    pub mover: PieceRef,
+    /// The rear friendly slider unveiled by the move, at its unchanged square.
+    pub slider: PieceRef,
+    /// The enemy piece the unveiled slider now attacks (the king for a discovered check).
+    pub target: PieceRef,
+    /// Squares between the slider and the target along the unveiled line.
+    pub ray: Vec<String>,
+    /// Whether the move gives check (overall).
+    pub gives_check: bool,
+    /// Whether the unveiled slider checks the enemy king.
+    pub discovered_check: bool,
+    /// Whether both the unveiled slider AND the moved piece check the king.
+    pub double_check: bool,
+    /// Whether the moved piece also makes its own winning threat from its new square.
+    pub mover_threatens: bool,
+    /// Estimated material consequence in centipawns (the unveiled target, or the moved
+    /// piece's simultaneous threat for a forcing discovered check).
     pub material_gain: i32,
 }
 

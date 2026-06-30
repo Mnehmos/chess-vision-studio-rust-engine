@@ -29,6 +29,11 @@ pub fn position_hazards(pos: &Position, facts: &PositionFacts) -> FactCollection
         && matches!(
             facts.opponent_available_skewers,
             FactCollection::Computed { .. }
+        )
+        && matches!(facts.available_discoveries, FactCollection::Computed { .. })
+        && matches!(
+            facts.opponent_available_discoveries,
+            FactCollection::Computed { .. }
         );
     if !collections_ready {
         return FactCollection::unavailable("symmetric_hazard_probe_unavailable");
@@ -43,6 +48,8 @@ pub fn position_hazards(pos: &Position, facts: &PositionFacts) -> FactCollection
     add_pin_hazards(&mut hazards, &facts.opponent_available_pins);
     add_skewer_hazards(&mut hazards, &facts.available_skewers);
     add_skewer_hazards(&mut hazards, &facts.opponent_available_skewers);
+    add_discovery_hazards(&mut hazards, &facts.available_discoveries);
+    add_discovery_hazards(&mut hazards, &facts.opponent_available_discoveries);
     add_king_pressure(&mut hazards, facts);
 
     for color in [Color::White, Color::Black] {
@@ -228,6 +235,43 @@ fn add_skewer_hazards(
                 squares,
                 magnitude_cp: Some(skewer.material_gain),
                 move_uci: Some(skewer.move_uci.clone()),
+            },
+        );
+    }
+}
+
+fn add_discovery_hazards(
+    out: &mut BTreeMap<String, HazardFact>,
+    discoveries: &FactCollection<crate::facts::types::DiscoveryOpportunity>,
+) {
+    let FactCollection::Computed { items } = discoveries else {
+        return;
+    };
+    for discovery in items {
+        let id = format!(
+            "discovery-threat-{}-{}",
+            discovery.target.id, discovery.move_uci
+        );
+        let mut squares = vec![
+            discovery.mover.square.clone(),
+            discovery.slider.square.clone(),
+            discovery.target.square.clone(),
+        ];
+        squares.extend(discovery.ray.iter().cloned());
+        squares.sort();
+        squares.dedup();
+        out.insert(
+            id.clone(),
+            HazardFact {
+                id,
+                // The discovery subtype IS the hazard kind, so the app can tell a
+                // discovered/double check from a plain discovered attack.
+                kind: discovery.kind.clone(),
+                // The discovered (target) side is the one under threat.
+                side: discovery.target.side,
+                squares,
+                magnitude_cp: Some(discovery.material_gain),
+                move_uci: Some(discovery.move_uci.clone()),
             },
         );
     }
