@@ -43,6 +43,30 @@ fn classifies_a_smothered_mate() {
     assert!(m.gives_check);
 }
 
+#[test]
+fn classifies_an_epaulette_mate() {
+    // Qa6-e6#: the king e8 is sandwiched by its own rooks on d8 and f8 (the epaulettes),
+    // the queen checking down the e-file between them.
+    let items = mates("3rkr2/8/Q7/8/8/8/8/4K3 w - - 0 1");
+    let m = find(&items, "a6e6").expect("Qe6 should be a classified epaulette mate");
+    assert_eq!(m.kind, "epaulette_mate");
+    assert_eq!(m.mating_piece.piece_type, PieceType::Queen);
+    assert_eq!(m.mated_king.square, "e8");
+    assert!(m.key_squares.contains(&"d8".to_string()));
+    assert!(m.key_squares.contains(&"f8".to_string()));
+}
+
+#[test]
+fn classifies_a_damiano_mate() {
+    // Qa7-h7#: the queen mates adjacent to the king h8, defended by the g6 pawn.
+    let items = mates("7k/Q7/6P1/8/8/8/8/6K1 w - - 0 1");
+    let m = find(&items, "a7h7").expect("Qh7 should be a classified Damiano mate");
+    assert_eq!(m.kind, "damiano_mate");
+    assert_eq!(m.mating_piece.piece_type, PieceType::Queen);
+    assert_eq!(m.mated_king.square, "h8");
+    assert!(m.key_squares.contains(&"g6".to_string()));
+}
+
 // ── negatives / precision ────────────────────────────────────────────────────
 
 #[test]

@@ -7,7 +7,7 @@
 //! First batch: back-rank + smothered (rook/queen-along-the-rank vs all-smothered
 //! knight — zero overlap). Later batches add more patterns to `classify`.
 
-use crate::attacks::king_attacks;
+use crate::attacks::{king_attacks, pawn_attacks};
 use crate::facts::hazards::mating_moves;
 use crate::facts::piece_safety::piece_ref;
 use crate::facts::position::{position_for_analysis_side, square_name};
@@ -55,10 +55,15 @@ fn classify(pos: &Position, mv: Move) -> Option<MatePatternFact> {
     let to = mv.to;
     let (_, mating_piece) = after.piece_at(to)?;
 
-    // Most-specific first. The two first-batch patterns do not overlap (knight vs
-    // rook/queen), so order is immaterial here; later batches insert ahead of these.
+    // Most-specific first. Smothered (knight) is disjoint from the major-piece patterns;
+    // epaulette (both flanks own) and Damiano (pawn-defended adjacent queen) are stricter
+    // than the general back-rank fallback, so they precede it.
     let (kind, mut key) = if let Some(key) = smothered(&after, mated, ksq, to, mating_piece) {
         ("smothered_mate", key)
+    } else if let Some(key) = epaulette(&after, mated, ksq, to, mating_piece) {
+        ("epaulette_mate", key)
+    } else if let Some(key) = damiano(&after, mater, ksq, to, mating_piece) {
+        ("damiano_mate", key)
     } else if let Some(key) = back_rank(&after, mated, ksq, to, mating_piece) {
         ("back_rank_mate", key)
     } else {
@@ -127,4 +132,56 @@ fn back_rank(after: &Position, mated: Color, ksq: u8, to: u8, mp: Piece) -> Opti
         key.push(s);
     }
     Some(key)
+}
+
+/// Epaulette mate: a rook/queen checks along the king's file or rank, and the king's
+/// two flanks PERPENDICULAR to the check (the "epaulettes") are BOTH its own pieces,
+/// sandwiching it. Both flanks must be on-board (king not on the relevant edge).
+fn epaulette(after: &Position, mated: Color, ksq: u8, to: u8, mp: Piece) -> Option<Vec<u8>> {
+    if mp != Piece::Rook && mp != Piece::Queen {
+        return None;
+    }
+    let kf = file_of(ksq) as i8;
+    let kr = rank_of(ksq) as i8;
+    let flanks: [(i8, i8); 2] = if file_of(to) == file_of(ksq) {
+        [(kf - 1, kr), (kf + 1, kr)] // file check -> same-rank flanks
+    } else if rank_of(to) == rank_of(ksq) {
+        [(kf, kr - 1), (kf, kr + 1)] // rank check -> same-file flanks
+    } else {
+        return None; // a diagonal queen check is not an epaulette
+    };
+    let own = color_occ(after, mated);
+    let mut key = vec![ksq, to];
+    for (f, r) in flanks {
+        if !(0..8).contains(&f) || !(0..8).contains(&r) {
+            return None; // king on the edge — not sandwiched between two epaulettes
+        }
+        let s = (r * 8 + f) as u8;
+        if own & (1u64 << s) == 0 {
+            return None; // a flank is not an own piece
+        }
+        key.push(s);
+    }
+    Some(key)
+}
+
+/// Damiano's mate: a queen mates from a square ADJACENT to the king, defended by a
+/// friendly PAWN (the pawn-supported adjacent queen).
+fn damiano(after: &Position, mater: Color, ksq: u8, to: u8, mp: Piece) -> Option<Vec<u8>> {
+    if mp != Piece::Queen {
+        return None;
+    }
+    if king_attacks(ksq) & (1u64 << to) == 0 {
+        return None; // queen not adjacent to the king
+    }
+    let to_bit = 1u64 << to;
+    let mut pawns = after.pieces[mater.index()][Piece::Pawn.index()];
+    while pawns != 0 {
+        let psq = pawns.trailing_zeros() as u8;
+        pawns &= pawns - 1;
+        if pawn_attacks(mater, psq) & to_bit != 0 {
+            return Some(vec![ksq, to, psq]); // a friendly pawn defends the mating queen
+        }
+    }
+    None
 }
