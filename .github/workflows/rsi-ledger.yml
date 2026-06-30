@@ -1,0 +1,36 @@
+name: rsi-ledger
+
+# Enforces the RSI experiment-ledger invariants (issue #12): append-only hash chain, runId
+# uniqueness, parent lineage, and harness authority (no agent-authorized promotion; promote
+# needs a crossed-upper SPRT). Runs the linter's tests + lints a fixture ledger end-to-end.
+on:
+  push:
+    paths:
+      - "benchmarks/scripts/lint_ledger.py"
+      - "benchmarks/scripts/test_lint_ledger.py"
+      - "benchmarks/schemas/experiment-run.schema.json"
+      - "benchmarks/results/fixtures/ledger-*.jsonl"
+  pull_request:
+    paths:
+      - "benchmarks/scripts/lint_ledger.py"
+      - "benchmarks/scripts/test_lint_ledger.py"
+      - "benchmarks/schemas/experiment-run.schema.json"
+      - "benchmarks/results/fixtures/ledger-*.jsonl"
+
+jobs:
+  rsi-ledger:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Ledger linter tests
+        run: python benchmarks/scripts/test_lint_ledger.py
+      - name: Lint the valid fixture ledger end-to-end (must pass)
+        run: python benchmarks/scripts/lint_ledger.py benchmarks/results/fixtures/ledger-valid.jsonl
+      - name: A tampered ledger must be rejected (must exit non-zero)
+        run: |
+          if python benchmarks/scripts/lint_ledger.py benchmarks/results/fixtures/ledger-tampered.jsonl; then
+            echo "ERROR: linter accepted a tampered ledger"; exit 1
+          fi

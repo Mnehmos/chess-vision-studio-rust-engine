@@ -8,6 +8,7 @@
 pub mod cvs_features;
 pub mod nnue;
 pub mod pst;
+pub mod residual_hybrid;
 pub mod rung2;
 pub mod weights;
 

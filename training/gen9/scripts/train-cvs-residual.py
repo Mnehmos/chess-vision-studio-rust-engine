@@ -9,6 +9,9 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from source_split_guard import seed_everything  # noqa: E402  (#13 deterministic seeding)
+
 REGISTRY_VERSION = 1
 CORE_REGISTRY_HASH = "58cb4e1e461a607d"
 FULL_REGISTRY_HASH = "25c15688f9f4ebba"
@@ -22,6 +25,10 @@ parser.add_argument('--cvs-hidden', type=int, default=32)
 parser.add_argument('--cvs-dim', type=int, default=104) # 104 for core, 168 for full
 parser.add_argument('--rows', type=int, default=100000000)
 parser.add_argument('--lr', type=float, default=1e-3)
+parser.add_argument('--seed', type=int, default=0)           # #13: deterministic, reproducible
+parser.add_argument('--deterministic', action='store_true')  # also pin cuDNN determinism
+parser.add_argument('--allow-unsafe-row-split', action='store_true',
+                    help='dev-only: accept the source-leaking %% 50 row holdout; NON-PROMOTABLE')
 args = parser.parse_args()
 
 K = 256.0
@@ -134,6 +141,14 @@ class ResidualNet(nn.Module):
         return (ps_score + cvs_score) * 400.0
 
 def main():
+    print(f'seed: {seed_everything(args.seed, deterministic=args.deterministic)}', flush=True)
+    if not args.allow_unsafe_row_split:
+        raise SystemExit(
+            'REFUSED: this gen9 trainer slice uses a single unsplit corpus with a row-level (% 50) '
+            'holdout that LEAKS sibling positions from the same game across train/holdout — its '
+            'artifact is NOT promotion-eligible. Pass --allow-unsafe-row-split for a clearly '
+            'NON-PROMOTABLE dev run, or use the verified --train/--validation split slice '
+            '(pre-flight gate: python training/gen9/scripts/verify-split.py).')
     F_ps, F_cvs, cps, ress = load()
     n = len(F_ps)
     if n == 0:

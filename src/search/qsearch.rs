@@ -86,7 +86,26 @@ impl Searcher {
         }
 
         let before_see = noisy.len();
-        noisy.retain(|m| see(pos, m.from, m.to) >= 0);
+        if self.opts.see_verify {
+            // SEE-advisory verification (#3): keep a negative-SEE capture/promo when a
+            // deterministic tactical-volatility trigger fires (gives check or is a promotion)
+            // — verify the sacrifice in qsearch instead of vetoing it on the static exchange
+            // alone. Default off => identical to the plain SEE veto in the else-branch
+            // (baseline-preserving). gives_check needs &mut pos, so this is a manual loop.
+            let mut kept = MoveList::new();
+            for i in 0..noisy.len() {
+                let m = noisy.get(i);
+                if see(pos, m.from, m.to) >= 0 {
+                    kept.push(m);
+                } else if m.flag.promo_piece().is_some() || gives_check(pos, m) {
+                    self.tel.see_verify_kept += 1;
+                    kept.push(m);
+                }
+            }
+            noisy = kept;
+        } else {
+            noisy.retain(|m| see(pos, m.from, m.to) >= 0);
+        }
         self.tel.q_see_skips += (before_see - noisy.len()) as u64;
         // Delta pruning (Patch 7): a capture whose victim value plus a safety
         // margin cannot lift stand-pat back to alpha is hopeless. Promotions

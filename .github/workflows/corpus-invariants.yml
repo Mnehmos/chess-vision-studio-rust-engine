@@ -1,0 +1,28 @@
+name: corpus-invariants
+
+# Enforces INV-3/INV-4 (issue #9): source-split integrity (stable source/game key, no FEN
+# fallback, one source per slice) and finder != labeler. Runs the corpus-invariant linter's
+# tests on any change under training/.
+on:
+  push:
+    paths: ["training/**"]
+  pull_request:
+    paths: ["training/**"]
+
+jobs:
+  corpus-invariants:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Corpus-invariant linter tests
+        run: python training/scripts/test_lint_corpus.py
+      - name: Lint the fixture corpus end-to-end (the INV-3/INV-4 gate actually runs)
+        run: >
+          python training/scripts/lint_corpus.py
+          --seeds training/scripts/fixtures/seeds.jsonl
+          --labels training/scripts/fixtures/labels.jsonl
+          --slice train=training/scripts/fixtures/train.jsonl
+          --slice validation=training/scripts/fixtures/validation.jsonl

@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://chess-vision-studio/benchmarks/sprt-result.schema.json",
+  "title": "SPRT result (v1)",
+  "description": "Machine-readable record of a Sequential Probability Ratio Test match between a frozen baseline and a candidate. Per INV-1 (issue #5), PROMOTE is valid ONLY when this record crossed the upper boundary under the declared hypothesis. Fixed-N matches, point estimates, LOS, and screens are NOT promotion evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "experimentId", "baselineId", "candidateId",
+    "elo0", "elo1", "alpha", "beta",
+    "games", "wins", "losses", "draws",
+    "llr", "lowerBound", "upperBound", "boundary", "decision",
+    "provenance"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "experimentId": { "type": "string", "minLength": 1 },
+    "baselineId": { "type": "string", "minLength": 1, "description": "Frozen champion identity (snapshot/tag)." },
+    "candidateId": { "type": "string", "minLength": 1 },
+    "elo0": { "type": "number", "description": "SPRT H0 elo (typically 0)." },
+    "elo1": { "type": "number", "description": "SPRT H1 elo (typically 20)." },
+    "alpha": { "type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 0.5},
+    "beta": { "type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 0.5},
+    "games": { "type": "integer", "minimum": 0 },
+    "wins": { "type": "integer", "minimum": 0 },
+    "losses": { "type": "integer", "minimum": 0 },
+    "draws": { "type": "integer", "minimum": 0 },
+    "llr": { "type": "number", "description": "Log-likelihood ratio at stop." },
+    "lowerBound": { "type": "number", "description": "log(beta/(1-alpha))." },
+    "upperBound": { "type": "number", "description": "log((1-beta)/alpha)." },
+    "boundary": {
+      "enum": ["upper", "lower", "none"],
+      "description": "Which boundary the LLR crossed: upper => candidate stronger; lower => reject; none => no boundary crossed yet (HOLD)."
+    },
+    "decision": {
+      "enum": ["promote", "reject", "hold_for_more_data", "analysis_mode_only", "live_dev_only"],
+      "description": "Terminal decision. promote REQUIRES boundary==upper; reject REQUIRES boundary==lower; a non-crossed test is hold_for_more_data."
+    },
+    "pgnSha256": { "type": ["string", "null"] },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["engineSha", "netSha", "candArgs", "baseArgs", "tc", "threads"],
+      "properties": {
+        "engineSha": { "type": "string", "minLength": 1 },
+        "netSha": { "type": "string", "minLength": 1 },
+        "candArgs": { "type": "array", "items": { "type": "string" } },
+        "baseArgs": { "type": "array", "items": { "type": "string" } },
+        "tc": { "type": "string", "description": "Time control or 'nodes:<N>' for a fixed-node control (#6)." },
+        "nodes": { "type": ["integer", "null"] },
+        "threads": { "type": "integer", "minimum": 1 },
+        "openingsSha": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

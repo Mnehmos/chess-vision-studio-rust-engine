@@ -1,0 +1,26 @@
+name: gen9-source-split
+
+# Enforces #13: promotion-eligible gen9 training must consume a validated source split (no
+# train/holdout source leakage) and deterministic seeds. Runs the standalone guard tests (no torch).
+on:
+  push:
+    paths:
+      - "training/gen9/scripts/source_split_guard.py"
+      - "training/gen9/scripts/verify-split.py"
+      - "training/gen9/scripts/test_source_split_guard.py"
+  pull_request:
+    paths:
+      - "training/gen9/scripts/source_split_guard.py"
+      - "training/gen9/scripts/verify-split.py"
+      - "training/gen9/scripts/test_source_split_guard.py"
+
+jobs:
+  gen9-source-split:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: gen9 source-split + determinism guard tests
+        run: python training/gen9/scripts/test_source_split_guard.py
