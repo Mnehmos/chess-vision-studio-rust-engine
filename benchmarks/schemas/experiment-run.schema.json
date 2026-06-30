@@ -1,0 +1,74 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://chess-vision-studio/benchmarks/experiment-run.schema.json",
+  "title": "ExperimentRun (v1)",
+  "description": "Issue #12: one versioned RSI experiment record in an append-only ledger. An LLM agent may PROPOSE and EXECUTE a run (createdBy = its id), but the harness owns promotion: decision='promote' requires decisionAuthority='policy-engine' AND a crossed-upper SPRT report (#5). `appendOnlyHash` chains records (h[i] = sha256(h[i-1] + canonical(record without appendOnlyHash))) so any mutation of a prior row is detectable.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "runId", "issue", "observe", "orient", "decide", "act",
+    "decision", "decisionAuthority", "createdBy", "appendOnlyHash"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "runId": { "type": "string", "minLength": 1 },
+    "parentRunId": { "type": ["string", "null"] },
+    "issue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repo", "number"],
+      "properties": { "repo": { "type": "string", "minLength": 1 }, "number": { "type": "integer" } }
+    },
+    "observe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bindingDirection"],
+      "properties": {
+        "deReport": { "type": ["string", "null"] },
+        "bindingDirection": { "type": "string", "minLength": 1 },
+        "evidenceHash": { "type": ["string", "null"] }
+      }
+    },
+    "orient": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["failureClass"],
+      "properties": {
+        "failureClass": { "enum": ["search", "capacity", "coverage", "label", "interaction", "unknown"] },
+        "assumptions": { "type": "array" },
+        "risks": { "type": "array" }
+      }
+    },
+    "decide": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["oneVariable", "hypothesis", "rollbackArtifact"],
+      "properties": {
+        "oneVariable": { "type": "string", "minLength": 1, "description": "Exactly one declared experimental variable (unless pGridCell)." },
+        "hypothesis": { "type": "string", "minLength": 1 },
+        "expectedSignal": { "type": ["string", "null"] },
+        "rollbackArtifact": { "type": "string", "minLength": 1 },
+        "pGridCell": { "type": "boolean", "description": "True only for a declared P-GRID interaction cell (one search axis + one eval axis)." }
+      }
+    },
+    "act": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commands", "artifacts"],
+      "properties": {
+        "commands": { "type": "array" },
+        "artifacts": { "type": "array" },
+        "invariantReport": { "type": ["string", "null"] },
+        "gateReports": { "type": "array" },
+        "sprtReport": {
+          "type": ["object", "string", "null"],
+          "description": "A crossed-upper sprt-result.schema.json record (or a ref to one). Required for decision='promote'."
+        }
+      }
+    },
+    "decision": { "enum": ["promote", "reject", "hold", "analysis_only", "blocked"] },
+    "decisionAuthority": { "enum": ["policy-engine", "agent"] },
+    "createdBy": { "type": "string", "minLength": 1 },
+    "appendOnlyHash": { "type": "string", "minLength": 1 }
+  }
+}
