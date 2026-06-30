@@ -51,10 +51,12 @@ pub struct PositionFacts {
     pub opponent_available_captures: FactCollection<CaptureOpportunity>,
     pub available_motifs: FactCollection<MotifOpportunity>,
     pub available_pins: FactCollection<PinOpportunity>,
+    pub available_skewers: FactCollection<SkewerOpportunity>,
     /// Analysis-only legal opportunities for the side that is not to move.
     /// These let the application prove a motif was newly allowed by a move.
     pub opponent_available_motifs: FactCollection<MotifOpportunity>,
     pub opponent_available_pins: FactCollection<PinOpportunity>,
+    pub opponent_available_skewers: FactCollection<SkewerOpportunity>,
     pub hazards: FactCollection<HazardFact>,
     pub square_facts: FactCollection<SquareFact>,
 }
@@ -304,6 +306,31 @@ pub struct PinOpportunity {
     pub gives_check: bool,
     /// Whether the pinned piece is legally immobile (true for an absolute pin).
     pub pinned_immobile: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SkewerOpportunity {
+    /// Motif family — always "skewer". The granular ChessTempo subtype
+    /// (skewer-of-king/-queen/-rook, relative) is derivable from `front.pieceType`.
+    pub kind: String,
+    /// Validator that proved it — "skewer_validation".
+    pub validator: String,
+    /// The single move that creates the skewer (long UCI).
+    pub move_uci: String,
+    /// The skewering slider, referenced at its post-move square.
+    pub skewerer: PieceRef,
+    /// The attacked, more-valuable enemy piece forced to step aside (the king for a
+    /// king skewer).
+    pub front: PieceRef,
+    /// The lesser enemy piece exposed directly behind the front piece on the line.
+    pub back: PieceRef,
+    /// Squares between the skewerer and the back piece along the skewer line.
+    pub ray: Vec<String>,
+    /// Whether the skewering move gives check (true for a king skewer).
+    pub gives_check: bool,
+    /// Estimated material won when the front piece steps aside, in centipawns.
+    pub material_gain: i32,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
