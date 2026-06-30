@@ -58,7 +58,7 @@
     { "slug": "under-protected-piece", "name": "Under-protected Piece", "category": "tactical", "family": "counting", "parent": "counting", "definition": "More attackers than defenders on one square forces material gain.", "detectedBy": "see(SEE)" },
     { "slug": "multi-square-counting", "name": "Multi-square Counting", "category": "tactical", "family": "counting", "parent": "counting", "definition": "Forced material gain via captures across several squares.", "detectedBy": null },
     { "slug": "hanging-piece", "name": "Hanging Piece", "category": "tactical", "family": "material", "definition": "An undefended (or under-defended) piece can be won for free.", "detectedBy": "facts::piece_safety(loose/SEE)" },
-    { "slug": "trapped-piece", "name": "Trapped Piece", "category": "tactical", "family": "material", "definition": "A piece has no safe square and will be lost.", "detectedBy": null },
+    { "slug": "trapped-piece", "name": "Trapped Piece", "category": "tactical", "family": "material", "definition": "A piece has no safe square and will be lost.", "detectedBy": "facts::motifs(trapped_piece)" },
     { "slug": "domination", "name": "Domination", "category": "tactical", "family": "material", "definition": "A piece is lost despite nominally having squares — every escape is covered.", "detectedBy": null },
     { "slug": "win-the-exchange", "name": "Win the Exchange", "category": "tactical", "family": "material", "definition": "Win a rook for a minor piece.", "detectedBy": null },
     { "slug": "hook-and-ladder", "name": "Hook and Ladder", "category": "tactical", "family": "material", "definition": "A trick where stacked major pieces win material via an in-between capture.", "detectedBy": null },
