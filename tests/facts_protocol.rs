@@ -144,6 +144,7 @@ fn registry_provenance_lists_every_active_validator() {
             "pin_validation",
             "skewer_validation",
             "discovery_validation",
+            "remove_guard_validation",
         ]
     );
 }

@@ -34,6 +34,11 @@ pub fn position_hazards(pos: &Position, facts: &PositionFacts) -> FactCollection
         && matches!(
             facts.opponent_available_discoveries,
             FactCollection::Computed { .. }
+        )
+        && matches!(facts.available_remove_guard, FactCollection::Computed { .. })
+        && matches!(
+            facts.opponent_available_remove_guard,
+            FactCollection::Computed { .. }
         );
     if !collections_ready {
         return FactCollection::unavailable("symmetric_hazard_probe_unavailable");
@@ -50,6 +55,8 @@ pub fn position_hazards(pos: &Position, facts: &PositionFacts) -> FactCollection
     add_skewer_hazards(&mut hazards, &facts.opponent_available_skewers);
     add_discovery_hazards(&mut hazards, &facts.available_discoveries);
     add_discovery_hazards(&mut hazards, &facts.opponent_available_discoveries);
+    add_remove_guard_hazards(&mut hazards, &facts.available_remove_guard);
+    add_remove_guard_hazards(&mut hazards, &facts.opponent_available_remove_guard);
     add_king_pressure(&mut hazards, facts);
 
     for color in [Color::White, Color::Black] {
@@ -272,6 +279,37 @@ fn add_discovery_hazards(
                 squares,
                 magnitude_cp: Some(discovery.material_gain),
                 move_uci: Some(discovery.move_uci.clone()),
+            },
+        );
+    }
+}
+
+fn add_remove_guard_hazards(
+    out: &mut BTreeMap<String, HazardFact>,
+    items: &FactCollection<crate::facts::types::RemoveGuardOpportunity>,
+) {
+    let FactCollection::Computed { items } = items else {
+        return;
+    };
+    for rg in items {
+        let id = format!("remove-guard-{}-{}", rg.target.id, rg.move_uci);
+        let mut squares = vec![
+            rg.mover.square.clone(),
+            rg.captured_defender.square.clone(),
+            rg.target.square.clone(),
+        ];
+        squares.sort();
+        squares.dedup();
+        out.insert(
+            id.clone(),
+            HazardFact {
+                id,
+                kind: "capture_the_defender".into(),
+                // The side whose piece becomes winnable once its guard is captured.
+                side: rg.target.side,
+                squares,
+                magnitude_cp: Some(rg.material_gain),
+                move_uci: Some(rg.move_uci.clone()),
             },
         );
     }

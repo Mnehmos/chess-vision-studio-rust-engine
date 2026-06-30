@@ -26,6 +26,7 @@ pub const TEACHING_FACTS_SCHEMA_VERSION: u32 = 1;
 // v6: deterministic 64-square control + legal movers (square_facts).
 // v7: validated skewer enumeration (available_skewers + opponent probe).
 // v8: validated discovered-attack enumeration (available_discoveries + opponent probe).
+// v9: validated capturing-the-defender enumeration (available_remove_guard + opponent probe).
 // Schema stays additive at v1; the registry version bumps when a new validator
 // produces facts.
-pub const FACTS_REGISTRY_VERSION: u32 = 8;
+pub const FACTS_REGISTRY_VERSION: u32 = 9;
