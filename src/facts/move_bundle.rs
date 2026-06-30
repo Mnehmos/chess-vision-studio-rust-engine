@@ -5,6 +5,7 @@ use crate::facts::motifs::{
     remove_guard_opportunities_for, skewer_opportunities, skewer_opportunities_for, trapped_pieces,
     trapped_pieces_for,
 };
+use crate::facts::mate_patterns::{mate_pattern_opportunities, mate_pattern_opportunities_for};
 use crate::facts::pawn_structure::structure_deltas;
 use crate::facts::position::{position_facts, square_name};
 use crate::facts::types::*;
@@ -22,12 +23,15 @@ fn facts_for(pos: &Position, include_motifs: bool) -> PositionFacts {
         facts.available_discoveries = discovery_opportunities(pos);
         facts.available_remove_guard = remove_guard_opportunities(pos);
         facts.available_trapped = trapped_pieces(pos);
+        facts.available_mate_patterns = mate_pattern_opportunities(pos);
         facts.opponent_available_motifs = motif_opportunities_for(pos, pos.stm.flip());
         facts.opponent_available_pins = pin_opportunities_for(pos, pos.stm.flip());
         facts.opponent_available_skewers = skewer_opportunities_for(pos, pos.stm.flip());
         facts.opponent_available_discoveries = discovery_opportunities_for(pos, pos.stm.flip());
         facts.opponent_available_remove_guard = remove_guard_opportunities_for(pos, pos.stm.flip());
         facts.opponent_available_trapped = trapped_pieces_for(pos, pos.stm.flip());
+        facts.opponent_available_mate_patterns =
+            mate_pattern_opportunities_for(pos, pos.stm.flip());
         facts.hazards = position_hazards(pos, &facts);
     }
     facts
@@ -103,6 +107,7 @@ pub fn build_teaching_fact_bundle(
         validators.push("discovery_validation".to_string());
         validators.push("remove_guard_validation".to_string());
         validators.push("trapped_piece_validation".to_string());
+        validators.push("mate_pattern_validation".to_string());
     }
 
     Ok(TeachingFactBundleV1 {

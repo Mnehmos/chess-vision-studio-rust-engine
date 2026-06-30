@@ -6,7 +6,7 @@
 use crate::facts::position::{position_for_analysis_side, side, square_name};
 use crate::facts::types::{FactCollection, HazardFact, PositionFacts, Side};
 use crate::movegen::{generate_legal, gives_check};
-use crate::{Color, Position};
+use crate::{Color, Move, Position};
 use std::collections::BTreeMap;
 
 pub fn position_hazards(pos: &Position, facts: &PositionFacts) -> FactCollection<HazardFact> {
@@ -381,7 +381,9 @@ fn add_king_pressure(out: &mut BTreeMap<String, HazardFact>, facts: &PositionFac
     }
 }
 
-fn mate_in_one_moves(pos: &Position) -> Vec<String> {
+/// All legal moves that deliver checkmate, as `Move` (for the mate-pattern classifier
+/// in `mate_patterns.rs`, which needs from/to/flag). Sorted by UCI for determinism.
+pub(crate) fn mating_moves(pos: &Position) -> Vec<Move> {
     let mut probe = pos.clone();
     let legal = generate_legal(&mut probe);
     let mut mates = Vec::new();
@@ -393,11 +395,15 @@ fn mate_in_one_moves(pos: &Position) -> Vec<String> {
         let mut after = pos.clone();
         after.make(mv);
         if generate_legal(&mut after).is_empty() {
-            mates.push(mv.to_uci());
+            mates.push(mv);
         }
     }
-    mates.sort();
+    mates.sort_by_key(|a| a.to_uci());
     mates
+}
+
+fn mate_in_one_moves(pos: &Position) -> Vec<String> {
+    mating_moves(pos).into_iter().map(|mv| mv.to_uci()).collect()
 }
 
 fn opposite(side: Side) -> Side {

@@ -55,6 +55,7 @@ pub struct PositionFacts {
     pub available_discoveries: FactCollection<DiscoveryOpportunity>,
     pub available_remove_guard: FactCollection<RemoveGuardOpportunity>,
     pub available_trapped: FactCollection<TrappedPieceOpportunity>,
+    pub available_mate_patterns: FactCollection<MatePatternFact>,
     /// Analysis-only legal opportunities for the side that is not to move.
     /// These let the application prove a motif was newly allowed by a move.
     pub opponent_available_motifs: FactCollection<MotifOpportunity>,
@@ -63,6 +64,7 @@ pub struct PositionFacts {
     pub opponent_available_discoveries: FactCollection<DiscoveryOpportunity>,
     pub opponent_available_remove_guard: FactCollection<RemoveGuardOpportunity>,
     pub opponent_available_trapped: FactCollection<TrappedPieceOpportunity>,
+    pub opponent_available_mate_patterns: FactCollection<MatePatternFact>,
     pub hazards: FactCollection<HazardFact>,
     pub square_facts: FactCollection<SquareFact>,
 }
@@ -406,6 +408,25 @@ pub struct TrappedPieceOpportunity {
     pub escape_squares_tried: Vec<String>,
     /// SEE centipawns we win — the least-bad outcome over staying + every escape.
     pub material_gain: i32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MatePatternFact {
+    /// Pattern slug (snake_case): "back_rank_mate" | "smothered_mate" | ...
+    pub kind: String,
+    /// Validator that proved it — "mate_pattern_validation".
+    pub validator: String,
+    /// The mating move (long UCI).
+    pub move_uci: String,
+    /// The piece that delivers mate, at its post-move square.
+    pub mating_piece: PieceRef,
+    /// The checkmated king, at its (unchanged) square.
+    pub mated_king: PieceRef,
+    /// Pattern-defining squares (king, mater, the blocked/covered escapes). Sorted.
+    pub key_squares: Vec<String>,
+    /// Always true — every mate gives check.
+    pub gives_check: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]

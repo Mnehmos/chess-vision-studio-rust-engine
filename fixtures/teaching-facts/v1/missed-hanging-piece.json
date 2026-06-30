@@ -251,6 +251,10 @@
       "status": "uncomputed",
       "reason": "not_requested"
     },
+    "availableMatePatterns": {
+      "status": "uncomputed",
+      "reason": "not_requested"
+    },
     "opponentAvailableMotifs": {
       "status": "uncomputed",
       "reason": "not_requested"
@@ -272,6 +276,10 @@
       "reason": "not_requested"
     },
     "opponentAvailableTrapped": {
+      "status": "uncomputed",
+      "reason": "not_requested"
+    },
+    "opponentAvailableMatePatterns": {
       "status": "uncomputed",
       "reason": "not_requested"
     },
@@ -1888,6 +1896,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableMatePatterns": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "opponentAvailableMotifs": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -1909,6 +1921,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableTrapped": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableMatePatterns": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -3765,6 +3781,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableMatePatterns": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "opponentAvailableMotifs": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -3786,6 +3806,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableTrapped": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableMatePatterns": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -5295,6 +5319,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableMatePatterns": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "opponentAvailableMotifs": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -5316,6 +5344,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableTrapped": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableMatePatterns": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -6923,7 +6955,7 @@
   },
   "provenance": {
     "engine": "cvs-bitboard-core",
-    "factsRegistryVersion": 10,
+    "factsRegistryVersion": 11,
     "validators": [
       "legal_move_generation",
       "attack_map",
