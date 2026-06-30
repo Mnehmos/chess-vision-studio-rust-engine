@@ -53,12 +53,14 @@ pub struct PositionFacts {
     pub available_pins: FactCollection<PinOpportunity>,
     pub available_skewers: FactCollection<SkewerOpportunity>,
     pub available_discoveries: FactCollection<DiscoveryOpportunity>,
+    pub available_remove_guard: FactCollection<RemoveGuardOpportunity>,
     /// Analysis-only legal opportunities for the side that is not to move.
     /// These let the application prove a motif was newly allowed by a move.
     pub opponent_available_motifs: FactCollection<MotifOpportunity>,
     pub opponent_available_pins: FactCollection<PinOpportunity>,
     pub opponent_available_skewers: FactCollection<SkewerOpportunity>,
     pub opponent_available_discoveries: FactCollection<DiscoveryOpportunity>,
+    pub opponent_available_remove_guard: FactCollection<RemoveGuardOpportunity>,
     pub hazards: FactCollection<HazardFact>,
     pub square_facts: FactCollection<SquareFact>,
 }
@@ -362,6 +364,27 @@ pub struct DiscoveryOpportunity {
     pub mover_threatens: bool,
     /// Estimated material consequence in centipawns (the unveiled target, or the moved
     /// piece's simultaneous threat for a forcing discovered check).
+    pub material_gain: i32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RemoveGuardOpportunity {
+    /// Motif family — "capture_the_defender" (removing the guard, capturing variant).
+    pub kind: String,
+    /// Validator that proved it — "remove_guard_validation".
+    pub validator: String,
+    /// The single capturing move that removes the guard (long UCI).
+    pub move_uci: String,
+    /// The capturing piece, at its post-move square (promoted type if it promotes).
+    pub mover: PieceRef,
+    /// The enemy defender that was captured, at its pre-move square.
+    pub captured_defender: PieceRef,
+    /// The enemy piece that becomes winnable once the defender is gone.
+    pub target: PieceRef,
+    /// Whether the capturing move gives check.
+    pub gives_check: bool,
+    /// SEE centipawns won on the target once the defender is removed.
     pub material_gain: i32,
 }
 

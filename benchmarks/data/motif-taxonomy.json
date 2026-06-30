@@ -36,7 +36,7 @@
     { "slug": "discovered-defense", "name": "Discovered Defense", "category": "tactical", "family": "discovery", "definition": "Moving a piece unveils a defense of a friendly piece/square behind it.", "detectedBy": null },
 
     { "slug": "removing-the-guard", "name": "Removing the Guard", "category": "tactical", "family": "remove-the-defender", "definition": "Eliminate or neutralize the piece guarding a key target.", "detectedBy": null },
-    { "slug": "capturing-defender", "name": "Capturing the Defender", "category": "tactical", "family": "remove-the-defender", "parent": "removing-the-guard", "definition": "Capture the defender of a target.", "detectedBy": null },
+    { "slug": "capturing-defender", "name": "Capturing the Defender", "category": "tactical", "family": "remove-the-defender", "parent": "removing-the-guard", "definition": "Capture the defender of a target.", "detectedBy": "facts::motifs(remove_guard)" },
     { "slug": "distraction", "name": "Distraction", "category": "tactical", "family": "remove-the-defender", "parent": "removing-the-guard", "definition": "Force a defender away by giving it a more urgent duty.", "detectedBy": null },
     { "slug": "attacking-the-defender", "name": "Attacking the Defender", "category": "tactical", "family": "remove-the-defender", "parent": "removing-the-guard", "definition": "Attack the defender so it must move or be lost.", "detectedBy": null },
     { "slug": "luring-the-defender", "name": "Luring the Defender", "category": "tactical", "family": "remove-the-defender", "parent": "removing-the-guard", "definition": "Entice a defender off its post (decoy a defender).", "detectedBy": null },

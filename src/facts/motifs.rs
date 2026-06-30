@@ -10,11 +10,11 @@ use crate::facts::piece_safety::piece_ref;
 use crate::facts::position::{position_for_analysis_side, square_name};
 use crate::facts::types::{
     DiscoveryOpportunity, FactCollection, MotifOpportunity, PieceRef, PinOpportunity,
-    SkewerOpportunity,
+    RemoveGuardOpportunity, SkewerOpportunity,
 };
 use crate::movegen::{generate_legal, gives_check};
 use crate::see::see;
-use crate::{file_of, rank_of, Color, Move, Piece, Position};
+use crate::{file_of, rank_of, Color, Move, MoveFlag, Piece, Position};
 
 /// Centipawn values for fork bookkeeping. The king is a sentinel 0 — it is never
 /// "won", only forced to respond.
@@ -660,6 +660,149 @@ fn mover_threat_gain(after: &Position, us: Color, enemy: Color, from_sq: u8) -> 
             }
             if VALUE[piece.index()] > mover_value || is_undefended(after, sq, enemy) {
                 best = best.max(VALUE[piece.index()]);
+            }
+        }
+    }
+    best
+}
+
+// ── Removing the guard (capturing the defender) ──────────────────────────────
+// A move that CAPTURES an enemy piece D guarding another enemy piece P, so that with
+// D gone P becomes winnable. Unlike the slider motifs, soundness rests entirely on
+// SEE: P must NOT be winnable BEFORE the capture (so removing D is the cause) and
+// must be winnable AFTER (which automatically accounts for any OTHER remaining
+// defender — SEE counts them). Because see() scores for the side to move, the "after"
+// win is measured on a counterfactual us-to-move probe (the move just made flips the
+// turn to the enemy). Capturing variant only; non-capturing deflection/luring is a
+// separate follow-up motif, and captures that give check are skipped (the enemy must
+// answer the check first, so the probe is unavailable) — a documented false-negative.
+
+/// Validated capturing-the-defender opportunities for the side to move.
+pub fn remove_guard_opportunities(pos: &Position) -> FactCollection<RemoveGuardOpportunity> {
+    let us = pos.stm;
+    let mut probe = pos.clone();
+    let legal = generate_legal(&mut probe);
+    let mut out = Vec::new();
+    for mv in legal {
+        if let Some(op) = remove_guard_after_move(pos, mv, us) {
+            out.push(op);
+        }
+    }
+    out.sort_by(|a, b| {
+        a.move_uci
+            .cmp(&b.move_uci)
+            .then_with(|| a.target.id.cmp(&b.target.id))
+    });
+    FactCollection::computed(out)
+}
+
+/// Validated capturing-the-defender for a requested side. See `motif_opportunities_for`
+/// for the counterfactual side-to-move semantics.
+pub fn remove_guard_opportunities_for(
+    pos: &Position,
+    side: Color,
+) -> FactCollection<RemoveGuardOpportunity> {
+    match position_for_analysis_side(pos, side) {
+        Ok(probe) => remove_guard_opportunities(&probe),
+        Err(reason) => FactCollection::unavailable(reason),
+    }
+}
+
+fn remove_guard_after_move(pos: &Position, mv: Move, us: Color) -> Option<RemoveGuardOpportunity> {
+    if !mv.flag.is_capture() {
+        return None; // capturing variant only
+    }
+    let (_, moving_piece) = pos.piece_at(mv.from)?;
+    let mover_piece = mv.flag.promo_piece().unwrap_or(moving_piece);
+    let enemy = us.flip();
+
+    // The captured defender D. For en passant the captured pawn sits behind mv.to.
+    let d_sq = if matches!(mv.flag, MoveFlag::EnPassant) {
+        if us == Color::White {
+            mv.to - 8
+        } else {
+            mv.to + 8
+        }
+    } else {
+        mv.to
+    };
+    let (d_color, d_piece) = pos.piece_at(d_sq)?;
+    if d_color != enemy || d_piece == Piece::King {
+        return None;
+    }
+
+    let mut check_probe = pos.clone();
+    let gives_check_flag = gives_check(&mut check_probe, mv);
+
+    let mut after = pos.clone();
+    after.make(mv);
+
+    // Our capturing piece must not be simply lost (after.stm == enemy here).
+    if forker_capturable_for_gain(&mut after.clone(), mv.to) {
+        return None;
+    }
+
+    // Counterfactual "us to move, D gone" probe so see() scores OUR capture of P.
+    // Unavailable (Err) when the capture gave check — the enemy must answer first.
+    let probe = position_for_analysis_side(&after, us).ok()?;
+
+    let d_bit = 1u64 << d_sq;
+    let mut best: Option<RemoveGuardOpportunity> = None;
+    for piece in Piece::ALL {
+        if piece == Piece::King {
+            continue; // the king is a check/mate target, never a material win
+        }
+        let mut bb = after.pieces[enemy.index()][piece.index()];
+        while bb != 0 {
+            let p_sq = bb.trailing_zeros() as u8;
+            bb &= bb - 1;
+            if p_sq == d_sq {
+                continue;
+            }
+            // D must have been a defender of P on the BEFORE board.
+            let before_defs = attackers_of(&pos.pieces, p_sq, enemy, pos.all) & !(1u64 << p_sq);
+            if before_defs & d_bit == 0 {
+                continue;
+            }
+            // The win must be CAUSED by removing D: P must not already be winnable.
+            if best_see_capture(pos, p_sq) > 0 {
+                continue;
+            }
+            // P must be winnable once D is gone (SEE accounts for any other defender).
+            let gain = best_see_capture(&probe, p_sq);
+            if gain <= 0 {
+                continue;
+            }
+            let cand = RemoveGuardOpportunity {
+                kind: "capture_the_defender".to_string(),
+                validator: "remove_guard_validation".to_string(),
+                move_uci: mv.to_uci(),
+                mover: piece_ref(us, mover_piece, mv.to),
+                captured_defender: piece_ref(enemy, d_piece, d_sq),
+                target: piece_ref(enemy, piece, p_sq),
+                gives_check: gives_check_flag,
+                material_gain: gain,
+            };
+            // Keep the highest-gain target; ties resolve to the first (deterministic).
+            match &best {
+                Some(b) if b.material_gain >= cand.material_gain => {}
+                _ => best = Some(cand),
+            }
+        }
+    }
+    best
+}
+
+/// Best SEE over all legal captures of `target` for `pos`'s side to move. 0 if none.
+fn best_see_capture(pos: &Position, target: u8) -> i32 {
+    let mut probe = pos.clone();
+    let legal = generate_legal(&mut probe);
+    let mut best = 0;
+    for mv in legal {
+        if mv.to == target && mv.flag.is_capture() {
+            let s = see(&probe, mv.from, mv.to);
+            if s > best {
+                best = s;
             }
         }
     }

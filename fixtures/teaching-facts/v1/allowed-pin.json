@@ -258,6 +258,10 @@
       "status": "computed",
       "items": []
     },
+    "availableRemoveGuard": {
+      "status": "computed",
+      "items": []
+    },
     "opponentAvailableMotifs": {
       "status": "computed",
       "items": []
@@ -271,6 +275,10 @@
       "items": []
     },
     "opponentAvailableDiscoveries": {
+      "status": "computed",
+      "items": []
+    },
+    "opponentAvailableRemoveGuard": {
       "status": "computed",
       "items": []
     },
@@ -1943,6 +1951,10 @@
         "status": "computed",
         "items": []
       },
+      "availableRemoveGuard": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMotifs": {
         "status": "computed",
         "items": []
@@ -1956,6 +1968,10 @@
         "items": []
       },
       "opponentAvailableDiscoveries": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableRemoveGuard": {
         "status": "computed",
         "items": []
       },
@@ -3682,6 +3698,10 @@
         "status": "computed",
         "items": []
       },
+      "availableRemoveGuard": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMotifs": {
         "status": "computed",
         "items": []
@@ -3695,6 +3715,10 @@
         "items": []
       },
       "opponentAvailableDiscoveries": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableRemoveGuard": {
         "status": "computed",
         "items": []
       },
@@ -5442,6 +5466,10 @@
         "status": "computed",
         "items": []
       },
+      "availableRemoveGuard": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMotifs": {
         "status": "computed",
         "items": []
@@ -5486,6 +5514,10 @@
         "items": []
       },
       "opponentAvailableDiscoveries": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableRemoveGuard": {
         "status": "computed",
         "items": []
       },
@@ -6920,7 +6952,7 @@
   },
   "provenance": {
     "engine": "cvs-bitboard-core",
-    "factsRegistryVersion": 8,
+    "factsRegistryVersion": 9,
     "validators": [
       "legal_move_generation",
       "attack_map",
@@ -6932,7 +6964,8 @@
       "fork_validation",
       "pin_validation",
       "skewer_validation",
-      "discovery_validation"
+      "discovery_validation",
+      "remove_guard_validation"
     ]
   },
   "errors": []
