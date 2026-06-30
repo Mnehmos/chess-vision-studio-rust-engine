@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "experimentId": "fixture-fixedn-plus50-hold",
+  "baselineId": "snapshot/champion-frozen",
+  "candidateId": "cand/looks-strong-not-proven",
+  "elo0": 0,
+  "elo1": 20,
+  "alpha": 0.05,
+  "beta": 0.05,
+  "games": 200,
+  "wins": 90,
+  "losses": 50,
+  "draws": 60,
+  "llr": 2.0,
+  "lowerBound": -2.9444,
+  "upperBound": 2.9444,
+  "boundary": "none",
+  "decision": "hold_for_more_data",
+  "pgnSha256": null,
+  "provenance": {
+    "engineSha": "deadbeefcafef00d",
+    "netSha": "feedface12345678",
+    "candArgs": ["--nnue", "cand.json"],
+    "baseArgs": ["--nnue", "champion.json"],
+    "tc": "10+0.1",
+    "nodes": null,
+    "threads": 1,
+    "openingsSha": "aabbccddeeff0011"
+  }
+}
