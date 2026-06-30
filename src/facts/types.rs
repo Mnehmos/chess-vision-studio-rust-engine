@@ -54,6 +54,7 @@ pub struct PositionFacts {
     pub available_skewers: FactCollection<SkewerOpportunity>,
     pub available_discoveries: FactCollection<DiscoveryOpportunity>,
     pub available_remove_guard: FactCollection<RemoveGuardOpportunity>,
+    pub available_trapped: FactCollection<TrappedPieceOpportunity>,
     /// Analysis-only legal opportunities for the side that is not to move.
     /// These let the application prove a motif was newly allowed by a move.
     pub opponent_available_motifs: FactCollection<MotifOpportunity>,
@@ -61,6 +62,7 @@ pub struct PositionFacts {
     pub opponent_available_skewers: FactCollection<SkewerOpportunity>,
     pub opponent_available_discoveries: FactCollection<DiscoveryOpportunity>,
     pub opponent_available_remove_guard: FactCollection<RemoveGuardOpportunity>,
+    pub opponent_available_trapped: FactCollection<TrappedPieceOpportunity>,
     pub hazards: FactCollection<HazardFact>,
     pub square_facts: FactCollection<SquareFact>,
 }
@@ -385,6 +387,24 @@ pub struct RemoveGuardOpportunity {
     /// Whether the capturing move gives check.
     pub gives_check: bool,
     /// SEE centipawns won on the target once the defender is removed.
+    pub material_gain: i32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TrappedPieceOpportunity {
+    /// Motif family — always "trapped_piece".
+    pub kind: String,
+    /// Validator that proved it — "trapped_piece_validation".
+    pub validator: String,
+    /// The trapped enemy piece, at its current square.
+    pub piece: PieceRef,
+    /// Our pieces currently attacking it (sorted by id).
+    pub attackers: Vec<PieceRef>,
+    /// The enemy escape destinations we checked (every legal move of the piece still
+    /// loses it), for explainability. Sorted, deduped.
+    pub escape_squares_tried: Vec<String>,
+    /// SEE centipawns we win — the least-bad outcome over staying + every escape.
     pub material_gain: i32,
 }
 

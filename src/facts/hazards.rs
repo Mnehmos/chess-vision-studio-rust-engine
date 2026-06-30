@@ -39,6 +39,11 @@ pub fn position_hazards(pos: &Position, facts: &PositionFacts) -> FactCollection
         && matches!(
             facts.opponent_available_remove_guard,
             FactCollection::Computed { .. }
+        )
+        && matches!(facts.available_trapped, FactCollection::Computed { .. })
+        && matches!(
+            facts.opponent_available_trapped,
+            FactCollection::Computed { .. }
         );
     if !collections_ready {
         return FactCollection::unavailable("symmetric_hazard_probe_unavailable");
@@ -57,6 +62,8 @@ pub fn position_hazards(pos: &Position, facts: &PositionFacts) -> FactCollection
     add_discovery_hazards(&mut hazards, &facts.opponent_available_discoveries);
     add_remove_guard_hazards(&mut hazards, &facts.available_remove_guard);
     add_remove_guard_hazards(&mut hazards, &facts.opponent_available_remove_guard);
+    add_trapped_hazards(&mut hazards, &facts.available_trapped);
+    add_trapped_hazards(&mut hazards, &facts.opponent_available_trapped);
     add_king_pressure(&mut hazards, facts);
 
     for color in [Color::White, Color::Black] {
@@ -310,6 +317,34 @@ fn add_remove_guard_hazards(
                 squares,
                 magnitude_cp: Some(rg.material_gain),
                 move_uci: Some(rg.move_uci.clone()),
+            },
+        );
+    }
+}
+
+fn add_trapped_hazards(
+    out: &mut BTreeMap<String, HazardFact>,
+    items: &FactCollection<crate::facts::types::TrappedPieceOpportunity>,
+) {
+    let FactCollection::Computed { items } = items else {
+        return;
+    };
+    for t in items {
+        let id = format!("trapped-{}", t.piece.id);
+        let mut squares = vec![t.piece.square.clone()];
+        squares.extend(t.attackers.iter().map(|a| a.square.clone()));
+        squares.sort();
+        squares.dedup();
+        out.insert(
+            id.clone(),
+            HazardFact {
+                id,
+                kind: "trapped_piece".into(),
+                // The side whose piece is trapped is the one under threat.
+                side: t.piece.side,
+                squares,
+                magnitude_cp: Some(t.material_gain),
+                move_uci: None,
             },
         );
     }

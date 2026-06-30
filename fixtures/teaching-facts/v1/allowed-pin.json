@@ -262,6 +262,10 @@
       "status": "computed",
       "items": []
     },
+    "availableTrapped": {
+      "status": "computed",
+      "items": []
+    },
     "opponentAvailableMotifs": {
       "status": "computed",
       "items": []
@@ -279,6 +283,10 @@
       "items": []
     },
     "opponentAvailableRemoveGuard": {
+      "status": "computed",
+      "items": []
+    },
+    "opponentAvailableTrapped": {
       "status": "computed",
       "items": []
     },
@@ -1955,6 +1963,10 @@
         "status": "computed",
         "items": []
       },
+      "availableTrapped": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMotifs": {
         "status": "computed",
         "items": []
@@ -1972,6 +1984,10 @@
         "items": []
       },
       "opponentAvailableRemoveGuard": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableTrapped": {
         "status": "computed",
         "items": []
       },
@@ -3702,6 +3718,10 @@
         "status": "computed",
         "items": []
       },
+      "availableTrapped": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMotifs": {
         "status": "computed",
         "items": []
@@ -3719,6 +3739,10 @@
         "items": []
       },
       "opponentAvailableRemoveGuard": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableTrapped": {
         "status": "computed",
         "items": []
       },
@@ -5470,6 +5494,10 @@
         "status": "computed",
         "items": []
       },
+      "availableTrapped": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMotifs": {
         "status": "computed",
         "items": []
@@ -5521,6 +5549,31 @@
         "status": "computed",
         "items": []
       },
+      "opponentAvailableTrapped": {
+        "status": "computed",
+        "items": [
+          {
+            "kind": "trapped_piece",
+            "validator": "trapped_piece_validation",
+            "piece": {
+              "id": "white-knight-f3",
+              "side": "white",
+              "pieceType": "knight",
+              "square": "f3"
+            },
+            "attackers": [
+              {
+                "id": "black-bishop-g4",
+                "side": "black",
+                "pieceType": "bishop",
+                "square": "g4"
+              }
+            ],
+            "escapeSquaresTried": [],
+            "materialGain": 320
+          }
+        ]
+      },
       "hazards": {
         "status": "computed",
         "items": [
@@ -5546,6 +5599,16 @@
               "h5"
             ],
             "moveUci": "g4h5"
+          },
+          {
+            "id": "trapped-white-knight-f3",
+            "kind": "trapped_piece",
+            "side": "white",
+            "squares": [
+              "f3",
+              "g4"
+            ],
+            "magnitudeCp": 320
           }
         ]
       },
@@ -6916,6 +6979,16 @@
               "h5"
             ],
             "moveUci": "g4h5"
+          },
+          {
+            "id": "trapped-white-knight-f3",
+            "kind": "trapped_piece",
+            "side": "white",
+            "squares": [
+              "f3",
+              "g4"
+            ],
+            "magnitudeCp": 320
           }
         ]
       },
@@ -6952,7 +7025,7 @@
   },
   "provenance": {
     "engine": "cvs-bitboard-core",
-    "factsRegistryVersion": 9,
+    "factsRegistryVersion": 10,
     "validators": [
       "legal_move_generation",
       "attack_map",
@@ -6965,7 +7038,8 @@
       "pin_validation",
       "skewer_validation",
       "discovery_validation",
-      "remove_guard_validation"
+      "remove_guard_validation",
+      "trapped_piece_validation"
     ]
   },
   "errors": []

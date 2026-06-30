@@ -10,7 +10,7 @@ use crate::facts::piece_safety::piece_ref;
 use crate::facts::position::{position_for_analysis_side, square_name};
 use crate::facts::types::{
     DiscoveryOpportunity, FactCollection, MotifOpportunity, PieceRef, PinOpportunity,
-    RemoveGuardOpportunity, SkewerOpportunity,
+    RemoveGuardOpportunity, SkewerOpportunity, TrappedPieceOpportunity,
 };
 use crate::movegen::{generate_legal, gives_check};
 use crate::see::see;
@@ -807,4 +807,101 @@ fn best_see_capture(pos: &Position, target: u8) -> i32 {
         }
     }
     best
+}
+
+// ── Trapped pieces ───────────────────────────────────────────────────────────
+// A STATE detector (not move-based): an enemy piece that is attacked and has no safe
+// escape. The piece belongs to the enemy while it is our move, so the escape scan
+// needs the enemy-to-move probe; after the enemy hypothetically moves the piece,
+// `make` flips the turn back to us, so SEE on its new square is scored from our side
+// (the same double-flip discipline the discovery detector's first cut got wrong).
+// King and pawns are excluded (the king is never won; trapped pawns flood output and
+// raise promotion/en-passant value subtleties — a documented false-negative).
+
+/// Validated trapped enemy pieces for the side to move (the side that traps).
+pub fn trapped_pieces(pos: &Position) -> FactCollection<TrappedPieceOpportunity> {
+    let us = pos.stm;
+    let enemy = us.flip();
+    let mut out = Vec::new();
+    for piece in [Piece::Knight, Piece::Bishop, Piece::Rook, Piece::Queen] {
+        let mut bb = pos.pieces[enemy.index()][piece.index()];
+        while bb != 0 {
+            let p_sq = bb.trailing_zeros() as u8;
+            bb &= bb - 1;
+            if let Some(op) = trapped_for_piece(pos, us, enemy, piece, p_sq) {
+                out.push(op);
+            }
+        }
+    }
+    out.sort_by(|a, b| a.piece.id.cmp(&b.piece.id));
+    FactCollection::computed(out)
+}
+
+/// Validated trapped pieces from a requested side's perspective (the side that traps).
+pub fn trapped_pieces_for(pos: &Position, side: Color) -> FactCollection<TrappedPieceOpportunity> {
+    match position_for_analysis_side(pos, side) {
+        Ok(probe) => trapped_pieces(&probe),
+        Err(reason) => FactCollection::unavailable(reason),
+    }
+}
+
+fn trapped_for_piece(
+    pos: &Position,
+    us: Color,
+    enemy: Color,
+    piece: Piece,
+    p_sq: u8,
+) -> Option<TrappedPieceOpportunity> {
+    // (1) The piece must be in danger NOW: attacked, and winnable where it stands.
+    if attackers_of(&pos.pieces, p_sq, us, pos.all) == 0 {
+        return None;
+    }
+    let in_place_gain = best_see_capture(pos, p_sq);
+    if in_place_gain <= 0 {
+        return None; // adequately defended — it can simply sit; not trapped
+    }
+
+    // (2) No safe escape. Enumerate the enemy's legal moves of THIS piece. Reasoning
+    // about enemy replies is only sound when our own king is not in check.
+    let enemy_probe = position_for_analysis_side(pos, enemy).ok()?;
+    let mut gen = enemy_probe.clone();
+    let enemy_legal = generate_legal(&mut gen);
+
+    let mut worst = in_place_gain;
+    let mut escapes = Vec::new();
+    for mv in enemy_legal.iter().filter(|m| m.from == p_sq) {
+        // After the enemy moves the piece, `make` flips the turn to us, so SEE on the
+        // piece's new square is scored from our side (capturing its attacker counts as
+        // an escape iff the piece is then safe on the attacker's square).
+        let mut after = enemy_probe.clone();
+        after.make(*mv);
+        let gain = best_see_capture(&after, mv.to);
+        if gain <= 0 {
+            return None; // a safe destination exists — the piece escapes
+        }
+        worst = worst.min(gain);
+        escapes.push(square_name(mv.to));
+    }
+
+    escapes.sort();
+    escapes.dedup();
+    let mut attackers: Vec<PieceRef> = Vec::new();
+    let mut ab = attackers_of(&pos.pieces, p_sq, us, pos.all);
+    while ab != 0 {
+        let sq = ab.trailing_zeros() as u8;
+        ab &= ab - 1;
+        if let Some((_, pc)) = pos.piece_at(sq) {
+            attackers.push(piece_ref(us, pc, sq));
+        }
+    }
+    attackers.sort_by(|a, b| a.id.cmp(&b.id));
+
+    Some(TrappedPieceOpportunity {
+        kind: "trapped_piece".to_string(),
+        validator: "trapped_piece_validation".to_string(),
+        piece: piece_ref(enemy, piece, p_sq),
+        attackers,
+        escape_squares_tried: escapes,
+        material_gain: worst,
+    })
 }
