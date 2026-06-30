@@ -7,7 +7,7 @@
 //! First batch: back-rank + smothered (rook/queen-along-the-rank vs all-smothered
 //! knight — zero overlap). Later batches add more patterns to `classify`.
 
-use crate::attacks::{king_attacks, pawn_attacks};
+use crate::attacks::{bishop_attacks, king_attacks, pawn_attacks};
 use crate::facts::hazards::mating_moves;
 use crate::facts::piece_safety::piece_ref;
 use crate::facts::position::{position_for_analysis_side, square_name};
@@ -64,6 +64,8 @@ fn classify(pos: &Position, mv: Move) -> Option<MatePatternFact> {
         ("epaulette_mate", key)
     } else if let Some(key) = damiano(&after, mater, ksq, to, mating_piece) {
         ("damiano_mate", key)
+    } else if let Some(key) = boden(&after, mater, mated, ksq, to, mating_piece) {
+        ("boden_mate", key)
     } else if let Some(key) = back_rank(&after, mated, ksq, to, mating_piece) {
         ("back_rank_mate", key)
     } else {
@@ -182,6 +184,45 @@ fn damiano(after: &Position, mater: Color, ksq: u8, to: u8, mp: Piece) -> Option
         if pawn_attacks(mater, psq) & to_bit != 0 {
             return Some(vec![ksq, to, psq]); // a friendly pawn defends the mating queen
         }
+    }
+    None
+}
+
+/// Boden's mate: two bishops on intersecting diagonals mate the king, every empty
+/// flight square covered between them and every occupied neighbour an own self-block.
+/// The mating bishop checks along one diagonal; a SECOND friendly bishop covers — on the
+/// CROSSING diagonal — at least one empty escape the mater cannot reach, and the two
+/// bishops together must cover EVERY empty escape (precision over recall: a bishop mate
+/// merely accompanied by an idle second bishop is not Boden's).
+fn boden(after: &Position, mater: Color, mated: Color, ksq: u8, to: u8, mp: Piece) -> Option<Vec<u8>> {
+    if mp != Piece::Bishop {
+        return None;
+    }
+    let neighbours = king_attacks(ksq);
+    let own = color_occ(after, mated);
+    // Every occupied king-neighbour must be one of the king's OWN pieces; an enemy piece
+    // beside the king is a different mating picture, not the self-boxed Boden king.
+    if neighbours & after.all & !own != 0 {
+        return None;
+    }
+    let empty_escapes = neighbours & !after.all;
+    // The mating bishop's own coverage (it delivers the check along one diagonal).
+    let mating_cover = bishop_attacks(to, after.all);
+    // A SECOND friendly bishop on the crossing diagonal that (1) together with the mater
+    // covers every empty flight, and (2) covers an empty flight the mater itself cannot
+    // — the essential criss-cross that defines Boden's.
+    let mut bishops = after.pieces[mater.index()][Piece::Bishop.index()] & !(1u64 << to);
+    while bishops != 0 {
+        let b = bishops.trailing_zeros() as u8;
+        bishops &= bishops - 1;
+        let second_cover = bishop_attacks(b, after.all);
+        if empty_escapes & !(mating_cover | second_cover) != 0 {
+            continue; // a flight square neither bishop covers — not jointly boxed
+        }
+        if second_cover & empty_escapes & !mating_cover == 0 {
+            continue; // the second bishop adds no new flight coverage — not the criss-cross
+        }
+        return Some(vec![ksq, to, b]);
     }
     None
 }

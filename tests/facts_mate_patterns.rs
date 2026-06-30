@@ -67,6 +67,17 @@ fn classifies_a_damiano_mate() {
     assert!(m.key_squares.contains(&"g6".to_string()));
 }
 
+#[test]
+fn classifies_a_boden_mate() {
+    // Be2-a6#: two bishops on crossing diagonals (Ba6 checks c8, Bh2 covers b8/c7), the
+    // king's d7/d8 escapes blocked by its own pawn + rook.
+    let items = mates("2kr4/3p4/8/8/8/8/4B2B/4K3 w - - 0 1");
+    let m = find(&items, "e2a6").expect("Ba6 should be a classified Boden mate");
+    assert_eq!(m.kind, "boden_mate");
+    assert_eq!(m.mating_piece.piece_type, PieceType::Bishop);
+    assert_eq!(m.mated_king.square, "c8");
+}
+
 // ── negatives / precision ────────────────────────────────────────────────────
 
 #[test]
@@ -77,6 +88,19 @@ fn does_not_misclassify_a_lawnmower_ladder_mate() {
     let items = mates("7k/R7/8/8/8/8/8/1R4K1 w - - 0 1");
     assert!(items.iter().all(|m| m.kind != "back_rank_mate"));
     assert!(items.iter().all(|m| m.kind != "smothered_mate"));
+}
+
+#[test]
+fn does_not_misclassify_an_assisted_bishop_mate_as_boden() {
+    // Bc1-a3#: a queen+knight-assisted bishop mate. The king on c5 is boxed by White's
+    // queen/knights/pawns, not by two criss-crossing bishops — the a8 bishop only rakes
+    // c6, which holds White's OWN pawn (an enemy piece beside the king), covering no real
+    // flight. Precision over recall: this is not Boden's mate.
+    let items = mates("B7/2N5/1nP5/2k3p1/4p1p1/1P1PP3/8/2BQ1Kn1 w - - 0 38");
+    assert!(
+        items.iter().all(|m| m.kind != "boden_mate"),
+        "an assisted bishop mate with an idle second bishop is not Boden's"
+    );
 }
 
 #[test]
