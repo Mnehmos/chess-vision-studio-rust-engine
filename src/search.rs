@@ -202,6 +202,9 @@ pub struct Searcher {
     last_root_order: Vec<Move>,
     root_progress: Option<PartialIteration>,
     abort_reason: Option<SearchTermination>,
+    /// Fixed-node diagnostic budget (INV-2). When set, `time_up()` stops the search
+    /// deterministically once `tel.nodes` reaches it. Set from `opts.max_nodes` per call.
+    max_nodes: Option<u64>,
 }
 
 impl Searcher {
@@ -240,6 +243,7 @@ impl Searcher {
             last_root_order: Vec::new(),
             root_progress: None,
             abort_reason: None,
+            max_nodes: None,
         }
     }
 
@@ -264,7 +268,11 @@ impl Searcher {
     }
 
     pub fn search(&mut self, pos: &mut Position, opts: SearchOptions) -> SearchResult {
-        if opts.threads > 1 {
+        // A fixed-node diagnostic budget requires deterministic single-thread search:
+        // shared-TT Lazy SMP is non-deterministic and its node accounting is cross-thread,
+        // so any max_nodes request is forced down the single-thread path (INV-2) even if
+        // threads > 1 was requested.
+        if opts.threads > 1 && opts.max_nodes.is_none() {
             return self.search_smp(pos, opts);
         }
         self.search_single(pos, opts)
@@ -319,6 +327,7 @@ impl Searcher {
         self.deadline = opts
             .max_time_ms
             .map(|ms| started + std::time::Duration::from_millis(ms));
+        self.max_nodes = opts.max_nodes;
 
         // 1. Opening Book Probe
         if opts.book {
