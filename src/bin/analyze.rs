@@ -12,7 +12,8 @@ use cvs_bitboard_core::facts::{
 };
 use cvs_bitboard_core::movegen::generate_legal_list;
 use cvs_bitboard_core::search::{
-    PartialIteration, RootScope, SearchIteration, SearchOptions, Searcher, Telemetry,
+    stabilization_report, PartialIteration, RootScope, SearchIteration, SearchOptions, SearchResult,
+    Searcher, Telemetry,
 };
 use cvs_bitboard_core::{Move, Position};
 use std::io::{BufRead, Write};
@@ -216,6 +217,25 @@ fn iterations_json(iterations: &[SearchIteration]) -> serde_json::Value {
             })
             .collect(),
     )
+}
+
+// #7 follow-up: the StabilizationReport over the search trajectory, so app-side consumers (#35)
+// gate teaching/puzzles/corpus on the engine's stability verdict instead of reinterpreting depth.
+// `status` is the kebab-case string the #35 policy expects (StabilizationStatus::as_str).
+fn stabilization_json(r: &SearchResult) -> serde_json::Value {
+    let s = stabilization_report(r);
+    serde_json::json!({
+        "status": s.status.as_str(),
+        "window": s.window,
+        "scoreRangeCp": s.score_range_cp,
+        "maxAdjacentSwingCp": s.max_adjacent_swing_cp,
+        "bestMoveChanges": s.best_move_changes,
+        "oddEvenOscillation": s.odd_even_oscillation,
+        "mateFlip": s.mate_flip,
+        "signFlips": s.sign_flips,
+        "seePruneSkips": s.see_prune_skips,
+        "reasons": s.reasons,
+    })
 }
 
 fn partial_iteration_json(partial: Option<&PartialIteration>) -> serde_json::Value {
@@ -515,6 +535,7 @@ fn main() {
         };
         let mut searcher = make_searcher(base, rung2);
         let r = searcher.search(&mut pos, opts);
+        let stab = stabilization_json(&r); // stabilization over the trajectory (Telemetry is Copy, so r stays usable below)
         let t = r.telemetry;
         let uci = r.best_move.map(|m| m.to_uci());
         let pv: Vec<String> = r.pv.iter().map(|m| m.to_uci()).collect();
@@ -537,6 +558,7 @@ fn main() {
             "telemetry": telemetry_json(&t),
             "timeMs": t.elapsed_ms,
             "iterations": iterations_json(&r.iterations),
+            "stabilization": stab,
             "rootOrder": r.root_order.iter().map(|m| m.to_uci()).collect::<Vec<_>>(),
             "attemptedDepth": r.attempted_depth,
             "termination": r.termination.as_str(),
@@ -579,6 +601,7 @@ fn main() {
                 None => opts,
             };
             let r = searcher.search(&mut pos, search_opts);
+            let stab = stabilization_json(&r); // stabilization over the trajectory (Telemetry is Copy, so r stays usable below)
             let t = r.telemetry;
             serde_json::json!({
                 "fen": echo,
@@ -595,6 +618,7 @@ fn main() {
                 "foreignHints": t.foreign_tt_hints,
                 "foreignCutoffs": t.foreign_tt_cutoffs,
                 "iterations": iterations_json(&r.iterations),
+                "stabilization": stab,
                 "rootOrder": r.root_order.iter().map(|m| m.to_uci()).collect::<Vec<_>>(),
                 "attemptedDepth": r.attempted_depth,
                 "termination": r.termination.as_str(),
