@@ -1,0 +1,10 @@
+# Line-ending policy. The golden-fixture tests (tests/facts_protocol.rs) byte-compare stored
+# fixtures against LF-generated output, so the fixtures — and JSON goldens/schemas generally —
+# MUST stay LF on every platform. Windows `core.autocrlf` was checking them out as CRLF, which
+# broke `golden_fixtures_are_byte_stable` (a spurious "fixture drift" that was purely line endings).
+fixtures/** text eol=lf
+*.json text eol=lf
+
+# Rust + Python sources are LF too (keeps diffs clean cross-platform).
+*.rs text eol=lf
+*.py text eol=lf

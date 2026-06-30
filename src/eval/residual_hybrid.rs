@@ -4,9 +4,11 @@
 //! two ADDITIVE, INDEPENDENTLY ZEROABLE components — a declared handcrafted delta and an optional
 //! learned residual:
 //!
-//!     eval(pos) = champion_baseline(pos)
-//!               + lambda_h * handcrafted_delta(pos)
-//!               + lambda_r * learned_residual(pos)
+//! ```text
+//! eval(pos) = champion_baseline(pos)
+//!           + lambda_h * handcrafted_delta(pos)
+//!           + lambda_r * learned_residual(pos)
+//! ```
 //!
 //! Zeroability is REVERSIBILITY, not a quality claim: when both lambdas are zero the added code paths
 //! are BYPASSED and the engine recovers the champion's exact score (byte-identical). Promotion still
