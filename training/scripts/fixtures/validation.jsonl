@@ -1,0 +1,1 @@
+{"schemaVersion":1,"seedId":"seed-2","fen":"r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3","source":{"kind":"maia_game","sourceId":"lichess","gameId":"g2","ply":4},"splitKey":"lichess/g2","finder":{"engineId":"cvs-finder","binarySha256":"aa","modelSha256":"bb","optionsHash":"cc"},"reason":"eval_volatility"}

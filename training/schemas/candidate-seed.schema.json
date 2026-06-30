@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://chess-vision-studio/training/candidate-seed.schema.json",
+  "title": "Candidate seed (v1)",
+  "description": "INV-3/INV-4 (issue #9): a corpus seed row carrying full source provenance, a stable source/game split key, and the identity of the FINDER engine that proposed it. The finder must NOT be the oracle that labels it (INV-4) — that separation is checked by lint_corpus.py against the matching oracle-label record.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "seedId", "fen", "source", "splitKey", "finder", "reason"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "seedId": { "type": "string", "minLength": 1, "description": "Stable id an oracle-label references." },
+    "fen": { "type": "string", "minLength": 1 },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "sourceId", "gameId", "ply"],
+      "properties": {
+        "kind": {
+          "enum": ["real_game", "maia_game", "engine_game", "bounded_perturbation", "benchmark_fixture"]
+        },
+        "sourceId": { "type": "string", "minLength": 1 },
+        "gameId": { "type": "string", "minLength": 1, "description": "Stable per-game key; the unit that must not span slices (INV-3)." },
+        "ply": { "type": "integer", "minimum": 0 },
+        "parentSeedId": { "type": ["string", "null"] },
+        "perturbationDepth": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "splitKey": { "type": "string", "minLength": 1, "description": "The source/game key used for train/val/test assignment. Never the FEN." },
+    "finder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["engineId", "binarySha256", "modelSha256", "optionsHash"],
+      "properties": {
+        "engineId": { "type": "string", "minLength": 1 },
+        "binarySha256": { "type": "string" },
+        "modelSha256": { "type": "string" },
+        "optionsHash": { "type": "string" },
+        "budget": { "type": "object" }
+      }
+    },
+    "reason": {
+      "enum": ["oracle_disagreement", "eval_volatility", "collapse", "noconvert", "pressure_intersection"]
+    },
+    "stabilization": { "type": "object" }
+  }
+}

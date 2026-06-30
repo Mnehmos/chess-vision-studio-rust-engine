@@ -10,6 +10,8 @@ pub mod move_bundle;
 pub mod pawn_structure;
 pub mod piece_safety;
 pub mod position;
+pub mod promotion_pressure;
+pub mod reply_compression;
 pub mod square_control;
 pub mod types;
 

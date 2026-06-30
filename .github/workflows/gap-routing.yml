@@ -1,0 +1,25 @@
+name: gap-routing
+
+# Enforces #11: gap candidates are routed onto two ORTHOGONAL axes (calibration-hole -> corpus,
+# practical-difficulty -> difficulty model) with a fail-closed #7/#9 corpus-eligibility gate. Runs
+# the standalone router tests (no deps).
+on:
+  push:
+    paths:
+      - "benchmarks/scripts/route_candidates.py"
+      - "benchmarks/scripts/test_route_candidates.py"
+  pull_request:
+    paths:
+      - "benchmarks/scripts/route_candidates.py"
+      - "benchmarks/scripts/test_route_candidates.py"
+
+jobs:
+  gap-routing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Two-axis gap-routing tests
+        run: python benchmarks/scripts/test_route_candidates.py
