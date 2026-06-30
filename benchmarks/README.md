@@ -84,7 +84,7 @@ ON/OFF**), ponder (formal SPRT +91). Rollbacks: `uci-gen7-ponder.exe`
 | 3 cp-loss | `bench_cploss.py` | suites dev/fresh/hard-100, SF-d24 child scoring by default. avgCP/median/p90/p95/bl100/**bl200 (must not increase)**/danger (must not regress). Exact-match alone is NOT enough — gen7's win was calibration, not match% |
 | 4 same-budget | (methodology) | mandatory for helpers/split-eval/lanes/arbiter/smart-clock/ponder changes: compare vs plain gen7 search at the SAME time/threads/openings. No runtime promotion unless it beats same-budget raw depth; otherwise analysis mode only |
 | 5 screen | `bench_screen.py` | 20 games 5+0.05. ≥60% green / 50–60 neutral / 40–50 suspicious (read PGNs) / <40 red. Pruning: min 10/20, preferred 11.5/20, red flag 8/20. **Never quote Elo from 20 games** |
-| 6 promotion | cutechess + SPRT | 80–100 screen → 200–400 confirm → SPRT (elo0=0, elo1=20, α=β=0.05) when warranted. Labels: formal SPRT pass / fixed-N positive / accepted with note / rejected / inconclusive. **Never say "SPRT pass" unless the bound crossed** |
+| 6 promotion | cutechess + SPRT | 80–100 screen → 200–400 confirm → SPRT (elo0=0, elo1=20, α=β=0.05). PROMOTE requires the SPRT **upper** bound crossed, recorded as a `schemas/sprt-result.schema.json` record and checked by `scripts/lint_promotion.py` (CI). Decisions: PROMOTE / REJECT / HOLD_FOR_MORE_DATA / ANALYSIS_MODE_ONLY / LIVE_DEV_ONLY — fixed-N positives screen only, never promote. **Never say "SPRT pass" unless the bound crossed** |
 | 7 bot replay | `arena/bench-ponder-cache.py` (app repo) | opponent-clock systems on real transitions: hit rates, cached-used, verify-reject, avgCP hit/miss, bl100/200, flag risk, helper call/change/improve/regress counts. Must beat plain ponder baseline at same budget |
 
 Telemetry helper: `bench_telemetry.py` aggregates pruning/search counters for a
@@ -134,5 +134,8 @@ Changed, danger explanations.
 ## Candidate change report
 
 Copy `results/TEMPLATE.md`. Every report ends with exactly one of:
-`Decision: PROMOTE | REJECT | ACCEPTED WITH NOTE | HOLD FOR MORE DATA |
-LIVE-DEV ONLY | ANALYSIS MODE ONLY`.
+`Decision: PROMOTE | REJECT | HOLD_FOR_MORE_DATA | ANALYSIS_MODE_ONLY | LIVE_DEV_ONLY`.
+PROMOTE is valid only with a linked `schemas/sprt-result.schema.json` record whose
+`boundary` is `upper`; `scripts/lint_promotion.py` enforces this in CI (INV-1, issue #5).
+`ACCEPTED WITH NOTE` survives only in the historical records above — it is **not** a valid
+decision for new reports.

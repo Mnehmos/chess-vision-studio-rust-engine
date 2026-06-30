@@ -70,6 +70,11 @@ pub struct SearchOptions {
     pub depth: u32,
     pub max_time_ms: Option<u64>,
     pub soft_time_ms: Option<u64>,
+    /// Fixed-node diagnostic budget (INV-2): stop deterministically once this many
+    /// nodes (main + qsearch) have been searched. `search()` routes any max_nodes
+    /// request through the single-thread path so the stop point is reproducible.
+    /// None = no node limit (normal play).
+    pub max_nodes: Option<u64>,
     pub quiet_checks: bool,
     pub use_tt: bool,
     pub danger_extension: bool,
@@ -125,6 +130,7 @@ impl Default for SearchOptions {
             depth: 4,
             max_time_ms: None,
             soft_time_ms: None,
+            max_nodes: None,
             quiet_checks: true,
             use_tt: true,
             danger_extension: false,
@@ -316,6 +322,7 @@ pub enum SearchTermination {
     DepthLimit,
     SoftTime,
     HardTime,
+    NodeLimit,
     ExternalStop,
     ProvenMate,
     Book,
@@ -328,6 +335,7 @@ impl SearchTermination {
             Self::DepthLimit => "depth-limit",
             Self::SoftTime => "soft-time",
             Self::HardTime => "hard-time",
+            Self::NodeLimit => "node-limit",
             Self::ExternalStop => "external-stop",
             Self::ProvenMate => "proven-mate",
             Self::Book => "book",

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "experimentId": "fixture-invalid-promote-no-bound",
+  "baselineId": "snapshot/champion-frozen",
+  "candidateId": "cand/overclaimed-feature",
+  "elo0": 0,
+  "elo1": 20,
+  "alpha": 0.05,
+  "beta": 0.05,
+  "games": 400,
+  "wins": 150,
+  "losses": 130,
+  "draws": 120,
+  "llr": 1.5,
+  "lowerBound": -2.9444,
+  "upperBound": 2.9444,
+  "boundary": "none",
+  "decision": "promote",
+  "pgnSha256": null,
+  "provenance": {
+    "engineSha": "deadbeefcafef00d",
+    "netSha": "feedface12345678",
+    "candArgs": ["--nnue", "cand.json"],
+    "baseArgs": ["--nnue", "champion.json"],
+    "tc": "10+0.1",
+    "nodes": null,
+    "threads": 1,
+    "openingsSha": "aabbccddeeff0011"
+  }
+}

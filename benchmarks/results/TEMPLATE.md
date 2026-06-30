@@ -32,4 +32,8 @@
 
 <what runs next, or none>
 
-Decision: PROMOTE | REJECT | ACCEPTED WITH NOTE | HOLD FOR MORE DATA | LIVE-DEV ONLY | ANALYSIS MODE ONLY
+Decision: PROMOTE | REJECT | HOLD_FOR_MORE_DATA | ANALYSIS_MODE_ONLY | LIVE_DEV_ONLY
+
+<!-- PROMOTE requires a linked SPRT record (schemas/sprt-result.schema.json) with
+     boundary == "upper". Run scripts/lint_promotion.py before claiming PROMOTE. -->
+

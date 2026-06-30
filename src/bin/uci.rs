@@ -3,7 +3,7 @@
 //! Supports the subset every match harness needs:
 //!   uci / isready / ucinewgame / quit
 //!   position (startpos | fen <fen>) [moves m1 m2 ...]
-//!   go [movetime N] [depth D] [wtime N btime N winc N binc N] [infinite] [ponder]
+//!   go [movetime N] [nodes N] [depth D] [wtime N btime N winc N binc N] [infinite] [ponder]
 //!   ponderhit / stop
 //!
 //! Pondering (the promoted bot-layer design, single-prediction UCI form):
@@ -226,6 +226,7 @@ fn main() {
             Some("go") => {
                 let mut movetime: Option<u64> = None;
                 let mut depth: Option<u32> = None;
+                let mut nodes: Option<u64> = None;
                 let mut wtime: Option<u64> = None;
                 let mut btime: Option<u64> = None;
                 let mut winc: u64 = 0;
@@ -238,6 +239,7 @@ fn main() {
                     match rest[i] {
                         "movetime" => movetime = val(i),
                         "depth" => depth = val(i).map(|v| v as u32),
+                        "nodes" => nodes = val(i),
                         "wtime" => wtime = val(i),
                         "btime" => btime = val(i),
                         "winc" => winc = val(i).unwrap_or(0),
@@ -274,14 +276,19 @@ fn main() {
                 } else {
                     (None, budget)
                 };
+                // `go nodes N` is a fixed-node diagnostic search: node-bounded (not
+                // time-bounded) and forced single-thread by search() for determinism.
+                let fixed_nodes = nodes.is_some();
                 let opts = SearchOptions {
                     depth: depth.unwrap_or(DEPTH_CAP),
-                    max_time_ms: if depth.is_some() || pondering {
+                    // Clamp to >=1: a 0-node search would emit a null `bestmove 0000`.
+                    max_nodes: nodes.map(|n| n.max(1)),
+                    max_time_ms: if fixed_nodes || depth.is_some() || pondering {
                         None
                     } else {
                         hard
                     },
-                    soft_time_ms: if depth.is_some() || pondering {
+                    soft_time_ms: if fixed_nodes || depth.is_some() || pondering {
                         None
                     } else {
                         soft
