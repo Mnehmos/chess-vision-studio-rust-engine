@@ -29,6 +29,13 @@ import math
 import os
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+try:
+    from motif_taxonomy import validate_slug as _motif_known
+except Exception:  # taxonomy absent -> a motif tag simply can't be confirmed as known
+    def _motif_known(_slug):
+        return False
+
 # Disjoint evidence sets — the structural guarantee of orthogonality.
 CALIBRATION_SIGNALS = (
     "engine_oracle_delta_cp",   # |engine - oracle| score delta (cp)
@@ -103,8 +110,13 @@ def route_candidate(candidate):
     """Route one candidate onto the two orthogonal axes + record corpus eligibility."""
     ev = candidate.get("evidence") if isinstance(candidate.get("evidence"), dict) else {}
     eligible, reasons = corpus_eligibility(candidate)
+    motif = candidate.get("motif")
     return {
         "candidateId": candidate.get("candidateId"),
+        # The motif (weakness category) this candidate exercises, validated against the taxonomy so
+        # the RSI loop can route/aggregate by tactical/positional motif (motif-taxonomy.json).
+        "motif": motif,
+        "motifKnown": bool(isinstance(motif, str) and _motif_known(motif)),
         "calibration": {
             "score": calibration_score(ev),
             "signals": {k: _num(ev, k) for k in CALIBRATION_SIGNALS},
