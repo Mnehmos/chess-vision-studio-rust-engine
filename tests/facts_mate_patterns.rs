@@ -91,6 +91,19 @@ fn does_not_misclassify_a_lawnmower_ladder_mate() {
 }
 
 #[test]
+fn does_not_misclassify_an_assisted_bishop_mate_as_boden() {
+    // Bc1-a3#: a queen+knight-assisted bishop mate. The king on c5 is boxed by White's
+    // queen/knights/pawns, not by two criss-crossing bishops — the a8 bishop only rakes
+    // c6, which holds White's OWN pawn (an enemy piece beside the king), covering no real
+    // flight. Precision over recall: this is not Boden's mate.
+    let items = mates("B7/2N5/1nP5/2k3p1/4p1p1/1P1PP3/8/2BQ1Kn1 w - - 0 38");
+    assert!(
+        items.iter().all(|m| m.kind != "boden_mate"),
+        "an assisted bishop mate with an idle second bishop is not Boden's"
+    );
+}
+
+#[test]
 fn returns_none_for_an_unbatched_mate_pattern() {
     // King-and-queen box mate (Qe7-g7#): not a back-rank (queen off the king's rank)
     // and not smothered (queen, not knight) — no first-batch pattern matches.
