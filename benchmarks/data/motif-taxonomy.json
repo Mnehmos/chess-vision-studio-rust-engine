@@ -20,7 +20,7 @@
     { "slug": "mate-pin", "name": "Mate Pin", "category": "tactical", "family": "pin", "definition": "A pin that enables or is part of a mate.", "detectedBy": null },
     { "slug": "unpinning", "name": "Unpinning", "category": "tactical", "family": "pin", "definition": "Breaking a pin (e.g. by interposing or counterattacking the pinner).", "detectedBy": null },
 
-    { "slug": "skewer", "name": "Skewer", "category": "tactical", "family": "skewer", "definition": "Attack a valuable piece on a line so that moving it exposes a lesser piece behind.", "detectedBy": null },
+    { "slug": "skewer", "name": "Skewer", "category": "tactical", "family": "skewer", "definition": "Attack a valuable piece on a line so that moving it exposes a lesser piece behind.", "detectedBy": "facts::motifs(skewer)" },
     { "slug": "relative-skewer", "name": "Relative Skewer", "category": "tactical", "family": "skewer", "parent": "skewer", "definition": "A skewer where the front piece is more valuable than the one behind, but not the king.", "detectedBy": null },
     { "slug": "skewer-of-queen", "name": "Skewer of Queen", "category": "tactical", "family": "skewer", "parent": "skewer", "definition": "The skewered (front) piece is the queen.", "detectedBy": null },
     { "slug": "skewer-of-rook", "name": "Skewer of Rook", "category": "tactical", "family": "skewer", "parent": "skewer", "definition": "The skewered (front) piece is a rook.", "detectedBy": null },
@@ -29,10 +29,10 @@
     { "slug": "xray-attack", "name": "X-Ray Attack", "category": "tactical", "family": "xray", "definition": "A slider attacks through an enemy piece to a target behind it.", "detectedBy": null },
     { "slug": "xray-defense", "name": "X-Ray Defense", "category": "tactical", "family": "xray", "definition": "A slider defends a friendly piece through an enemy piece.", "detectedBy": null },
 
-    { "slug": "discovered-attack", "name": "Discovered Attack", "category": "tactical", "family": "discovery", "definition": "Moving a piece unveils an attack from a piece behind it.", "detectedBy": null },
-    { "slug": "discovered-check", "name": "Discovered Check", "category": "tactical", "family": "discovery", "parent": "discovered-attack", "definition": "A discovered attack where the unveiled piece gives check.", "detectedBy": null },
+    { "slug": "discovered-attack", "name": "Discovered Attack", "category": "tactical", "family": "discovery", "definition": "Moving a piece unveils an attack from a piece behind it.", "detectedBy": "facts::motifs(discovery)" },
+    { "slug": "discovered-check", "name": "Discovered Check", "category": "tactical", "family": "discovery", "parent": "discovered-attack", "definition": "A discovered attack where the unveiled piece gives check.", "detectedBy": "facts::motifs(discovery)" },
     { "slug": "discoverer-checks", "name": "Discoverer Checks", "category": "tactical", "family": "discovery", "parent": "discovered-attack", "definition": "A discovered attack where the MOVING piece gives check.", "detectedBy": null },
-    { "slug": "double-check", "name": "Double Check", "category": "tactical", "family": "discovery", "definition": "Both the moving piece and the unveiled piece check the king; the king must move.", "detectedBy": null },
+    { "slug": "double-check", "name": "Double Check", "category": "tactical", "family": "discovery", "definition": "Both the moving piece and the unveiled piece check the king; the king must move.", "detectedBy": "facts::motifs(discovery)" },
     { "slug": "discovered-defense", "name": "Discovered Defense", "category": "tactical", "family": "discovery", "definition": "Moving a piece unveils a defense of a friendly piece/square behind it.", "detectedBy": null },
 
     { "slug": "removing-the-guard", "name": "Removing the Guard", "category": "tactical", "family": "remove-the-defender", "definition": "Eliminate or neutralize the piece guarding a key target.", "detectedBy": null },

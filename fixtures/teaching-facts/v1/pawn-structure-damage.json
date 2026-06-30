@@ -304,6 +304,10 @@
       "status": "uncomputed",
       "reason": "not_requested"
     },
+    "availableDiscoveries": {
+      "status": "uncomputed",
+      "reason": "not_requested"
+    },
     "opponentAvailableMotifs": {
       "status": "uncomputed",
       "reason": "not_requested"
@@ -313,6 +317,10 @@
       "reason": "not_requested"
     },
     "opponentAvailableSkewers": {
+      "status": "uncomputed",
+      "reason": "not_requested"
+    },
+    "opponentAvailableDiscoveries": {
       "status": "uncomputed",
       "reason": "not_requested"
     },
@@ -1808,6 +1816,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableDiscoveries": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "opponentAvailableMotifs": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -1817,6 +1829,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableSkewers": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableDiscoveries": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -3408,6 +3424,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableDiscoveries": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "opponentAvailableMotifs": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -3417,6 +3437,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableSkewers": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableDiscoveries": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -4920,6 +4944,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableDiscoveries": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "opponentAvailableMotifs": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -4929,6 +4957,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableSkewers": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableDiscoveries": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -6215,7 +6247,7 @@
   },
   "provenance": {
     "engine": "cvs-bitboard-core",
-    "factsRegistryVersion": 7,
+    "factsRegistryVersion": 8,
     "validators": [
       "legal_move_generation",
       "attack_map",

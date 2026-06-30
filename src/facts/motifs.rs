@@ -9,7 +9,8 @@ use crate::attacks::{attackers_of, bishop_attacks, queen_attacks, rook_attacks};
 use crate::facts::piece_safety::piece_ref;
 use crate::facts::position::{position_for_analysis_side, square_name};
 use crate::facts::types::{
-    FactCollection, MotifOpportunity, PieceRef, PinOpportunity, SkewerOpportunity,
+    DiscoveryOpportunity, FactCollection, MotifOpportunity, PieceRef, PinOpportunity,
+    SkewerOpportunity,
 };
 use crate::movegen::{generate_legal, gives_check};
 use crate::see::see;
@@ -450,4 +451,199 @@ fn squares_between(a: u8, b: u8) -> Vec<u8> {
         r += dr;
     }
     out
+}
+
+// ── Discovered attacks ───────────────────────────────────────────────────────
+// A discovered attack inverts the skewer/pin geometry: the ATTACKING piece is a
+// stationary friendly rear slider S, and the MOVING piece merely vacates the only
+// blocker on S's ray to an enemy target. After the move S newly attacks the target.
+// Sub-types: discovered-check (S now checks the enemy king), double-check (S and the
+// moved piece both check). Detected with the proven `after & !before` ray
+// recomputation: removing the mover from its square (post-move occupancy) opens
+// exactly S's blocked ray, and slider_attacks' blocker-aware resolution finds the
+// newly-seen target for free — no slope arithmetic, no hand-rolled "only blocker".
+// In a legal position the enemy king is not attacked pre-move, so the only ray that
+// can change is the vacated one, and the unveiled enemy set holds at most one bit.
+
+/// Validated discovered-attack opportunities for the side to move, sorted by move
+/// then unveiled-target id.
+pub fn discovery_opportunities(pos: &Position) -> FactCollection<DiscoveryOpportunity> {
+    let discoverer_color = pos.stm;
+    let mut probe = pos.clone();
+    let legal = generate_legal(&mut probe);
+    let mut out = Vec::new();
+    for mv in legal {
+        if let Some(d) = discovery_after_move(pos, mv, discoverer_color) {
+            out.push(d);
+        }
+    }
+    out.sort_by(|a, b| {
+        a.move_uci
+            .cmp(&b.move_uci)
+            .then_with(|| a.target.id.cmp(&b.target.id))
+    });
+    FactCollection::computed(out)
+}
+
+/// Validated discoveries for a requested side. See `motif_opportunities_for` for the
+/// counterfactual side-to-move semantics.
+pub fn discovery_opportunities_for(
+    pos: &Position,
+    side: Color,
+) -> FactCollection<DiscoveryOpportunity> {
+    match position_for_analysis_side(pos, side) {
+        Ok(probe) => discovery_opportunities(&probe),
+        Err(reason) => FactCollection::unavailable(reason),
+    }
+}
+
+fn discovery_after_move(
+    pos: &Position,
+    mv: Move,
+    discoverer_color: Color,
+) -> Option<DiscoveryOpportunity> {
+    let (_, moving_piece) = pos.piece_at(mv.from)?;
+    let enemy = discoverer_color.flip();
+
+    // gives_check on its own throwaway clone (make() mutates).
+    let mut check_probe = pos.clone();
+    let gives_check_flag = gives_check(&mut check_probe, mv);
+
+    let mut after = pos.clone();
+    after.make(mv);
+    let enemy_occ = enemy_occupancy(&after, enemy);
+    let enemy_king = after.king_sq(enemy);
+    let king_bit = 1u64 << enemy_king;
+    let from_bit = 1u64 << mv.from;
+    let to_bit = 1u64 << mv.to;
+
+    // Every friendly rear slider, on the post-move board, excluding the mover itself.
+    for s_piece in [Piece::Bishop, Piece::Rook, Piece::Queen] {
+        let mut bb = after.pieces[discoverer_color.index()][s_piece.index()];
+        while bb != 0 {
+            let s_sq = bb.trailing_zeros() as u8;
+            bb &= bb - 1;
+            if s_sq == mv.to {
+                continue; // the mover (even a slider promotion) is never its own rear slider
+            }
+            let before_atk = match slider_attacks(s_piece, s_sq, pos.all) {
+                Some(a) => a,
+                None => continue,
+            };
+            // S must have had mv.from as its nearest blocker on this ray, so vacating
+            // it is what opens the line (slider_attacks stops at the first occupant).
+            if before_atk & from_bit == 0 {
+                continue;
+            }
+            let after_atk = match slider_attacks(s_piece, s_sq, after.all) {
+                Some(a) => a,
+                None => continue,
+            };
+            // Newly-seen enemy squares. Removing mv.from opens only S's mv.from ray and
+            // slider_attacks stops at the first occupant past it, so this is ≤1 bit: the
+            // unveiled target. A mover that slid ALONG the ray re-blocks it in after.all,
+            // so the target is absent here — this recomputation IS the soundness guard.
+            let unveiled = after_atk & !before_atk & enemy_occ;
+            if unveiled == 0 {
+                continue;
+            }
+            let t_sq = unveiled.trailing_zeros() as u8;
+            let (_, t_piece) = after.piece_at(t_sq)?;
+            let s_value = VALUE[s_piece.index()];
+            let king_target = t_piece == Piece::King;
+
+            // The unveiled slider checks the king iff it now reaches the king's square
+            // (it could not pre-move — legal positions never leave the side-not-to-move
+            // in check). The moved piece double-checks iff it also attacks the king.
+            let discovered_check = after_atk & king_bit != 0;
+            let moved_gives_check = attackers_of(&after.pieces, enemy_king, discoverer_color, after.all)
+                & to_bit
+                != 0;
+            let double_check = discovered_check && moved_gives_check;
+
+            // The moved piece must not be simply hung. For a discovered check the enemy
+            // is in check, so generate_legal only surfaces check-resolving captures —
+            // capturing the (non-checking) mover is illegal, so this is a no-op there
+            // and only bites a plain discovered attack whose mover hangs.
+            if forker_capturable_for_gain(&mut after.clone(), mv.to) {
+                continue;
+            }
+            let mover_threat = mover_threat_gain(&after, discoverer_color, enemy, mv.to);
+
+            let material_gain = if king_target || discovered_check {
+                // Forcing: the enemy must answer the check; the discovery's value is the
+                // moved piece's simultaneous threat (the second prong of the discovery).
+                mover_threat
+            } else {
+                // Plain discovered attack: the unveiled target must be winnable, and the
+                // rear slider must not itself be capturable for gain in lieu of saving it.
+                let undefended = is_undefended(&after, t_sq, enemy);
+                let winnable = undefended || VALUE[t_piece.index()] > s_value;
+                if !winnable || forker_capturable_for_gain(&mut after.clone(), s_sq) {
+                    continue;
+                }
+                if undefended {
+                    VALUE[t_piece.index()]
+                } else {
+                    VALUE[t_piece.index()] - s_value
+                }
+            };
+
+            let ray: Vec<String> = squares_between(s_sq, t_sq).into_iter().map(square_name).collect();
+            let subtype = if double_check {
+                "double_check"
+            } else if discovered_check {
+                "discovered_check"
+            } else {
+                "discovered_attack"
+            };
+            let mover_piece = mv.flag.promo_piece().unwrap_or(moving_piece);
+
+            return Some(DiscoveryOpportunity {
+                kind: subtype.to_string(),
+                validator: "discovery_validation".to_string(),
+                move_uci: mv.to_uci(),
+                mover: piece_ref(discoverer_color, mover_piece, mv.to),
+                slider: piece_ref(discoverer_color, s_piece, s_sq),
+                target: piece_ref(enemy, t_piece, t_sq),
+                ray,
+                gives_check: gives_check_flag,
+                discovered_check,
+                double_check,
+                mover_threatens: mover_threat > 0,
+                material_gain,
+            });
+        }
+    }
+    None
+}
+
+/// Best single enemy piece the moved piece now threatens to win from `from_sq`
+/// (fork-style: attacked AND winnable). 0 if it lands harmlessly. The enemy king is
+/// not counted — it is a check, not a material win.
+fn mover_threat_gain(after: &Position, us: Color, enemy: Color, from_sq: u8) -> i32 {
+    let mover_piece = match after.piece_at(from_sq) {
+        Some((_, p)) => p,
+        None => return 0,
+    };
+    let mover_value = VALUE[mover_piece.index()];
+    let bit = 1u64 << from_sq;
+    let mut best = 0;
+    for piece in Piece::ALL {
+        if piece == Piece::King {
+            continue;
+        }
+        let mut bb = after.pieces[enemy.index()][piece.index()];
+        while bb != 0 {
+            let sq = bb.trailing_zeros() as u8;
+            bb &= bb - 1;
+            if attackers_of(&after.pieces, sq, us, after.all) & bit == 0 {
+                continue;
+            }
+            if VALUE[piece.index()] > mover_value || is_undefended(after, sq, enemy) {
+                best = best.max(VALUE[piece.index()]);
+            }
+        }
+    }
+    best
 }
