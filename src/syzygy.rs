@@ -1,6 +1,5 @@
 use crate::{Color, Piece, Position};
 use pyrrhic_rs::{Color as PyrrhicColor, Piece as PyrrhicPiece, TableBases, WdlProbeResult};
-use std::sync::Arc;
 
 #[derive(Clone, Copy)]
 pub struct CvsEngineAdapter;
