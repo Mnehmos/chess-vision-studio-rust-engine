@@ -30,8 +30,10 @@ mod ordering;
 mod qsearch;
 mod root;
 mod smp;
+mod stability;
 mod time_control;
 mod types;
+pub use stability::*;
 pub use types::*;
 
 pub const MATE_SCORE: i32 = 1_000_000;
