@@ -12,7 +12,7 @@ import os
 import sys
 
 _DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "data", "motif-taxonomy.json")
-CATEGORIES = ("tactical", "positional")
+CATEGORIES = ("tactical", "mate", "positional")
 
 
 def load_taxonomy(path=_DATA):
@@ -63,25 +63,24 @@ def coverage(taxonomy=None):
         d = sum(1 for m in c if m.get("detectedBy"))
         return {"total": len(c), "detected": d, "gaps": len(c) - d}
 
-    return {
+    out = {
         "total": len(ms),
         "detected": len(detected(tax)),
         "gaps": len(gaps(tax)),
-        "tactical": split("tactical"),
-        "positional": split("positional"),
     }
+    for cat in CATEGORIES:
+        out[cat] = split(cat)
+    return out
 
 
 def main(argv):
     tax = load_taxonomy()
     cov = coverage(tax)
-    print(
-        f"motif taxonomy: {cov['total']} motifs "
-        f"({cov['tactical']['total']} tactical, {cov['positional']['total']} positional)"
-    )
+    parts = ", ".join(f"{cov[c]['total']} {c}" for c in CATEGORIES)
+    print(f"motif taxonomy: {cov['total']} motifs ({parts})")
     print(f"  detected by the engine: {cov['detected']}    gaps (RSI roadmap): {cov['gaps']}")
-    print(f"  tactical:   {cov['tactical']['detected']}/{cov['tactical']['total']} detected")
-    print(f"  positional: {cov['positional']['detected']}/{cov['positional']['total']} detected")
+    for cat in CATEGORIES:
+        print(f"  {cat + ':':12} {cov[cat]['detected']}/{cov[cat]['total']} detected")
     print("\n  detector roadmap — undetected motifs (build a fact specialist for each):")
     for m in gaps(tax):
         print(f"    [{m['category'][:3]}] {m['slug']:22} ({m['family']})")
