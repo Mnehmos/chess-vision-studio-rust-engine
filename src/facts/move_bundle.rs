@@ -49,7 +49,7 @@ pub fn build_teaching_fact_bundle(
     let include_counterfactual = request
         .options
         .as_ref()
-        .map_or(true, |options| options.include_counterfactual);
+        .is_none_or(|options| options.include_counterfactual);
     let best = if include_counterfactual {
         optional_branch(
             &before_pos,

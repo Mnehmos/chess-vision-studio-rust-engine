@@ -14,7 +14,7 @@ const STARTPOS: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
 
 fn two_moves() -> (Move, Move) {
     let mut p = Position::from_fen(STARTPOS).unwrap();
-    let mvs: Vec<Move> = generate_legal(&mut p).iter().copied().collect();
+    let mvs: Vec<Move> = generate_legal(&mut p).to_vec();
     (mvs[0], mvs[1])
 }
 
@@ -35,8 +35,7 @@ fn result(
     see_skips: u64,
     partial: Option<PartialIteration>,
 ) -> SearchResult {
-    let mut tel = Telemetry::default();
-    tel.see_prune_skips = see_skips;
+    let tel = Telemetry { see_prune_skips: see_skips, ..Default::default() };
     let last = iters.last();
     SearchResult {
         best_move: last.and_then(|i| i.best_move),

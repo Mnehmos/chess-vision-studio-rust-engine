@@ -92,14 +92,14 @@ impl Syzygy {
                     let mv = legal.get(i);
                     if mv.from == dtz_res.from_square && mv.to == dtz_res.to_square {
                         let promo = mv.flag.promo_piece();
-                        let matches_promo = match (promo, dtz_res.promotion) {
-                            (None, PyrrhicPiece::Pawn) => true,
-                            (Some(Piece::Queen), PyrrhicPiece::Queen) => true,
-                            (Some(Piece::Rook), PyrrhicPiece::Rook) => true,
-                            (Some(Piece::Bishop), PyrrhicPiece::Bishop) => true,
-                            (Some(Piece::Knight), PyrrhicPiece::Knight) => true,
-                            _ => false,
-                        };
+                        let matches_promo = matches!(
+                            (promo, dtz_res.promotion),
+                            (None, PyrrhicPiece::Pawn)
+                                | (Some(Piece::Queen), PyrrhicPiece::Queen)
+                                | (Some(Piece::Rook), PyrrhicPiece::Rook)
+                                | (Some(Piece::Bishop), PyrrhicPiece::Bishop)
+                                | (Some(Piece::Knight), PyrrhicPiece::Knight)
+                        );
                         if matches_promo {
                             return Some((mv, dtz_res.wdl));
                         }

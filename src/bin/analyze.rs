@@ -438,7 +438,7 @@ fn main() {
                         "parentEval": parent_eval,
                         "moves": moves_json,
                     });
-                    writeln!(w, "{}", out_json.to_string()).expect("stdout");
+                    writeln!(w, "{}", out_json).expect("stdout");
                 }
                 Err(_) => {
                     writeln!(w, "ERR").expect("stdout");
@@ -762,11 +762,11 @@ fn main() {
                                 None
                             };
 
-                            // Wait, let's structure this cleanly to avoid compile warnings/errors:
-                            if req.forced_move_uci.is_some() && forced_move.is_none() {
+                            // A forced move the request asked for but movegen rejected as illegal.
+                            if let Some(uci) = req.forced_move_uci.as_ref().filter(|_| forced_move.is_none()) {
                                 serde_json::json!({
                                     "fen": req.fen.as_deref().unwrap_or(""),
-                                    "error": format!("forced move {} is illegal in this position", req.forced_move_uci.as_ref().unwrap())
+                                    "error": format!("forced move {uci} is illegal in this position")
                                 })
                                 .to_string()
                             } else {

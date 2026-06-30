@@ -487,8 +487,8 @@ pub fn extract_candidate_delta(
     dense_buf[9] = (mv.to / 8) as f32 / 7.0;
 
     // Gives check?
-    let mut child_clone = child.clone();
-    let gives_check_val = if in_check(&mut child_clone) { 1.0 } else { 0.0 };
+    let child_clone = child.clone();
+    let gives_check_val = if in_check(&child_clone) { 1.0 } else { 0.0 };
     dense_buf[10] = gives_check_val;
 
     // Attacks higher value piece?

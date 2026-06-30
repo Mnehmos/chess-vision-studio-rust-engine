@@ -73,8 +73,6 @@ fn main() {
             let file = &file;
             let played = &played;
             let positions = &positions;
-            let base = base;
-            let rung2 = rung2;
             scope.spawn(move || {
                 let mut rng = Rng(seed ^ (t as u64).wrapping_mul(0x9E37_79B9));
                 let mut searcher = Searcher::new(base, rung2);
@@ -89,7 +87,7 @@ fn main() {
                         let mut f = file.lock().unwrap();
                         f.write_all(rows.as_bytes()).unwrap();
                     }
-                    if g % 200 == 0 && g > 0 {
+                    if g.is_multiple_of(200) && g > 0 {
                         let secs = started.elapsed().as_secs_f64();
                         eprintln!(
                             "{g} games, {} positions, {:.1} games/min",

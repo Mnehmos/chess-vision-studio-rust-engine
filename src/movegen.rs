@@ -23,6 +23,13 @@ pub struct MoveList {
     len: usize,
 }
 
+impl Default for MoveList {
+    #[inline]
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MoveList {
     #[inline]
     pub fn new() -> MoveList {

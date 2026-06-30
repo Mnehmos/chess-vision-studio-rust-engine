@@ -74,17 +74,17 @@ fn matches_polyglot(mv: &Move, pg_move: &polyglot_book_rs::PolyglotMove) -> bool
     match (mv.flag.promo_piece(), pg_move.promotion) {
         (None, None) => true,
         (Some(p), Some(pg_p)) => {
-            match (p, pg_p) {
+            matches!(
+                (p, pg_p),
                 (crate::Piece::Queen, polyglot_book_rs::types::Piece::WQueen)
-                | (crate::Piece::Queen, polyglot_book_rs::types::Piece::BQueen) => true,
-                (crate::Piece::Rook, polyglot_book_rs::types::Piece::WRook)
-                | (crate::Piece::Rook, polyglot_book_rs::types::Piece::BRook) => true,
-                (crate::Piece::Bishop, polyglot_book_rs::types::Piece::WBishop)
-                | (crate::Piece::Bishop, polyglot_book_rs::types::Piece::BBishop) => true,
-                (crate::Piece::Knight, polyglot_book_rs::types::Piece::WKnight)
-                | (crate::Piece::Knight, polyglot_book_rs::types::Piece::BKnight) => true,
-                _ => false,
-            }
+                    | (crate::Piece::Queen, polyglot_book_rs::types::Piece::BQueen)
+                    | (crate::Piece::Rook, polyglot_book_rs::types::Piece::WRook)
+                    | (crate::Piece::Rook, polyglot_book_rs::types::Piece::BRook)
+                    | (crate::Piece::Bishop, polyglot_book_rs::types::Piece::WBishop)
+                    | (crate::Piece::Bishop, polyglot_book_rs::types::Piece::BBishop)
+                    | (crate::Piece::Knight, polyglot_book_rs::types::Piece::WKnight)
+                    | (crate::Piece::Knight, polyglot_book_rs::types::Piece::BKnight)
+            )
         }
         _ => false,
     }

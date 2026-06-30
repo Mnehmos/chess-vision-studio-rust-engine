@@ -291,12 +291,7 @@ impl Position {
     #[inline]
     fn piece_at_color(&self, color: Color, sq: u8) -> Option<Piece> {
         let b = 1u64 << sq;
-        for p in Piece::ALL {
-            if self.pieces[color.index()][p.index()] & b != 0 {
-                return Some(p);
-            }
-        }
-        None
+        Piece::ALL.into_iter().find(|&p| self.pieces[color.index()][p.index()] & b != 0)
     }
 
     /// The (color, piece) on `sq`, or None if empty.

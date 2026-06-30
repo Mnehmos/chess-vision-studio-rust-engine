@@ -95,8 +95,7 @@ fn rung2_inert_default_and_reachable_capacity() {
         base
     );
     // A non-zero weight changes the eval (open-file rook helps White).
-    let mut w = Rung2Weights::default();
-    w.rook_open_file = 50.0;
+    let w = Rung2Weights { rook_open_file: 50.0, ..Default::default() };
     assert!(evaluate_white(&mut p, &ValueWeights::default(), Some(&w)) > base);
 }
 

@@ -11,6 +11,12 @@
 //! Board convention: Little-Endian Rank-File (LERF). Square index `s = rank*8 + file`,
 //! so a1=0, b1=1, …, h1=7, a2=8, …, h8=63. Bit `s` of a `u64` bitboard = that square.
 
+// The numeric hot paths (NNUE forward pass, tapered eval, SEE) use explicit index loops over
+// parallel arrays ON PURPOSE: it keeps the float accumulation order byte-identical to the trained
+// net (reordering a dot-product changes the f32 result and breaks net parity) and reads naturally
+// for parallel-array access. So `needless_range_loop` is intentional here, not an oversight.
+#![allow(clippy::needless_range_loop)]
+
 pub mod attacks;
 pub mod eval;
 pub mod facts;

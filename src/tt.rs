@@ -197,8 +197,8 @@ impl SharedTt {
         } else {
             let cur = unpack(cur_data);
             let same = cur_key ^ cur_data == hash;
-            same && depth >= cur.depth
-                || !same && (cur.generation != generation || depth >= cur.depth)
+            // (same && D) || (!same && (G || D))  ==  D || (!same && G)   [boolean algebra]
+            depth >= cur.depth || (!same && cur.generation != generation)
         };
         if !replace {
             return;

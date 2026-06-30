@@ -217,9 +217,7 @@ fn pin_after_move(pos: &Position, mv: Move, pinner_color: Color) -> Option<PinOp
     let (_, moving_piece) = pos.piece_at(mv.from)?;
     let pinner_piece = mv.flag.promo_piece().unwrap_or(moving_piece);
     // Only sliders pin.
-    if slider_attacks(pinner_piece, mv.to, 0).is_none() {
-        return None;
-    }
+    slider_attacks(pinner_piece, mv.to, 0)?;
 
     let mut check_probe = pos.clone();
     let gives_check_flag = gives_check(&mut check_probe, mv);

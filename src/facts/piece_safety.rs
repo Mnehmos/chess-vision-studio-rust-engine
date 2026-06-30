@@ -198,7 +198,7 @@ fn see_losing_for_target(pos: &Position, target: u8) -> SeeLosingFact {
         let score = see(&clone, mv.from, mv.to);
         if best
             .as_ref()
-            .map_or(true, |(_, best_score)| score > *best_score)
+            .is_none_or(|(_, best_score)| score > *best_score)
         {
             best = Some((mv.to_uci(), score));
         }

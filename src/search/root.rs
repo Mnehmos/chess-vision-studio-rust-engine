@@ -210,7 +210,7 @@ impl Searcher {
         // 1. Syzygy Tablebase WDL Probe
         if self.opts.syzygy {
             if let Some(tb) = &self.tb {
-                if pos.castling == 0 && pos.all.count_ones() as u32 <= tb.max_pieces() {
+                if pos.castling == 0 && pos.all.count_ones() <= tb.max_pieces() {
                     if let Some(wdl) = tb.probe_wdl(pos) {
                         let score = match wdl {
                             pyrrhic_rs::WdlProbeResult::Win => 900_000 - ply as i32,
@@ -246,7 +246,7 @@ impl Searcher {
                     && e.score.abs() < MATE_THRESHOLD
                 {
                     let rdepth = (depth - 1) / 2;
-                    let margin = 2 * depth as i32;
+                    let margin = 2 * depth;
                     let s_beta = e.score - margin;
 
                     self.excluded_move = tt_move;
@@ -483,7 +483,7 @@ impl Searcher {
             // are reduced an extra ply. SF: r -= statScore*445/4096.
             let mut lmr_r: i32 = if reduce {
                 if self.opts.loglmr {
-                    super::log_lmr_reduction(depth, move_index as usize).max(1)
+                    super::log_lmr_reduction(depth, move_index).max(1)
                 } else {
                     1
                 }

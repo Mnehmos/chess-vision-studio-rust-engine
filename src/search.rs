@@ -358,7 +358,7 @@ impl Searcher {
         // 2. Syzygy Tablebase Root Probe
         if opts.syzygy {
             if let Some(tb) = &self.tb {
-                if pos.castling == 0 && pos.all.count_ones() as u32 <= tb.max_pieces() {
+                if pos.castling == 0 && pos.all.count_ones() <= tb.max_pieces() {
                     if let Some((mv, wdl)) = tb.probe_root(pos) {
                         let score: i32 = match wdl {
                             pyrrhic_rs::WdlProbeResult::Win => 900_000,

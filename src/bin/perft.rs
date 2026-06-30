@@ -6,7 +6,8 @@ use cvs_bitboard_core::perft::{perft, perft_divide};
 use cvs_bitboard_core::Position;
 use std::time::Instant;
 
-const SUITE: &[(&str, &str, &[(u32, u64)])] = &[
+type PerftCase = (&'static str, &'static str, &'static [(u32, u64)]);
+const SUITE: &[PerftCase] = &[
     (
         "startpos",
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",

@@ -78,6 +78,11 @@ fn print_result(out: &mut impl Write, r: &SearchResult, pos: &Position) {
     }
 }
 
+// The `abort_ponder!` macro restores the searcher recovered from the ponder thread
+// (`searcher = Some(s)`); at call sites that immediately rebuild the searcher afterwards that store
+// is dead, but it is INTENTIONAL — the restore must happen at the sites that DO reuse it, and a
+// macro can't be conditional per call site. So this single intentional unused-assignment is allowed.
+#[allow(unused_assignments)]
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let get = |flag: &str| -> Option<String> {
@@ -161,7 +166,7 @@ fn main() {
             }
             Some("setoption") => {
                 let rest: Vec<&str> = tok.collect();
-                if rest.get(0) == Some(&"name") {
+                if rest.first() == Some(&"name") {
                     let mut name_idx = 1;
                     while name_idx < rest.len() && rest[name_idx] != "value" {
                         name_idx += 1;
@@ -177,21 +182,20 @@ fn main() {
                                     }
                                 }
                             }
-                        } else if name == "BookPath" {
-                            if !value.is_empty() && value != "<empty>" {
+                        } else if name == "BookPath"
+                            && !value.is_empty() && value != "<empty>" {
                                 if let Ok(b) = cvs_bitboard_core::book::Book::new(&value) {
                                     if let Some(s) = &mut searcher {
                                         s.book = Some(Arc::new(std::sync::Mutex::new(b)));
                                     }
                                 }
                             }
-                        }
                     }
                 }
             }
             Some("ucinewgame") => {
                 abort_ponder!();
-                searcher = Some(mk(base, rung2.clone()));
+                searcher = Some(mk(base, rung2));
                 pos = Position::from_fen(START_FEN).unwrap();
             }
             Some("position") => {
@@ -263,7 +267,7 @@ fn main() {
                     (btime, binc)
                 };
                 let budget: Option<u64> = movetime
-                    .or_else(|| my_time.map(|t| ((t / 30 + my_inc * 4 / 5).clamp(50, 10_000))));
+                    .or_else(|| my_time.map(|t| (t / 30 + my_inc * 4 / 5).clamp(50, 10_000)));
                 // --smarttime: soft/hard split instead of the flat budget. Soft
                 // is the iteration-boundary target; hard caps runaway thinks
                 // and is enforced by the existing mid-search deadline.

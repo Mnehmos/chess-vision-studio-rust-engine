@@ -37,7 +37,7 @@ fn build_tables() -> Tables {
     let mut pawn = [[0u64; 64]; 2];
     let mut rays = [[0u64; 64]; 8];
 
-    let on = |f: i32, r: i32| f >= 0 && f < 8 && r >= 0 && r < 8;
+    let on = |f: i32, r: i32| (0..8).contains(&f) && (0..8).contains(&r);
     let bit = |f: i32, r: i32| 1u64 << (r * 8 + f);
 
     for sq in 0..64i32 {
