@@ -85,6 +85,10 @@ pub struct SearchOptions {
     pub futility: bool,
     pub lmp: bool,
     pub see_prune: bool,
+    /// SEE-advisory verification (#3): when set, qsearch admits a negative-SEE capture/promo
+    /// that fires a tactical-volatility trigger (gives check or is a promotion) instead of
+    /// vetoing it on the static exchange alone. Default off => the plain SEE veto is unchanged.
+    pub see_verify: bool,
     pub countermove: bool,
     /// BUG1: ply-adjust mate scores on TT store/probe so a mate score stored at one
     /// ply reads correctly when probed at another (node-intrinsic TT mate distance).
@@ -143,6 +147,7 @@ impl Default for SearchOptions {
             matett: false,
             loglmr: false,
             see_prune: false,
+            see_verify: false,
             delta_prune: false,
             countermove: false,
             conthist: false,
@@ -198,6 +203,7 @@ impl SearchOptions {
         self.matett = toggle("--matett", "--no-matett", self.matett);
         self.loglmr = toggle("--loglmr", "--no-loglmr", self.loglmr);
         self.see_prune = toggle("--seeprune", "--no-seeprune", self.see_prune);
+        self.see_verify = toggle("--seeverify", "--no-seeverify", self.see_verify);
         self.delta_prune = toggle("--delta", "--no-delta", self.delta_prune);
         self.countermove = toggle("--countermove", "--no-countermove", self.countermove);
         self.conthist = toggle("--conthist", "--no-conthist", self.conthist);
@@ -229,7 +235,11 @@ impl SearchOptions {
             "--no-shuffled-geometry",
             self.shuffled_geometry,
         );
-        self.root_safe_quiet = toggle("--rootsafequiet", "--no-rootsafequiet", self.root_safe_quiet);
+        self.root_safe_quiet = toggle(
+            "--rootsafequiet",
+            "--no-rootsafequiet",
+            self.root_safe_quiet,
+        );
         self
     }
 }
@@ -241,6 +251,8 @@ pub struct Telemetry {
     pub q_nodes: u64,
     pub q_capture_nodes: u64,
     pub q_see_skips: u64,
+    /// Negative-SEE captures/promos kept by the SEE-advisory verification trigger (#3).
+    pub see_verify_kept: u64,
     pub quiet_check_extensions: u64,
     pub mate_threat_extensions: u64,
     pub hanging_major_extensions: u64,

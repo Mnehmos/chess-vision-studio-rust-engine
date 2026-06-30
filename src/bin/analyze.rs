@@ -86,6 +86,7 @@ fn telemetry_json(t: &Telemetry) -> serde_json::Value {
     field!("qNodePct", pct(t.q_nodes, t.nodes));
     field!("qCaptures", t.q_capture_nodes);
     field!("qSeeSkips", t.q_see_skips);
+    field!("seeVerifyKept", t.see_verify_kept);
     field!("quietExt", t.quiet_check_extensions);
     field!("maxQDepth", t.max_q_depth);
     field!("ttProbes", t.tt_probes);
@@ -177,6 +178,7 @@ fn search_options_json(options: &SearchOptions) -> serde_json::Value {
         "futility": options.futility,
         "lmp": options.lmp,
         "seePrune": options.see_prune,
+        "seeVerify": options.see_verify,
         "deltaPrune": options.delta_prune,
         "countermove": options.countermove,
         "continuationHistory": options.conthist,
