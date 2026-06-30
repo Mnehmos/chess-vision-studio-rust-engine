@@ -136,6 +136,21 @@ fn rejects_an_en_passant_that_unveils_no_winnable_target() {
 }
 
 #[test]
+fn rejects_a_discovery_whose_rear_slider_is_only_traded_off() {
+    // Knight moves that "unveil" rook d1 onto the d8 rook are moot: Black just plays
+    // Rxd1 — an even trade down the now-open file — neutralizing the threat at no cost.
+    // In particular d3b2 / d3f2 (where the knight then GUARDS d1, so the old SEE>0 gate
+    // wrongly passed) must NOT fire; nothing should claim the tradeable d8 rook.
+    let items = discoveries("3r2k1/8/8/8/8/3N4/8/3R2K1 w - - 0 1");
+    assert!(find(&items, "d3b2").is_none());
+    assert!(find(&items, "d3f2").is_none());
+    assert!(
+        items.iter().all(|d| d.target.square != "d8"),
+        "no discovery should claim the tradeable d8 rook"
+    );
+}
+
+#[test]
 fn no_discoveries_in_the_opening_position() {
     assert!(discoveries("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").is_empty());
 }

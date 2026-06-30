@@ -576,10 +576,14 @@ fn discovery_after_move(
                 mover_threat
             } else {
                 // Plain discovered attack: the unveiled target must be winnable, and the
-                // rear slider must not itself be capturable for gain in lieu of saving it.
+                // rear slider must not be TRADEABLE. If the opponent can capture the slider
+                // with a non-losing exchange (SEE >= 0) they neutralize the whole threat at
+                // no cost — e.g. the target counter-captures the slider down the now-open
+                // line for an even trade — so the discovery wins nothing even when the
+                // slider looks "defended" (the recapture only completes the trade).
                 let undefended = is_undefended(&after, t_sq, enemy);
                 let winnable = undefended || VALUE[t_piece.index()] > s_value;
-                if !winnable || forker_capturable_for_gain(&mut after.clone(), s_sq) {
+                if !winnable || slider_tradeable(&mut after.clone(), s_sq) {
                     continue;
                 }
                 if undefended {
@@ -616,6 +620,20 @@ fn discovery_after_move(
         }
     }
     None
+}
+
+/// True if the opponent (the side to move in `after`) can capture the piece on `sq`
+/// with a non-losing exchange (SEE >= 0) — i.e. trade it off. A discovered attack whose
+/// rear slider can be traded for free is neutralized and wins nothing, even when the
+/// slider is "defended" (the recapture only completes the trade).
+fn slider_tradeable(after: &mut Position, sq: u8) -> bool {
+    let legal = generate_legal(after);
+    for mv in legal {
+        if mv.to == sq && mv.flag.is_capture() && see(after, mv.from, mv.to) >= 0 {
+            return true;
+        }
+    }
+    false
 }
 
 /// Best single enemy piece the moved piece now threatens to win from `from_sq`
