@@ -56,6 +56,7 @@ pub struct PositionFacts {
     pub available_remove_guard: FactCollection<RemoveGuardOpportunity>,
     pub available_trapped: FactCollection<TrappedPieceOpportunity>,
     pub available_mate_patterns: FactCollection<MatePatternFact>,
+    pub available_overload: FactCollection<OverloadOpportunity>,
     /// Analysis-only legal opportunities for the side that is not to move.
     /// These let the application prove a motif was newly allowed by a move.
     pub opponent_available_motifs: FactCollection<MotifOpportunity>,
@@ -65,6 +66,7 @@ pub struct PositionFacts {
     pub opponent_available_remove_guard: FactCollection<RemoveGuardOpportunity>,
     pub opponent_available_trapped: FactCollection<TrappedPieceOpportunity>,
     pub opponent_available_mate_patterns: FactCollection<MatePatternFact>,
+    pub opponent_available_overload: FactCollection<OverloadOpportunity>,
     pub hazards: FactCollection<HazardFact>,
     pub square_facts: FactCollection<SquareFact>,
 }
@@ -407,6 +409,22 @@ pub struct TrappedPieceOpportunity {
     /// loses it), for explainability. Sorted, deduped.
     pub escape_squares_tried: Vec<String>,
     /// SEE centipawns we win — the least-bad outcome over staying + every escape.
+    pub material_gain: i32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OverloadOpportunity {
+    /// Motif family — always "overloading".
+    pub kind: String,
+    /// Validator that proved it — "overload_validation".
+    pub validator: String,
+    /// The overloaded enemy defender that cannot guard all its charges at once.
+    pub overloaded_defender: PieceRef,
+    /// The enemy pieces D critically guards, each winnable once D leaves (sorted by id).
+    pub targets: Vec<PieceRef>,
+    /// SEE centipawns won — the second-best contested target (the opponent saves the
+    /// dearer; we collect the next-best).
     pub material_gain: i32,
 }
 

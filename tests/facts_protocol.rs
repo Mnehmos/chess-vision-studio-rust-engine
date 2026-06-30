@@ -147,6 +147,7 @@ fn registry_provenance_lists_every_active_validator() {
             "remove_guard_validation",
             "trapped_piece_validation",
             "mate_pattern_validation",
+            "overload_validation",
         ]
     );
 }
