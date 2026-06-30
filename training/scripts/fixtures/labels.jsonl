@@ -1,0 +1,2 @@
+{"schemaVersion":1,"seedId":"seed-1","labeler":{"engineId":"stockfish-16","binarySha256":"dd","version":"16"},"score":{"cp":20},"labelStatus":"usable"}
+{"schemaVersion":1,"seedId":"seed-2","labeler":{"engineId":"stockfish-16","binarySha256":"dd","version":"16"},"score":{"cp":-15},"labelStatus":"usable"}

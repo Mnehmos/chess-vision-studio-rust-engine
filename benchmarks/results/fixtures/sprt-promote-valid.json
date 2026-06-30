@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "experimentId": "fixture-valid-promote",
+  "baselineId": "snapshot/champion-frozen",
+  "candidateId": "cand/example-feature",
+  "elo0": 0,
+  "elo1": 20,
+  "alpha": 0.05,
+  "beta": 0.05,
+  "games": 612,
+  "wins": 201,
+  "losses": 173,
+  "draws": 238,
+  "llr": 2.96,
+  "lowerBound": -2.9444,
+  "upperBound": 2.9444,
+  "boundary": "upper",
+  "decision": "promote",
+  "pgnSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "provenance": {
+    "engineSha": "deadbeefcafef00d",
+    "netSha": "feedface12345678",
+    "candArgs": ["--nnue", "cand.json", "--lmp", "--smarttime"],
+    "baseArgs": ["--nnue", "champion.json", "--lmp", "--smarttime"],
+    "tc": "10+0.1",
+    "nodes": null,
+    "threads": 1,
+    "openingsSha": "aabbccddeeff0011"
+  }
+}

@@ -1,0 +1,20 @@
+name: de-probes
+
+# Differential Evaluator probes (issue #8). Runs the probe-aggregation unit tests (which use
+# an injected fake engine, so no binary is needed) on any change under benchmarks/de/.
+on:
+  push:
+    paths: ["benchmarks/de/**"]
+  pull_request:
+    paths: ["benchmarks/de/**"]
+
+jobs:
+  de-probes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: P-SEARCH probe tests
+        run: python benchmarks/de/test_probe_p_search.py
