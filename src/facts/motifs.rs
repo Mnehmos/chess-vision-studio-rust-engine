@@ -8,7 +8,9 @@
 use crate::attacks::{attackers_of, bishop_attacks, queen_attacks, rook_attacks};
 use crate::facts::piece_safety::piece_ref;
 use crate::facts::position::{position_for_analysis_side, square_name};
-use crate::facts::types::{FactCollection, MotifOpportunity, PieceRef, PinOpportunity};
+use crate::facts::types::{
+    FactCollection, MotifOpportunity, PieceRef, PinOpportunity, SkewerOpportunity,
+};
 use crate::movegen::{generate_legal, gives_check};
 use crate::see::see;
 use crate::{file_of, rank_of, Color, Move, Piece, Position};
@@ -296,6 +298,139 @@ fn enemy_occupancy(pos: &Position, enemy: Color) -> u64 {
         bb |= pos.pieces[enemy.index()][piece.index()];
     }
     bb
+}
+
+// ── Skewer opportunities ─────────────────────────────────────────────────────
+// A skewer is the mirror of a pin: a slider moves to attack an enemy piece F that
+// is forced to step aside — the king (it is in check) or a piece worth more than
+// the slider — exposing a strictly less valuable enemy piece B directly behind it
+// on the same line. Detected with the same slider-ray probe the pin uses: remove F
+// from occupancy and check whether the slider then reaches a winnable enemy piece B
+// it could not see before. B's defenders are counted with F removed, since F is
+// forced to leave and any defence it provided is illusory.
+
+/// Validated skewer opportunities for the side to move, sorted by move then back id.
+pub fn skewer_opportunities(pos: &Position) -> FactCollection<SkewerOpportunity> {
+    let skewerer_color = pos.stm;
+    let mut probe = pos.clone();
+    let legal = generate_legal(&mut probe);
+    let mut out = Vec::new();
+    for mv in legal {
+        if let Some(sk) = skewer_after_move(pos, mv, skewerer_color) {
+            out.push(sk);
+        }
+    }
+    out.sort_by(|a, b| {
+        a.move_uci
+            .cmp(&b.move_uci)
+            .then_with(|| a.back.id.cmp(&b.back.id))
+    });
+    FactCollection::computed(out)
+}
+
+/// Validated skewers for a requested side. See `motif_opportunities_for` for the
+/// counterfactual side-to-move semantics.
+pub fn skewer_opportunities_for(pos: &Position, side: Color) -> FactCollection<SkewerOpportunity> {
+    match position_for_analysis_side(pos, side) {
+        Ok(probe) => skewer_opportunities(&probe),
+        Err(reason) => FactCollection::unavailable(reason),
+    }
+}
+
+fn skewer_after_move(pos: &Position, mv: Move, skewerer_color: Color) -> Option<SkewerOpportunity> {
+    let (_, moving_piece) = pos.piece_at(mv.from)?;
+    let skewerer_piece = mv.flag.promo_piece().unwrap_or(moving_piece);
+    // Only sliders skewer.
+    slider_attacks(skewerer_piece, mv.to, 0)?;
+    let skewerer_value = VALUE[skewerer_piece.index()];
+
+    let mut check_probe = pos.clone();
+    let gives_check_flag = gives_check(&mut check_probe, mv);
+
+    let mut after = pos.clone();
+    after.make(mv);
+    let enemy = skewerer_color.flip();
+    let s = mv.to;
+
+    let atk = slider_attacks(skewerer_piece, s, after.all)?;
+    let enemy_occ = enemy_occupancy(&after, enemy);
+
+    // A skewerer that is simply captured is not a real skewer.
+    if forker_capturable_for_gain(&mut after.clone(), s) {
+        return None;
+    }
+
+    let mut front_bb = atk & enemy_occ;
+    while front_bb != 0 {
+        let f_sq = front_bb.trailing_zeros() as u8;
+        front_bb &= front_bb - 1;
+        let (_, f_piece) = match after.piece_at(f_sq) {
+            Some(x) => x,
+            None => continue,
+        };
+        // The front piece must be forced to move: the king (it is in check), or a
+        // piece worth more than the skewerer (it cannot afford to be captured).
+        let front_forced = f_piece == Piece::King || VALUE[f_piece.index()] > skewerer_value;
+        if !front_forced {
+            continue;
+        }
+
+        // The first enemy piece newly exposed behind F is the back piece.
+        let occ2 = after.all & !(1u64 << f_sq);
+        let atk2 = match slider_attacks(skewerer_piece, s, occ2) {
+            Some(a) => a,
+            None => continue,
+        };
+        let behind = atk2 & !atk & enemy_occ;
+        if behind == 0 {
+            continue;
+        }
+        let b_sq = behind.trailing_zeros() as u8;
+        let (_, b_piece) = match after.piece_at(b_sq) {
+            Some(x) => x,
+            None => continue,
+        };
+        // A king behind the front piece makes this a pin, not a skewer.
+        if b_piece == Piece::King {
+            continue;
+        }
+        // Skewer geometry: the front piece is strictly more valuable than the piece
+        // behind it (a king front always qualifies). Otherwise it is a pin.
+        if f_piece != Piece::King && VALUE[f_piece.index()] <= VALUE[b_piece.index()] {
+            continue;
+        }
+        // The back piece must be winnable once the front steps aside. Count B's
+        // defenders with F removed (F is forced to leave): undefended → win it
+        // outright; otherwise it must be worth more than the skewerer to profit
+        // through the recapture.
+        let back_defenders = attackers_of(&after.pieces, b_sq, enemy, after.all)
+            & !(1u64 << b_sq)
+            & !(1u64 << f_sq);
+        let back_undefended = back_defenders == 0;
+        if !back_undefended && VALUE[b_piece.index()] <= skewerer_value {
+            continue;
+        }
+
+        let ray: Vec<String> = squares_between(s, b_sq).into_iter().map(square_name).collect();
+        let material_gain = if back_undefended {
+            VALUE[b_piece.index()]
+        } else {
+            VALUE[b_piece.index()] - skewerer_value
+        };
+
+        return Some(SkewerOpportunity {
+            kind: "skewer".to_string(),
+            validator: "skewer_validation".to_string(),
+            move_uci: mv.to_uci(),
+            skewerer: piece_ref(skewerer_color, skewerer_piece, s),
+            front: piece_ref(enemy, f_piece, f_sq),
+            back: piece_ref(enemy, b_piece, b_sq),
+            ray,
+            gives_check: gives_check_flag,
+            material_gain,
+        });
+    }
+    None
 }
 
 /// Squares strictly between two colinear squares (exclusive of both endpoints).

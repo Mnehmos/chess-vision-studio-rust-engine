@@ -142,6 +142,7 @@ fn registry_provenance_lists_every_active_validator() {
             "square_control",
             "fork_validation",
             "pin_validation",
+            "skewer_validation",
         ]
     );
 }

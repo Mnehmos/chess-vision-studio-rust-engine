@@ -209,11 +209,19 @@
       "status": "computed",
       "items": []
     },
+    "availableSkewers": {
+      "status": "computed",
+      "items": []
+    },
     "opponentAvailableMotifs": {
       "status": "computed",
       "items": []
     },
     "opponentAvailablePins": {
+      "status": "computed",
+      "items": []
+    },
+    "opponentAvailableSkewers": {
       "status": "computed",
       "items": []
     },
@@ -1936,11 +1944,19 @@
         "status": "computed",
         "items": []
       },
+      "availableSkewers": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMotifs": {
         "status": "computed",
         "items": []
       },
       "opponentAvailablePins": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableSkewers": {
         "status": "computed",
         "items": []
       },
@@ -3679,6 +3695,10 @@
         "status": "computed",
         "items": []
       },
+      "availableSkewers": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMotifs": {
         "status": "computed",
         "items": [
@@ -3713,6 +3733,10 @@
         ]
       },
       "opponentAvailablePins": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableSkewers": {
         "status": "computed",
         "items": []
       },
@@ -5442,11 +5466,19 @@
         "status": "computed",
         "items": []
       },
+      "availableSkewers": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMotifs": {
         "status": "computed",
         "items": []
       },
       "opponentAvailablePins": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableSkewers": {
         "status": "computed",
         "items": []
       },
@@ -6828,7 +6860,7 @@
   },
   "provenance": {
     "engine": "cvs-bitboard-core",
-    "factsRegistryVersion": 6,
+    "factsRegistryVersion": 7,
     "validators": [
       "legal_move_generation",
       "attack_map",
@@ -6838,7 +6870,8 @@
       "pawn_structure",
       "square_control",
       "fork_validation",
-      "pin_validation"
+      "pin_validation",
+      "skewer_validation"
     ]
   },
   "errors": []

@@ -24,6 +24,11 @@ pub fn position_hazards(pos: &Position, facts: &PositionFacts) -> FactCollection
         && matches!(
             facts.opponent_available_pins,
             FactCollection::Computed { .. }
+        )
+        && matches!(facts.available_skewers, FactCollection::Computed { .. })
+        && matches!(
+            facts.opponent_available_skewers,
+            FactCollection::Computed { .. }
         );
     if !collections_ready {
         return FactCollection::unavailable("symmetric_hazard_probe_unavailable");
@@ -36,6 +41,8 @@ pub fn position_hazards(pos: &Position, facts: &PositionFacts) -> FactCollection
     add_fork_hazards(&mut hazards, &facts.opponent_available_motifs);
     add_pin_hazards(&mut hazards, &facts.available_pins);
     add_pin_hazards(&mut hazards, &facts.opponent_available_pins);
+    add_skewer_hazards(&mut hazards, &facts.available_skewers);
+    add_skewer_hazards(&mut hazards, &facts.opponent_available_skewers);
     add_king_pressure(&mut hazards, facts);
 
     for color in [Color::White, Color::Black] {
@@ -189,6 +196,38 @@ fn add_pin_hazards(
                 squares,
                 magnitude_cp: None,
                 move_uci: Some(pin.move_uci.clone()),
+            },
+        );
+    }
+}
+
+fn add_skewer_hazards(
+    out: &mut BTreeMap<String, HazardFact>,
+    skewers: &FactCollection<crate::facts::types::SkewerOpportunity>,
+) {
+    let FactCollection::Computed { items } = skewers else {
+        return;
+    };
+    for skewer in items {
+        let id = format!("skewer-threat-{}-{}", skewer.back.id, skewer.move_uci);
+        let mut squares = vec![
+            skewer.skewerer.square.clone(),
+            skewer.front.square.clone(),
+            skewer.back.square.clone(),
+        ];
+        squares.extend(skewer.ray.iter().cloned());
+        squares.sort();
+        squares.dedup();
+        out.insert(
+            id.clone(),
+            HazardFact {
+                id,
+                kind: "skewer_threat".into(),
+                // The skewered (front) side is the one under threat.
+                side: skewer.front.side,
+                squares,
+                magnitude_cp: Some(skewer.material_gain),
+                move_uci: Some(skewer.move_uci.clone()),
             },
         );
     }
