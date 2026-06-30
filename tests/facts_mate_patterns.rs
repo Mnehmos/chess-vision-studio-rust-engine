@@ -67,6 +67,17 @@ fn classifies_a_damiano_mate() {
     assert!(m.key_squares.contains(&"g6".to_string()));
 }
 
+#[test]
+fn classifies_a_boden_mate() {
+    // Be2-a6#: two bishops on crossing diagonals (Ba6 checks c8, Bh2 covers b8/c7), the
+    // king's d7/d8 escapes blocked by its own pawn + rook.
+    let items = mates("2kr4/3p4/8/8/8/8/4B2B/4K3 w - - 0 1");
+    let m = find(&items, "e2a6").expect("Ba6 should be a classified Boden mate");
+    assert_eq!(m.kind, "boden_mate");
+    assert_eq!(m.mating_piece.piece_type, PieceType::Bishop);
+    assert_eq!(m.mated_king.square, "c8");
+}
+
 // ── negatives / precision ────────────────────────────────────────────────────
 
 #[test]

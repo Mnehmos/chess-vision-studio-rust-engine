@@ -138,7 +138,7 @@
     { "slug": "balestra-mate", "name": "Balestra Mate", "category": "mate", "family": "queen-bishop", "definition": "Queen + bishop mate on intersecting diagonals; bishop delivers, queen blocks.", "detectedBy": null },
     { "slug": "escalator-mate", "name": "Escalator Mate", "category": "mate", "family": "queen-bishop", "definition": "Queen, supported by a bishop on the diagonal, walks the king to mate.", "detectedBy": null },
     { "slug": "morphy-mate", "name": "Morphy's Mate", "category": "mate", "family": "bishop", "definition": "Bishop mates with a rook cutting horizontal escape and a pawn the vertical.", "detectedBy": null },
-    { "slug": "boden-mate", "name": "Boden's Mate", "category": "mate", "family": "bishop", "definition": "Two bishops mate on intersecting diagonals; king blocked by its own pieces.", "detectedBy": null },
+    { "slug": "boden-mate", "name": "Boden's Mate", "category": "mate", "family": "bishop", "definition": "Two bishops mate on intersecting diagonals; king blocked by its own pieces.", "detectedBy": "facts::mate_patterns(boden)" },
     { "slug": "double-bishop-mate", "name": "Double Bishop Mate", "category": "mate", "family": "bishop", "definition": "Two bishops control adjacent diagonals to mate, escape blocked.", "detectedBy": null },
     { "slug": "blackburne-mate", "name": "Blackburne's Mate", "category": "mate", "family": "bishop", "definition": "Two bishops + knight mate on the edge with an enemy piece blocking escape.", "detectedBy": null },
     { "slug": "threading-the-needle-mate", "name": "Threading the Needle Mate", "category": "mate", "family": "bishop", "definition": "Queen/bishop diagonal mate threaded between blocking pieces.", "detectedBy": null },

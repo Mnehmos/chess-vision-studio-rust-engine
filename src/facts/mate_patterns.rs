@@ -7,7 +7,7 @@
 //! First batch: back-rank + smothered (rook/queen-along-the-rank vs all-smothered
 //! knight — zero overlap). Later batches add more patterns to `classify`.
 
-use crate::attacks::{king_attacks, pawn_attacks};
+use crate::attacks::{bishop_attacks, king_attacks, pawn_attacks};
 use crate::facts::hazards::mating_moves;
 use crate::facts::piece_safety::piece_ref;
 use crate::facts::position::{position_for_analysis_side, square_name};
@@ -64,6 +64,8 @@ fn classify(pos: &Position, mv: Move) -> Option<MatePatternFact> {
         ("epaulette_mate", key)
     } else if let Some(key) = damiano(&after, mater, ksq, to, mating_piece) {
         ("damiano_mate", key)
+    } else if let Some(key) = boden(&after, mater, mated, ksq, to, mating_piece) {
+        ("boden_mate", key)
     } else if let Some(key) = back_rank(&after, mated, ksq, to, mating_piece) {
         ("back_rank_mate", key)
     } else {
@@ -181,6 +183,31 @@ fn damiano(after: &Position, mater: Color, ksq: u8, to: u8, mp: Piece) -> Option
         pawns &= pawns - 1;
         if pawn_attacks(mater, psq) & to_bit != 0 {
             return Some(vec![ksq, to, psq]); // a friendly pawn defends the mating queen
+        }
+    }
+    None
+}
+
+/// Boden's mate: two bishops on intersecting diagonals mate the king, its remaining
+/// escapes blocked by its OWN pieces. The mating bishop checks; a SECOND friendly
+/// bishop covers a king-neighbour on the crossing diagonal; at least one neighbour is
+/// an own self-block.
+fn boden(after: &Position, mater: Color, mated: Color, ksq: u8, to: u8, mp: Piece) -> Option<Vec<u8>> {
+    if mp != Piece::Bishop {
+        return None;
+    }
+    let neighbours = king_attacks(ksq);
+    let own = color_occ(after, mated);
+    if neighbours & own == 0 {
+        return None; // no own self-block — not the Boden picture
+    }
+    // a second friendly bishop covering a king-neighbour (the crossing diagonal)
+    let mut bishops = after.pieces[mater.index()][Piece::Bishop.index()] & !(1u64 << to);
+    while bishops != 0 {
+        let b = bishops.trailing_zeros() as u8;
+        bishops &= bishops - 1;
+        if bishop_attacks(b, after.all) & neighbours != 0 {
+            return Some(vec![ksq, to, b]);
         }
     }
     None
