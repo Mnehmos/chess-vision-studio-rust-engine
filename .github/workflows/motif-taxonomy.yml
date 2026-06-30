@@ -1,0 +1,31 @@
+name: motif-taxonomy
+
+# The motif taxonomy is the RSI loop's weakness-category vocabulary; it must stay well-formed
+# (unique slugs, valid categories) and the gap-router's motif tagging must keep validating against
+# it. Runs the standalone tests (no engine build).
+on:
+  push:
+    paths:
+      - "benchmarks/data/motif-taxonomy.json"
+      - "benchmarks/scripts/motif_taxonomy.py"
+      - "benchmarks/scripts/test_motif_taxonomy.py"
+      - "benchmarks/scripts/route_candidates.py"
+  pull_request:
+    paths:
+      - "benchmarks/data/motif-taxonomy.json"
+      - "benchmarks/scripts/motif_taxonomy.py"
+      - "benchmarks/scripts/test_motif_taxonomy.py"
+      - "benchmarks/scripts/route_candidates.py"
+
+jobs:
+  motif-taxonomy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Motif taxonomy + router tests
+        run: |
+          python benchmarks/scripts/test_motif_taxonomy.py
+          python benchmarks/scripts/test_route_candidates.py
