@@ -235,6 +235,10 @@
       "status": "computed",
       "items": []
     },
+    "availableXrayDefense": {
+      "status": "computed",
+      "items": []
+    },
     "opponentAvailableMotifs": {
       "status": "computed",
       "items": []
@@ -280,6 +284,10 @@
       "items": []
     },
     "opponentAvailableXrayAttack": {
+      "status": "computed",
+      "items": []
+    },
+    "opponentAvailableXrayDefense": {
       "status": "computed",
       "items": []
     },
@@ -1980,6 +1988,10 @@
         "status": "computed",
         "items": []
       },
+      "availableXrayDefense": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMotifs": {
         "status": "computed",
         "items": []
@@ -2025,6 +2037,10 @@
         "items": []
       },
       "opponentAvailableXrayAttack": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableXrayDefense": {
         "status": "computed",
         "items": []
       },
@@ -3742,6 +3758,10 @@
         "status": "computed",
         "items": []
       },
+      "availableXrayDefense": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMotifs": {
         "status": "computed",
         "items": []
@@ -3821,6 +3841,10 @@
         "items": []
       },
       "opponentAvailableXrayAttack": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableXrayDefense": {
         "status": "computed",
         "items": []
       },
@@ -5552,6 +5576,10 @@
         "status": "computed",
         "items": []
       },
+      "availableXrayDefense": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMotifs": {
         "status": "unavailable",
         "reason": "opposite_side_probe_while_in_check"
@@ -5597,6 +5625,10 @@
         "reason": "opposite_side_probe_while_in_check"
       },
       "opponentAvailableXrayAttack": {
+        "status": "unavailable",
+        "reason": "opposite_side_probe_while_in_check"
+      },
+      "opponentAvailableXrayDefense": {
         "status": "unavailable",
         "reason": "opposite_side_probe_while_in_check"
       },
@@ -6903,7 +6935,7 @@
   },
   "provenance": {
     "engine": "cvs-bitboard-core",
-    "factsRegistryVersion": 16,
+    "factsRegistryVersion": 17,
     "validators": [
       "legal_move_generation",
       "attack_map",
@@ -6923,7 +6955,8 @@
       "attack_defender_validation",
       "interference_validation",
       "double_attack_validation",
-      "xray_attack_validation"
+      "xray_attack_validation",
+      "xray_defense_validation"
     ]
   },
   "errors": []

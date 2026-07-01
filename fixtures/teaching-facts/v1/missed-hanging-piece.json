@@ -275,6 +275,10 @@
       "status": "uncomputed",
       "reason": "not_requested"
     },
+    "availableXrayDefense": {
+      "status": "uncomputed",
+      "reason": "not_requested"
+    },
     "opponentAvailableMotifs": {
       "status": "uncomputed",
       "reason": "not_requested"
@@ -320,6 +324,10 @@
       "reason": "not_requested"
     },
     "opponentAvailableXrayAttack": {
+      "status": "uncomputed",
+      "reason": "not_requested"
+    },
+    "opponentAvailableXrayDefense": {
       "status": "uncomputed",
       "reason": "not_requested"
     },
@@ -1960,6 +1968,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableXrayDefense": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "opponentAvailableMotifs": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -2005,6 +2017,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableXrayAttack": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableXrayDefense": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -3885,6 +3901,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableXrayDefense": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "opponentAvailableMotifs": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -3930,6 +3950,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableXrayAttack": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableXrayDefense": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -5463,6 +5487,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableXrayDefense": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "opponentAvailableMotifs": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -5508,6 +5536,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableXrayAttack": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableXrayDefense": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -7115,7 +7147,7 @@
   },
   "provenance": {
     "engine": "cvs-bitboard-core",
-    "factsRegistryVersion": 16,
+    "factsRegistryVersion": 17,
     "validators": [
       "legal_move_generation",
       "attack_map",
