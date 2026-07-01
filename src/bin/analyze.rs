@@ -37,6 +37,15 @@ struct ServeJsonRequest {
     principal_variation_uci: Option<Vec<String>>,
     options: Option<TeachingFactsOptionsV1>,
     forced_move_uci: Option<String>,
+    /// Deterministic fixed-node diagnostic budget (#6): search stops once main+qsearch
+    /// nodes reach this. Presence routes the request through the diagnostic interface,
+    /// which forces single-thread search (INV-2) and reports requested/consumed nodes.
+    node_budget: Option<u64>,
+    /// Diagnostic isolation (#6): "cold" (default) = a fresh searcher per request (empty
+    /// TT/history — a prior search cannot alter the result); "warm" = a searcher persisted
+    /// across requests so the aged TT carries forward. Presence alone (even without
+    /// nodeBudget) routes through the diagnostic interface.
+    diagnostic_isolation: Option<String>,
 }
 
 fn pct(num: u64, den: u64) -> f64 {
@@ -201,6 +210,63 @@ fn search_options_json(options: &SearchOptions) -> serde_json::Value {
         "book": options.book,
         "rootDiagnostics": options.root_diagnostics,
     })
+}
+
+/// Deterministic fixed-node diagnostic search (Phase 5 / #6). `opts` must already carry the
+/// diagnostic invariants (single thread, book off, node budget, no wall-clock deadline); the
+/// caller owns cold (fresh `searcher`) vs warm (persisted `searcher`) selection. `forced_move`
+/// restricts the root to a single move (fixed-node forced-root). Emits the usual search fields
+/// plus a `diagnostic` block reporting the requested budget, the nodes actually consumed, and
+/// that multithreading was refused — everything the experiment needs to compare runs.
+#[allow(clippy::too_many_arguments)]
+fn diagnostic_search_json(
+    searcher: &mut Searcher,
+    mut pos: Position,
+    echo: &str,
+    opts: SearchOptions,
+    requested_nodes: Option<u64>,
+    isolation: &str,
+    requested_threads: usize,
+    forced_move: Option<Move>,
+) -> String {
+    searcher.root_scope = match forced_move {
+        Some(mv) => RootScope::Only(mv),
+        None => RootScope::All,
+    };
+    let r = searcher.search(&mut pos, opts);
+    // Reset the root scope so a persisted (warm) searcher never leaks this request's forced
+    // root into the next one.
+    searcher.root_scope = RootScope::All;
+    let t = r.telemetry;
+    serde_json::json!({
+        "fen": echo,
+        "uci": r.best_move.map(|m| m.to_uci()),
+        "scoreCp": r.score_cp,
+        "mate": r.mate,
+        "pv": r.pv.iter().map(|m| m.to_uci()).collect::<Vec<_>>(),
+        "depth": r.depth,
+        "nodes": t.nodes,
+        "qNodes": t.q_nodes,
+        "ttHits": t.tt_hits,
+        "timeMs": t.elapsed_ms,
+        "termination": r.termination.as_str(),
+        "resultSource": r.result_source.as_str(),
+        "diagnostic": {
+            "isolation": isolation,
+            "requestedNodes": requested_nodes,
+            "consumedNodes": t.nodes,
+            "singleThread": true,
+            "multithreadRefused": requested_threads > 1,
+            "book": opts.book,
+        },
+        "telemetry": telemetry_json(&t),
+        "iterations": iterations_json(&r.iterations),
+        "stabilization": stabilization_json(&r),
+        "rootOrder": r.root_order.iter().map(|m| m.to_uci()).collect::<Vec<_>>(),
+        "attemptedDepth": r.attempted_depth,
+        "partialIteration": partial_iteration_json(r.partial_iteration.as_ref()),
+    })
+    .to_string()
 }
 
 fn iterations_json(iterations: &[SearchIteration]) -> serde_json::Value {
@@ -646,6 +712,10 @@ fn main() {
                 Ok((Position::from_fen(fen)?, fen.to_string()))
             }
         };
+        // Persisted searcher for diagnosticIsolation="warm": reused across warm requests so
+        // the aged TT carries forward. Cold requests never touch it (they build a fresh
+        // searcher), which is what keeps a cold result independent of any prior search.
+        let mut warm_searcher: Option<Searcher> = None;
         for line in stdin.lock().lines() {
             let line = match line {
                 Ok(l) => l,
@@ -769,6 +839,52 @@ fn main() {
                                     "error": format!("forced move {uci} is illegal in this position")
                                 })
                                 .to_string()
+                            } else if req.node_budget.is_some()
+                                || req.diagnostic_isolation.is_some()
+                            {
+                                // Deterministic fixed-node diagnostic interface (#6): a node
+                                // budget or a declared isolation routes here. Force the
+                                // diagnostic invariants — single thread (also enforced by the
+                                // search's INV-2 when max_nodes is set), no wall-clock deadline,
+                                // book off — then pick cold (fresh searcher) or warm (persisted).
+                                let isolation =
+                                    req.diagnostic_isolation.as_deref().unwrap_or("cold");
+                                let requested_threads = opts.threads;
+                                let diag_opts = SearchOptions {
+                                    max_nodes: req.node_budget,
+                                    max_time_ms: None,
+                                    soft_time_ms: None,
+                                    threads: 1,
+                                    book: false,
+                                    ..opts
+                                };
+                                if isolation == "warm" {
+                                    if warm_searcher.is_none() {
+                                        warm_searcher = Some(make_searcher(base, rung2));
+                                    }
+                                    diagnostic_search_json(
+                                        warm_searcher.as_mut().unwrap(),
+                                        pos,
+                                        &echo,
+                                        diag_opts,
+                                        req.node_budget,
+                                        isolation,
+                                        requested_threads,
+                                        forced_move,
+                                    )
+                                } else {
+                                    let mut cold = make_searcher(base, rung2);
+                                    diagnostic_search_json(
+                                        &mut cold,
+                                        pos,
+                                        &echo,
+                                        diag_opts,
+                                        req.node_budget,
+                                        isolation,
+                                        requested_threads,
+                                        forced_move,
+                                    )
+                                }
                             } else {
                                 match req.cmd.as_deref().unwrap_or("analyze") {
                                     "eval" => {
