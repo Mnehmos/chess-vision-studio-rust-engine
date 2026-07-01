@@ -231,6 +231,10 @@
       "status": "computed",
       "items": []
     },
+    "availableLureDefender": {
+      "status": "computed",
+      "items": []
+    },
     "availableInterference": {
       "status": "computed",
       "items": []
@@ -292,6 +296,10 @@
       "items": []
     },
     "opponentAvailableDeflection": {
+      "status": "computed",
+      "items": []
+    },
+    "opponentAvailableLureDefender": {
       "status": "computed",
       "items": []
     },
@@ -2008,6 +2016,10 @@
         "status": "computed",
         "items": []
       },
+      "availableLureDefender": {
+        "status": "computed",
+        "items": []
+      },
       "availableInterference": {
         "status": "computed",
         "items": []
@@ -2069,6 +2081,10 @@
         "items": []
       },
       "opponentAvailableDeflection": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableLureDefender": {
         "status": "computed",
         "items": []
       },
@@ -3802,6 +3818,10 @@
         "status": "computed",
         "items": []
       },
+      "availableLureDefender": {
+        "status": "computed",
+        "items": []
+      },
       "availableInterference": {
         "status": "computed",
         "items": []
@@ -3897,6 +3917,10 @@
         "items": []
       },
       "opponentAvailableDeflection": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableLureDefender": {
         "status": "computed",
         "items": []
       },
@@ -5644,6 +5668,10 @@
         "status": "computed",
         "items": []
       },
+      "availableLureDefender": {
+        "status": "computed",
+        "items": []
+      },
       "availableInterference": {
         "status": "computed",
         "items": []
@@ -5705,6 +5733,10 @@
         "reason": "opposite_side_probe_while_in_check"
       },
       "opponentAvailableDeflection": {
+        "status": "unavailable",
+        "reason": "opposite_side_probe_while_in_check"
+      },
+      "opponentAvailableLureDefender": {
         "status": "unavailable",
         "reason": "opposite_side_probe_while_in_check"
       },
@@ -7031,7 +7063,7 @@
   },
   "provenance": {
     "engine": "cvs-bitboard-core",
-    "factsRegistryVersion": 20,
+    "factsRegistryVersion": 21,
     "validators": [
       "legal_move_generation",
       "attack_map",
@@ -7055,6 +7087,7 @@
       "xray_defense_validation",
       "discovered_defense_validation",
       "deflection_validation",
+      "lure_defender_validation",
       "win_exchange_validation"
     ]
   },

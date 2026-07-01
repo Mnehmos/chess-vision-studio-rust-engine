@@ -7275,7 +7275,7 @@
   },
   "provenance": {
     "engine": "cvs-bitboard-core",
-    "factsRegistryVersion": 20,
+    "factsRegistryVersion": 21,
     "validators": [
       "legal_move_generation",
       "attack_map",
