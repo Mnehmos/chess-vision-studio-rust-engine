@@ -61,6 +61,7 @@ pub struct PositionFacts {
     pub available_interference: FactCollection<InterferenceOpportunity>,
     pub available_double_attack: FactCollection<DoubleAttackOpportunity>,
     pub available_xray_attack: FactCollection<XRayOpportunity>,
+    pub available_xray_defense: FactCollection<XRayDefenseOpportunity>,
     /// Analysis-only legal opportunities for the side that is not to move.
     /// These let the application prove a motif was newly allowed by a move.
     pub opponent_available_motifs: FactCollection<MotifOpportunity>,
@@ -75,6 +76,7 @@ pub struct PositionFacts {
     pub opponent_available_interference: FactCollection<InterferenceOpportunity>,
     pub opponent_available_double_attack: FactCollection<DoubleAttackOpportunity>,
     pub opponent_available_xray_attack: FactCollection<XRayOpportunity>,
+    pub opponent_available_xray_defense: FactCollection<XRayDefenseOpportunity>,
     pub hazards: FactCollection<HazardFact>,
     pub square_facts: FactCollection<SquareFact>,
 }
@@ -527,6 +529,31 @@ pub struct XRayOpportunity {
     /// Whether the move gives check.
     pub gives_check: bool,
     /// Full-SEE centipawns won on the front square, counting through the reveal.
+    pub material_gain: i32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct XRayDefenseOpportunity {
+    /// Motif family — always "xray_defense".
+    pub kind: String,
+    /// Validator that proved it — "xray_defense_validation".
+    pub validator: String,
+    /// The single move that places/uses the defending slider (long UCI).
+    pub move_uci: String,
+    /// Our slider, at its post-move square (promoted type if a slider promotion).
+    pub xrayer: PieceRef,
+    /// The ENEMY piece on the line between the xrayer and G, through which the
+    /// defense passes; a naive one-square count is blocked by it.
+    pub front_enemy: PieceRef,
+    /// Our friendly piece defended through the enemy front — held only via the
+    /// through-recapture that see() reveals as the occupancy shrinks.
+    pub defended: PieceRef,
+    /// Squares between the xrayer and the defended piece along the x-ray line.
+    pub ray: Vec<String>,
+    /// Whether the move gives check.
+    pub gives_check: bool,
+    /// Centipawns of G saved (the SEE the enemy would win if the xray were absent).
     pub material_gain: i32,
 }
 

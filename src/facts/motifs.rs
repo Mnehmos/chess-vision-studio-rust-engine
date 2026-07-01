@@ -11,7 +11,8 @@ use crate::facts::position::{position_for_analysis_side, square_name};
 use crate::facts::types::{
     AttackDefenderOpportunity, DiscoveryOpportunity, DoubleAttackOpportunity, FactCollection,
     InterferenceOpportunity, MotifOpportunity, OverloadOpportunity, PieceRef, PinOpportunity,
-    RemoveGuardOpportunity, SkewerOpportunity, TrappedPieceOpportunity, XRayOpportunity,
+    RemoveGuardOpportunity, SkewerOpportunity, TrappedPieceOpportunity, XRayDefenseOpportunity,
+    XRayOpportunity,
 };
 use crate::movegen::{generate_legal, gives_check};
 use crate::see::see;
@@ -596,6 +597,204 @@ fn xray_attack_after_move(pos: &Position, mv: Move, us: Color) -> Option<XRayOpp
             material_gain: gain,
         };
         // Highest-gain front for this move; ties -> first seen (deterministic).
+        match &best {
+            Some(b) if b.material_gain >= cand.material_gain => {}
+            _ => best = Some(cand),
+        }
+    }
+    best
+}
+
+// ── X-ray defense (defend a friendly piece THROUGH an enemy piece) ────────────
+// Mirror of xray_attack: xray_attack counts THROUGH an enemy front F to ATTACK a
+// rear enemy B; xray_defense places/uses a friendly slider whose defense of a
+// friendly piece G passes THROUGH an enemy piece E on the same line, so if the
+// enemy takes G our slider recaptures down the now-cleared line even though a naive
+// one-square defender count (blocked by E) calls G undefended. No worst-case loop:
+// the proof is a pure exchange on ONE square (g_sq) that see() minimaxes; the
+// through-defense is revealed by see()'s shrinking occupancy (the attackers_of
+// blocker-awareness makes the naive count miss it — that gap is the motif).
+
+/// Validated x-ray-defense opportunities for the side to move, sorted by move then front id.
+pub fn xray_defense_opportunities(pos: &Position) -> FactCollection<XRayDefenseOpportunity> {
+    let defender_color = pos.stm;
+    let mut probe = pos.clone();
+    let legal = generate_legal(&mut probe);
+    let mut out = Vec::new();
+    for mv in legal {
+        if let Some(x) = xray_defense_after_move(pos, mv, defender_color) {
+            out.push(x);
+        }
+    }
+    // Determinism: move, then front-enemy id (mirror xray_attack's sort key).
+    out.sort_by(|a, b| {
+        a.move_uci
+            .cmp(&b.move_uci)
+            .then_with(|| a.front_enemy.id.cmp(&b.front_enemy.id))
+    });
+    FactCollection::computed(out)
+}
+
+/// Validated x-ray defenses for a requested side. See `motif_opportunities_for` for the
+/// counterfactual side-to-move semantics.
+pub fn xray_defense_opportunities_for(
+    pos: &Position,
+    side: Color,
+) -> FactCollection<XRayDefenseOpportunity> {
+    match position_for_analysis_side(pos, side) {
+        Ok(probe) => xray_defense_opportunities(&probe),
+        Err(reason) => FactCollection::unavailable(reason),
+    }
+}
+
+/// Clone `pos` with the single bit `sq` cleared from the owning piece set, the owner's
+/// per-color occupancy, and `all` together — the sanctioned dual/triple-clear from the
+/// overload D-removed probe. stm is left unchanged (no `make()`, so no turn flip), so
+/// `see`/`best_see_capture` still score the intended side. `ep` is cleared to keep the
+/// three occupancy views consistent for movegen. Returns `None` if `sq` is empty.
+fn without_bit(pos: &Position, sq: u8) -> Option<Position> {
+    let (color, piece) = pos.piece_at(sq)?;
+    let bit = 1u64 << sq;
+    let mut probe = pos.clone();
+    probe.pieces[color.index()][piece.index()] &= !bit;
+    probe.occ[color.index()] &= !bit;
+    probe.all &= !bit;
+    probe.ep = None;
+    Some(probe)
+}
+
+fn xray_defense_after_move(
+    pos: &Position,
+    mv: Move,
+    us: Color,
+) -> Option<XRayDefenseOpportunity> {
+    let (_, moving_piece) = pos.piece_at(mv.from)?;
+    let xrayer_piece = mv.flag.promo_piece().unwrap_or(moving_piece);
+    // (G0) Only sliders x-ray.
+    slider_attacks(xrayer_piece, mv.to, 0)?;
+
+    let mut check_probe = pos.clone();
+    let gives_check_flag = gives_check(&mut check_probe, mv);
+
+    let mut after = pos.clone();
+    after.make(mv); // after.stm == enemy
+    let enemy = us.flip();
+    let s = mv.to;
+
+    // (Ga) Our slider must not simply hang on s (mirror xray_attack G1).
+    if forker_capturable_for_gain(&mut after.clone(), s) {
+        return None;
+    }
+
+    let atk = slider_attacks(xrayer_piece, s, after.all)?; // rays with E still present
+    let our_occ = enemy_occupancy(&after, us); // color-generic union of `us`'s pieces
+    let enemy_occ = enemy_occupancy(&after, enemy);
+
+    // Enemy-to-move probe: SEE on g_sq scores the ENEMY's capture attempt (their turn).
+    // Err bails on our-king-in-check and check-giving mv (documented FN, same as G2).
+    let enemy_after = position_for_analysis_side(&after, enemy).ok()?;
+
+    let mut best: Option<XRayDefenseOpportunity> = None;
+    let mut front_bb = atk & enemy_occ; // front blockers E are ENEMY (Gc)
+    while front_bb != 0 {
+        let e_sq = front_bb.trailing_zeros() as u8;
+        front_bb &= front_bb - 1;
+        let (_, e_piece) = match after.piece_at(e_sq) {
+            Some(x) => x,
+            None => continue,
+        };
+
+        // The friendly piece G newly seen once E is removed (pin/skewer/xray ray probe).
+        let occ2 = after.all & !(1u64 << e_sq);
+        let atk2 = match slider_attacks(xrayer_piece, s, occ2) {
+            Some(a) => a,
+            None => continue,
+        };
+        let behind = atk2 & !atk & our_occ; // <= 1 bit, OUR occupancy this time
+        if behind == 0 {
+            continue;
+        }
+        let g_sq = behind.trailing_zeros() as u8;
+        let (_, g_piece) = match after.piece_at(g_sq) {
+            Some(x) => x,
+            None => continue,
+        };
+
+        // (Gb) King exclusion: a friendly king "behind" is not a defended target.
+        if g_piece == Piece::King {
+            continue;
+        }
+        // (Gg) Pawn G excluded (output flooding / promotion subtleties), mirror overload.
+        if g_piece == Piece::Pawn {
+            continue;
+        }
+
+        // (i) TRIGGER — G must actually be under enemy attack (else nothing to defend).
+        //     Blocker-aware: with E present this counts the enemy's real pressure on G.
+        if attackers_of(&after.pieces, g_sq, enemy, after.all) == 0 {
+            continue;
+        }
+
+        // (ii) COUNTING PROOF — the full SEE swap on g_sq from the ENEMY side. see()
+        //      reveals OUR rear same-line xrayer through the shrinking occupancy, so a
+        //      G that IS actually held returns "enemy cannot profit" <= 0.
+        let held = best_see_capture(&enemy_after, g_sq);
+        if held > 0 {
+            continue; // G is already lost anyway; not a save
+        }
+
+        // (iii) DISTINCTNESS / CAUSALITY / LOAD-BEARING — remove the xrayer's bit and
+        //       re-run the enemy SEE on g_sq. If G now flips to LOST (>0) while the full
+        //       board holds it (<=0), the x-ray defense is the sole thing saving G.
+        //       Mirrors xray_attack's G5 causality gate (best_see_capture flip).
+        let without_xrayer = match without_bit(&enemy_after, s) {
+            Some(p) => p,
+            None => continue,
+        };
+        let without = best_see_capture(&without_xrayer, g_sq);
+        if without <= 0 {
+            continue; // some OTHER defender holds G → plain defense, not the x-ray
+        }
+
+        // (Gd/G7) LEGALITY — see() ignores pins; require that our xrayer can legally reach
+        //         g_sq once the enemy has taken G. The recapture happens on the resolved
+        //         board where E has left its intermediate square and G is gone (E now sits
+        //         on g_sq), so probe s -> g_sq on the us-to-move board with BOTH E and G
+        //         removed: the line is clear and generate_legal (which respects pins)
+        //         yields the move iff the xrayer is not pinned off this ray. Mirror of
+        //         xray_attack G7's generate_legal pin guard. Removing E and G along THIS
+        //         line cannot change pins on any OTHER line, so the test is sound.
+        let recap_board = position_for_analysis_side(&after, us).ok()?;
+        let recap_board = match without_bit(&recap_board, e_sq) {
+            Some(p) => p,
+            None => continue,
+        };
+        let recap_board = match without_bit(&recap_board, g_sq) {
+            Some(p) => p,
+            None => continue,
+        };
+        if !generate_legal(&mut recap_board.clone())
+            .into_iter()
+            .any(|m| m.from == s && m.to == g_sq)
+        {
+            continue;
+        }
+
+        // material_gain = value of G saved = what the enemy would have won without the
+        // xray. `without` is exactly that SEE delta; report it (>0 by construction).
+        let ray: Vec<String> = squares_between(s, g_sq).into_iter().map(square_name).collect();
+        let cand = XRayDefenseOpportunity {
+            kind: "xray_defense".to_string(),
+            validator: "xray_defense_validation".to_string(),
+            move_uci: mv.to_uci(),
+            xrayer: piece_ref(us, xrayer_piece, s),
+            front_enemy: piece_ref(enemy, e_piece, e_sq),
+            defended: piece_ref(us, g_piece, g_sq),
+            ray,
+            gives_check: gives_check_flag,
+            material_gain: without,
+        };
+        // Keep highest-saved; ties -> first seen (deterministic), mirror xray_attack.
         match &best {
             Some(b) if b.material_gain >= cand.material_gain => {}
             _ => best = Some(cand),
