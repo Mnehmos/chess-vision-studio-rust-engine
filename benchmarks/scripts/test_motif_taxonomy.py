@@ -77,6 +77,17 @@ def test_router_tags_candidate_with_validated_motif():
     assert none["motif"] is None and none["motifKnown"] is False
 
 
+def test_registry_backs_every_detector_claim():
+    # Phase-8 guard (CLASSICAL_EVAL_EXPERIMENT.md): the taxonomy must not claim a
+    # facts::motifs/mate_patterns/pawn_structure detector the engine registry lacks.
+    import subprocess
+    res = subprocess.run(
+        [sys.executable, str(HERE / "check_detector_coverage.py")],
+        capture_output=True, text=True,
+    )
+    assert res.returncode == 0, f"detector-coverage guard failed:\n{res.stdout}\n{res.stderr}"
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     failed = 0
