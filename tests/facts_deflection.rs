@@ -127,6 +127,19 @@ fn rejects_when_the_charge_is_already_winnable() {
 }
 
 #[test]
+fn rejects_a_counter_capturing_refutation_with_collateral() {
+    // DN6 (fuzz-found FP): Nb6 "deflects" Qc6, but the enemy answers Qxd5! capturing our
+    // queen; our recapture exd5 vacates e4 and drops the f5 rook. The worst-case helper used
+    // to credit the +900 recapture on d5 while never debiting the queen the reply captured,
+    // reporting a bogus +10. The debit (a reply must PAY for what it grabs) rejects it.
+    let items = dfl("r5k1/3bbrpp/p1qp4/3QpR2/N2BP3/2p5/PPP3PP/6K1 w - - 0 10");
+    assert!(
+        items.iter().all(|d| d.move_uci != "a4b6"),
+        "a counter-capturing refutation must reject the deflection, got {items:?}"
+    );
+}
+
+#[test]
 fn no_ops_in_the_opening_position() {
     // DN5: no sole-defended charges.
     assert!(dfl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").is_empty());

@@ -1703,6 +1703,17 @@ fn attack_defender_worst_case(
 ) -> Option<i32> {
     let mut worst = i32::MAX;
     for m in enemy_legal {
+        // Material the enemy GRABS with this reply, debited from our recovery below. A
+        // counter-capturing refutation (e.g. the defender itself, Qc6xd5!, or a shot at our
+        // mover) must PAY for what it takes — otherwise our single-square recovery on that
+        // square is credited as a free gain, blind both to the piece the reply just captured
+        // AND to any collateral of the recapture (the fuzz-found deflection false positive:
+        // Qxd5! exd5 recovers the queen on d5 but drops the f5 rook, and never debits our
+        // captured queen, so the reply is wrongly dropped as non-minimizing).
+        let enemy_take = enemy_probe
+            .piece_at(m.to)
+            .map(|(_, p)| VALUE[p.index()])
+            .unwrap_or(0);
         let mut esc = enemy_probe.clone();
         esc.make(*m); // stm flips back to us
         let enemy_occ = esc.occ[enemy.index()];
@@ -1720,10 +1731,11 @@ fn attack_defender_worst_case(
                 our_best = our_best.max(best_see_capture(&esc, *p_sq));
             }
         }
-        if our_best <= 0 {
-            return None; // this reply saves everything — not a sound win
+        let our_net = our_best - enemy_take;
+        if our_net <= 0 {
+            return None; // this reply saves everything (or counter-wins) — not a sound win
         }
-        worst = worst.min(our_best);
+        worst = worst.min(our_net);
     }
     if worst > 0 && worst != i32::MAX {
         Some(worst)
