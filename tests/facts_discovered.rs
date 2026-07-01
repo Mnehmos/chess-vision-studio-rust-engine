@@ -134,6 +134,19 @@ fn rejects_an_unveiled_target_that_is_defended_and_not_dearer() {
 }
 
 #[test]
+fn rejects_a_discovered_attack_by_an_absolutely_pinned_slider() {
+    // f3-f4 opens the a8–h1 diagonal so Bg2 "attacks" the knight c6, but Bg2 is ABSOLUTELY
+    // PINNED to Kh2 along the 2nd rank by the black queen e2 — it can never legally capture
+    // c6. attackers_of is pin-blind; the legality gate (generate_legal) rejects it. Regression
+    // for the fuzz-found pinned-unveiled-slider false positive (45/19671 discovered_attack ops).
+    let items = discoveries("r3kbr1/p1p1ppp1/1pn4n/8/7P/2QP1P2/PP2q1BK/RbB3NR w q - 2 17");
+    assert!(
+        find(&items, "f3f4").is_none(),
+        "a pinned unveiled slider cannot deliver the discovered attack, got {items:?}"
+    );
+}
+
+#[test]
 fn rejects_when_there_is_no_rear_slider() {
     // Lone knight hop; no friendly slider behind it, and it just hangs to fxe5.
     let items = discoveries("3q2k1/8/5p2/8/8/3N4/8/6K1 w - - 0 1");
