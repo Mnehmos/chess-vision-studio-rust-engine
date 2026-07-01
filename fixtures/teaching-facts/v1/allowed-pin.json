@@ -270,6 +270,10 @@
       "status": "computed",
       "items": []
     },
+    "availableDesperado": {
+      "status": "computed",
+      "items": []
+    },
     "availableMatePatterns": {
       "status": "computed",
       "items": []
@@ -286,10 +290,6 @@
       "status": "computed",
       "items": []
     },
-    "availableLureDefender": {
-      "status": "computed",
-      "items": []
-    },
     "availableInterference": {
       "status": "computed",
       "items": []
@@ -303,10 +303,6 @@
       "items": []
     },
     "availableXrayDefense": {
-      "status": "computed",
-      "items": []
-    },
-    "availableWinExchange": {
       "status": "computed",
       "items": []
     },
@@ -338,6 +334,10 @@
       "status": "computed",
       "items": []
     },
+    "opponentAvailableDesperado": {
+      "status": "computed",
+      "items": []
+    },
     "opponentAvailableMatePatterns": {
       "status": "computed",
       "items": []
@@ -354,10 +354,6 @@
       "status": "computed",
       "items": []
     },
-    "opponentAvailableLureDefender": {
-      "status": "computed",
-      "items": []
-    },
     "opponentAvailableInterference": {
       "status": "computed",
       "items": []
@@ -371,10 +367,6 @@
       "items": []
     },
     "opponentAvailableXrayDefense": {
-      "status": "computed",
-      "items": []
-    },
-    "opponentAvailableWinExchange": {
       "status": "computed",
       "items": []
     },
@@ -2059,6 +2051,10 @@
         "status": "computed",
         "items": []
       },
+      "availableDesperado": {
+        "status": "computed",
+        "items": []
+      },
       "availableMatePatterns": {
         "status": "computed",
         "items": []
@@ -2075,10 +2071,6 @@
         "status": "computed",
         "items": []
       },
-      "availableLureDefender": {
-        "status": "computed",
-        "items": []
-      },
       "availableInterference": {
         "status": "computed",
         "items": []
@@ -2092,10 +2084,6 @@
         "items": []
       },
       "availableXrayDefense": {
-        "status": "computed",
-        "items": []
-      },
-      "availableWinExchange": {
         "status": "computed",
         "items": []
       },
@@ -2127,6 +2115,10 @@
         "status": "computed",
         "items": []
       },
+      "opponentAvailableDesperado": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMatePatterns": {
         "status": "computed",
         "items": []
@@ -2143,10 +2135,6 @@
         "status": "computed",
         "items": []
       },
-      "opponentAvailableLureDefender": {
-        "status": "computed",
-        "items": []
-      },
       "opponentAvailableInterference": {
         "status": "computed",
         "items": []
@@ -2160,10 +2148,6 @@
         "items": []
       },
       "opponentAvailableXrayDefense": {
-        "status": "computed",
-        "items": []
-      },
-      "opponentAvailableWinExchange": {
         "status": "computed",
         "items": []
       },
@@ -3902,6 +3886,10 @@
         "status": "computed",
         "items": []
       },
+      "availableDesperado": {
+        "status": "computed",
+        "items": []
+      },
       "availableMatePatterns": {
         "status": "computed",
         "items": []
@@ -3918,10 +3906,6 @@
         "status": "computed",
         "items": []
       },
-      "availableLureDefender": {
-        "status": "computed",
-        "items": []
-      },
       "availableInterference": {
         "status": "computed",
         "items": []
@@ -3935,10 +3919,6 @@
         "items": []
       },
       "availableXrayDefense": {
-        "status": "computed",
-        "items": []
-      },
-      "availableWinExchange": {
         "status": "computed",
         "items": []
       },
@@ -3970,6 +3950,10 @@
         "status": "computed",
         "items": []
       },
+      "opponentAvailableDesperado": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMatePatterns": {
         "status": "computed",
         "items": []
@@ -3986,10 +3970,6 @@
         "status": "computed",
         "items": []
       },
-      "opponentAvailableLureDefender": {
-        "status": "computed",
-        "items": []
-      },
       "opponentAvailableInterference": {
         "status": "computed",
         "items": []
@@ -4003,10 +3983,6 @@
         "items": []
       },
       "opponentAvailableXrayDefense": {
-        "status": "computed",
-        "items": []
-      },
-      "opponentAvailableWinExchange": {
         "status": "computed",
         "items": []
       },
@@ -5766,6 +5742,10 @@
         "status": "computed",
         "items": []
       },
+      "availableDesperado": {
+        "status": "computed",
+        "items": []
+      },
       "availableMatePatterns": {
         "status": "computed",
         "items": []
@@ -5782,10 +5762,6 @@
         "status": "computed",
         "items": []
       },
-      "availableLureDefender": {
-        "status": "computed",
-        "items": []
-      },
       "availableInterference": {
         "status": "computed",
         "items": []
@@ -5799,10 +5775,6 @@
         "items": []
       },
       "availableXrayDefense": {
-        "status": "computed",
-        "items": []
-      },
-      "availableWinExchange": {
         "status": "computed",
         "items": []
       },
@@ -5886,6 +5858,10 @@
           }
         ]
       },
+      "opponentAvailableDesperado": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMatePatterns": {
         "status": "computed",
         "items": []
@@ -5902,10 +5878,6 @@
         "status": "computed",
         "items": []
       },
-      "opponentAvailableLureDefender": {
-        "status": "computed",
-        "items": []
-      },
       "opponentAvailableInterference": {
         "status": "computed",
         "items": []
@@ -5919,10 +5891,6 @@
         "items": []
       },
       "opponentAvailableXrayDefense": {
-        "status": "computed",
-        "items": []
-      },
-      "opponentAvailableWinExchange": {
         "status": "computed",
         "items": []
       },
@@ -7377,7 +7345,7 @@
   },
   "provenance": {
     "engine": "cvs-bitboard-core",
-    "factsRegistryVersion": 21,
+    "factsRegistryVersion": 20,
     "validators": [
       "legal_move_generation",
       "attack_map",
@@ -7401,8 +7369,7 @@
       "xray_defense_validation",
       "discovered_defense_validation",
       "deflection_validation",
-      "lure_defender_validation",
-      "win_exchange_validation"
+      "desperado_validation"
     ]
   },
   "errors": []

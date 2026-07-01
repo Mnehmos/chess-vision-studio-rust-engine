@@ -255,6 +255,10 @@
       "status": "uncomputed",
       "reason": "not_requested"
     },
+    "availableDesperado": {
+      "status": "uncomputed",
+      "reason": "not_requested"
+    },
     "availableMatePatterns": {
       "status": "uncomputed",
       "reason": "not_requested"
@@ -271,10 +275,6 @@
       "status": "uncomputed",
       "reason": "not_requested"
     },
-    "availableLureDefender": {
-      "status": "uncomputed",
-      "reason": "not_requested"
-    },
     "availableInterference": {
       "status": "uncomputed",
       "reason": "not_requested"
@@ -288,10 +288,6 @@
       "reason": "not_requested"
     },
     "availableXrayDefense": {
-      "status": "uncomputed",
-      "reason": "not_requested"
-    },
-    "availableWinExchange": {
       "status": "uncomputed",
       "reason": "not_requested"
     },
@@ -323,6 +319,10 @@
       "status": "uncomputed",
       "reason": "not_requested"
     },
+    "opponentAvailableDesperado": {
+      "status": "uncomputed",
+      "reason": "not_requested"
+    },
     "opponentAvailableMatePatterns": {
       "status": "uncomputed",
       "reason": "not_requested"
@@ -339,10 +339,6 @@
       "status": "uncomputed",
       "reason": "not_requested"
     },
-    "opponentAvailableLureDefender": {
-      "status": "uncomputed",
-      "reason": "not_requested"
-    },
     "opponentAvailableInterference": {
       "status": "uncomputed",
       "reason": "not_requested"
@@ -356,10 +352,6 @@
       "reason": "not_requested"
     },
     "opponentAvailableXrayDefense": {
-      "status": "uncomputed",
-      "reason": "not_requested"
-    },
-    "opponentAvailableWinExchange": {
       "status": "uncomputed",
       "reason": "not_requested"
     },
@@ -1980,6 +1972,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableDesperado": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "availableMatePatterns": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -1996,10 +1992,6 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
-      "availableLureDefender": {
-        "status": "uncomputed",
-        "reason": "not_requested"
-      },
       "availableInterference": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -2013,10 +2005,6 @@
         "reason": "not_requested"
       },
       "availableXrayDefense": {
-        "status": "uncomputed",
-        "reason": "not_requested"
-      },
-      "availableWinExchange": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -2048,6 +2036,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "opponentAvailableDesperado": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "opponentAvailableMatePatterns": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -2064,10 +2056,6 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
-      "opponentAvailableLureDefender": {
-        "status": "uncomputed",
-        "reason": "not_requested"
-      },
       "opponentAvailableInterference": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -2081,10 +2069,6 @@
         "reason": "not_requested"
       },
       "opponentAvailableXrayDefense": {
-        "status": "uncomputed",
-        "reason": "not_requested"
-      },
-      "opponentAvailableWinExchange": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -3945,6 +3929,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableDesperado": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "availableMatePatterns": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -3961,10 +3949,6 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
-      "availableLureDefender": {
-        "status": "uncomputed",
-        "reason": "not_requested"
-      },
       "availableInterference": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -3978,10 +3962,6 @@
         "reason": "not_requested"
       },
       "availableXrayDefense": {
-        "status": "uncomputed",
-        "reason": "not_requested"
-      },
-      "availableWinExchange": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -4013,6 +3993,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "opponentAvailableDesperado": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "opponentAvailableMatePatterns": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -4029,10 +4013,6 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
-      "opponentAvailableLureDefender": {
-        "status": "uncomputed",
-        "reason": "not_requested"
-      },
       "opponentAvailableInterference": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -4046,10 +4026,6 @@
         "reason": "not_requested"
       },
       "opponentAvailableXrayDefense": {
-        "status": "uncomputed",
-        "reason": "not_requested"
-      },
-      "opponentAvailableWinExchange": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -5563,6 +5539,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableDesperado": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "availableMatePatterns": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -5579,10 +5559,6 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
-      "availableLureDefender": {
-        "status": "uncomputed",
-        "reason": "not_requested"
-      },
       "availableInterference": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -5596,10 +5572,6 @@
         "reason": "not_requested"
       },
       "availableXrayDefense": {
-        "status": "uncomputed",
-        "reason": "not_requested"
-      },
-      "availableWinExchange": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -5631,6 +5603,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "opponentAvailableDesperado": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "opponentAvailableMatePatterns": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -5647,10 +5623,6 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
-      "opponentAvailableLureDefender": {
-        "status": "uncomputed",
-        "reason": "not_requested"
-      },
       "opponentAvailableInterference": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -5664,10 +5636,6 @@
         "reason": "not_requested"
       },
       "opponentAvailableXrayDefense": {
-        "status": "uncomputed",
-        "reason": "not_requested"
-      },
-      "opponentAvailableWinExchange": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -7275,7 +7243,7 @@
   },
   "provenance": {
     "engine": "cvs-bitboard-core",
-    "factsRegistryVersion": 21,
+    "factsRegistryVersion": 20,
     "validators": [
       "legal_move_generation",
       "attack_map",

@@ -9,11 +9,11 @@ use crate::attacks::{attackers_of, bishop_attacks, queen_attacks, rook_attacks};
 use crate::facts::piece_safety::piece_ref;
 use crate::facts::position::{position_for_analysis_side, square_name};
 use crate::facts::types::{
-    AttackDefenderOpportunity, DeflectionOpportunity, DiscoveredDefenseOpportunity,
-    DiscoveryOpportunity, DoubleAttackOpportunity, FactCollection, InterferenceOpportunity,
-    LureDefenderOpportunity, MotifOpportunity, OverloadOpportunity, PieceRef, PinOpportunity,
-    RemoveGuardOpportunity, SkewerOpportunity, TrappedPieceOpportunity, WinExchangeOpportunity,
-    XRayDefenseOpportunity, XRayOpportunity,
+    AttackDefenderOpportunity, DeflectionOpportunity, DesperadoOpportunity,
+    DiscoveredDefenseOpportunity, DiscoveryOpportunity, DoubleAttackOpportunity, FactCollection,
+    InterferenceOpportunity, LureDefenderOpportunity, MotifOpportunity, OverloadOpportunity,
+    PieceRef, PinOpportunity, RemoveGuardOpportunity, SkewerOpportunity, TrappedPieceOpportunity,
+    WinExchangeOpportunity, XRayDefenseOpportunity, XRayOpportunity,
 };
 use crate::movegen::{generate_legal, gives_check};
 use crate::see::{see, SEE_VALUE};
@@ -2375,6 +2375,143 @@ fn trapped_for_piece(
         attackers,
         escape_squares_tried: escapes,
         material_gain: worst,
+    })
+}
+
+// ── Desperado ────────────────────────────────────────────────────────────────
+// A STATE detector (mirror of `trapped_pieces`, applied to OUR side): one of OUR
+// non-king/non-pawn pieces q is already doomed — attacked now and with no escape
+// that saves it (the trapped_pieces predicate, applied to our piece while it is
+// our move) — yet q has a legal CAPTURE that snatches enemy material on the way
+// out. Since q is lost anyway (best passive salvage = 0), any positive-SEE grab
+// strictly beats dying for nothing, so the fact fires with material_gain = the
+// best such grab.
+//
+// Turn discipline: pos.stm == us, so see(pos, q_sq, to) scores OUR grab directly
+// (see.rs scores from pos.stm). The doomed proof reasons about ENEMY replies, so
+// it uses an enemy-to-move probe (position_for_analysis_side(pos, enemy)); the
+// escape scan then double-flips exactly like trapped_for_piece (after.make(m)
+// flips stm to enemy, so best_see_capture(&after, m.to) scores the enemy's grab
+// of q on its new square). King excluded (never won for material) and pawns
+// excluded (promotion/EP value subtleties + output flooding — the documented
+// false-negative trapped_pieces also takes).
+
+/// Validated desperado opportunities for the side to move (the side that owns q).
+pub fn desperado_opportunities(pos: &Position) -> FactCollection<DesperadoOpportunity> {
+    let us = pos.stm;
+    let enemy = us.flip();
+    let mut out = Vec::new();
+    for piece in [Piece::Knight, Piece::Bishop, Piece::Rook, Piece::Queen] {
+        let mut bb = pos.pieces[us.index()][piece.index()]; // OUR pieces
+        while bb != 0 {
+            let q_sq = bb.trailing_zeros() as u8;
+            bb &= bb - 1;
+            if let Some(op) = desperado_for_piece(pos, us, enemy, piece, q_sq) {
+                out.push(op);
+            }
+        }
+    }
+    // Determinism: piece id (== our-side-<type>-<square>, unique per q) then move.
+    out.sort_by(|a, b| a.piece.id.cmp(&b.piece.id).then_with(|| a.move_uci.cmp(&b.move_uci)));
+    FactCollection::computed(out)
+}
+
+/// Validated desperados from a requested side's perspective. Same counterfactual
+/// side-to-move semantics as `trapped_pieces_for`.
+pub fn desperado_opportunities_for(
+    pos: &Position,
+    side: Color,
+) -> FactCollection<DesperadoOpportunity> {
+    match position_for_analysis_side(pos, side) {
+        Ok(probe) => desperado_opportunities(&probe),
+        Err(reason) => FactCollection::unavailable(reason),
+    }
+}
+
+fn desperado_for_piece(
+    pos: &Position,
+    us: Color,
+    enemy: Color,
+    piece: Piece,
+    q_sq: u8,
+) -> Option<DesperadoOpportunity> {
+    // IN-CHECK GATE. All enemy-reply reasoning is only sound when our own king is
+    // not in check. If we ARE in check, the enemy-to-move probe is Err and we bail
+    // (documented false-negative, same as trapped/attack_defender).
+    let enemy_probe = position_for_analysis_side(pos, enemy).ok()?;
+
+    // ── STEP 1: DOOMED PROOF (the trapped_pieces predicate, inverted to our q). ──
+    // (1a) q must be attacked NOW, and winnable by the enemy where it stands. The
+    //      staying-salvage is 0 because the enemy simply takes it: score the enemy's
+    //      best capture of q_sq on the ENEMY-to-move probe.
+    if attackers_of(&pos.pieces, q_sq, enemy, pos.all) == 0 {
+        return None; // not attacked → not doomed
+    }
+    let in_place_loss = best_see_capture(&enemy_probe, q_sq);
+    if in_place_loss <= 0 {
+        return None; // adequately defended → q can just sit; not doomed
+    }
+
+    // (1b) NO SAFE ESCAPE. Enumerate OUR legal moves of q on the real board (stm ==
+    //      us; drops pinned-q moves). For each destination, does q survive there? A
+    //      destination is safe iff, after we move q there, the ENEMY cannot profitably
+    //      take it. after.make(m) flips stm to enemy, so best_see_capture(&after,
+    //      m.to) scores the enemy's grab of q on its new square. gain <= 0 ⇒ q is safe
+    //      there ⇒ NOT doomed. (This loop also visits q's captures; a capture that
+    //      lands q on a safe square legitimately means q escaped by capturing to
+    //      safety — correct, matches trapped's "capture its attacker to safety".)
+    let mut gen = pos.clone();
+    let our_legal = generate_legal(&mut gen);
+    for m in our_legal.iter().filter(|m| m.from == q_sq) {
+        let mut after = pos.clone();
+        after.make(*m); // after.stm == enemy
+        let enemy_grab = best_see_capture(&after, m.to);
+        if enemy_grab <= 0 {
+            return None; // a SAFE destination exists → q is not doomed
+        }
+    }
+
+    // ── STEP 2: DESPERADO GAIN. Among q's LEGAL captures (from the same generate_legal
+    //    set, so pinned q is already excluded), take the max see() of the grab. see(pos,
+    //    q_sq, m.to) scores from us (pos.stm == us) and already runs the full recapture
+    //    swap-list, so a grab the enemy simply re-wins nets <= 0 and is ignored.
+    let mut best_gain = 0i32;
+    let mut best_uci: Option<String> = None;
+    let mut best_victim: Option<(Piece, u8)> = None;
+    for m in our_legal.iter().filter(|m| m.from == q_sq && m.flag.is_capture()) {
+        // Emit only standard captures with a clean victim PieceRef; skip en-passant
+        // (pawn victim behind m.to — q is never a pawn, so this only drops EP).
+        let victim_sq = m.to;
+        let Some((vc, vp)) = pos.piece_at(victim_sq) else {
+            continue;
+        };
+        if vc != enemy || vp == Piece::King {
+            continue; // never "win" the king
+        }
+        let g = see(pos, q_sq, m.to);
+        if g > best_gain {
+            best_gain = g;
+            best_uci = Some(m.to_uci());
+            best_victim = Some((vp, victim_sq));
+        }
+    }
+
+    // ── STEP 3: FIRE iff the grab RECOVERS more than passively dying. q is doomed, so
+    //    the best non-capturing salvage is 0 (STEP 1b proved every relocation still
+    //    loses q). Capturing beats dying for nothing ⇔ best_gain > 0.
+    if best_gain <= 0 {
+        return None;
+    }
+    let (v_piece, v_sq) = best_victim?;
+    let move_uci = best_uci?;
+
+    Some(DesperadoOpportunity {
+        kind: "desperado".to_string(),
+        validator: "desperado_validation".to_string(),
+        move_uci,
+        piece: piece_ref(us, piece, q_sq), // OUR doomed piece
+        captured_victim: piece_ref(enemy, v_piece, v_sq),
+        material_gain: best_gain, // SEE_VALUE scale (N320,B330,R500,Q900)
     })
 }
 

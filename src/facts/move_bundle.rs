@@ -1,11 +1,11 @@
 use crate::facts::hazards::{hazard_deltas, position_hazards};
 use crate::facts::motifs::{
     attack_defender_opportunities, attack_defender_opportunities_for, deflection_opportunities,
-    deflection_opportunities_for, discovered_defense_opportunities,
-    discovered_defense_opportunities_for, discovery_opportunities, discovery_opportunities_for,
-    double_attack_opportunities, double_attack_opportunities_for, interference_opportunities,
-    interference_opportunities_for, lure_defender_opportunities, lure_defender_opportunities_for,
-    motif_opportunities,
+    deflection_opportunities_for, desperado_opportunities, desperado_opportunities_for,
+    discovered_defense_opportunities, discovered_defense_opportunities_for, discovery_opportunities,
+    discovery_opportunities_for, double_attack_opportunities, double_attack_opportunities_for,
+    interference_opportunities, interference_opportunities_for, lure_defender_opportunities,
+    lure_defender_opportunities_for, motif_opportunities,
     motif_opportunities_for, overload_opportunities, overload_opportunities_for, pin_opportunities,
     pin_opportunities_for, remove_guard_opportunities, remove_guard_opportunities_for,
     skewer_opportunities, skewer_opportunities_for, trapped_pieces, trapped_pieces_for,
@@ -31,6 +31,7 @@ fn facts_for(pos: &Position, include_motifs: bool) -> PositionFacts {
         facts.available_discovered_defense = discovered_defense_opportunities(pos);
         facts.available_remove_guard = remove_guard_opportunities(pos);
         facts.available_trapped = trapped_pieces(pos);
+        facts.available_desperado = desperado_opportunities(pos);
         facts.available_mate_patterns = mate_pattern_opportunities(pos);
         facts.available_overload = overload_opportunities(pos);
         facts.available_attack_defender = attack_defender_opportunities(pos);
@@ -49,6 +50,7 @@ fn facts_for(pos: &Position, include_motifs: bool) -> PositionFacts {
             discovered_defense_opportunities_for(pos, pos.stm.flip());
         facts.opponent_available_remove_guard = remove_guard_opportunities_for(pos, pos.stm.flip());
         facts.opponent_available_trapped = trapped_pieces_for(pos, pos.stm.flip());
+        facts.opponent_available_desperado = desperado_opportunities_for(pos, pos.stm.flip());
         facts.opponent_available_mate_patterns =
             mate_pattern_opportunities_for(pos, pos.stm.flip());
         facts.opponent_available_overload = overload_opportunities_for(pos, pos.stm.flip());
@@ -154,6 +156,7 @@ pub fn build_teaching_fact_bundle(
         validators.push("deflection_validation".to_string());
         validators.push("lure_defender_validation".to_string());
         validators.push("win_exchange_validation".to_string());
+        validators.push("desperado_validation".to_string());
     }
 
     Ok(TeachingFactBundleV1 {
