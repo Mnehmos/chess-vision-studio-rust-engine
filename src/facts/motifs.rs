@@ -9,9 +9,9 @@ use crate::attacks::{attackers_of, bishop_attacks, queen_attacks, rook_attacks};
 use crate::facts::piece_safety::piece_ref;
 use crate::facts::position::{position_for_analysis_side, square_name};
 use crate::facts::types::{
-    AttackDefenderOpportunity, DiscoveryOpportunity, FactCollection, MotifOpportunity,
-    OverloadOpportunity, PieceRef, PinOpportunity, RemoveGuardOpportunity, SkewerOpportunity,
-    TrappedPieceOpportunity,
+    AttackDefenderOpportunity, DiscoveryOpportunity, FactCollection, InterferenceOpportunity,
+    MotifOpportunity, OverloadOpportunity, PieceRef, PinOpportunity, RemoveGuardOpportunity,
+    SkewerOpportunity, TrappedPieceOpportunity,
 };
 use crate::movegen::{generate_legal, gives_check};
 use crate::see::see;
@@ -1148,6 +1148,175 @@ fn attack_defender_worst_case(
         }
         if our_best <= 0 {
             return None; // this reply saves everything — not a sound win
+        }
+        worst = worst.min(our_best);
+    }
+    if worst > 0 && worst != i32::MAX {
+        Some(worst)
+    } else {
+        None
+    }
+}
+
+// ── Interference ───────────────────────────────────────────────────────────────
+// A MOVE detector (mirrors attack_defender): a move placing a piece on a square S strictly
+// between an enemy SLIDER D (bishop/rook/queen) and an enemy target P (non-king, non-pawn)
+// that D defends along that ray. The interposition severs D's defense of P. SOUNDNESS is a
+// worst-case over ALL enemy replies: the enemy may recapture our interposer on S (RE-OPENING
+// the ray → re-defending P), move P to safety, add a defender, or counter-attack. Reject
+// unless every reply still leaves us a realizable SEE win on P. Every board mutation goes
+// through make() — never a hand-edited probe (the overload occ-desync panic trap). The
+// recapture-reopens edge needs no special case: after esc.make(reply) removes our interposer,
+// best_see_capture re-evaluates P with D's ray re-opened (attackers_of is blocker-aware).
+
+/// Validated interference moves for the side to move, sorted by move then target.
+pub fn interference_opportunities(pos: &Position) -> FactCollection<InterferenceOpportunity> {
+    let us = pos.stm;
+    let mut probe = pos.clone();
+    let legal = generate_legal(&mut probe);
+    let mut out = Vec::new();
+    for mv in legal {
+        if let Some(op) = interference_after_move(pos, mv, us) {
+            out.push(op);
+        }
+    }
+    out.sort_by(|a, b| {
+        a.move_uci
+            .cmp(&b.move_uci)
+            .then_with(|| a.target.id.cmp(&b.target.id))
+    });
+    FactCollection::computed(out)
+}
+
+/// Validated interference moves from a requested side's perspective.
+pub fn interference_opportunities_for(
+    pos: &Position,
+    side: Color,
+) -> FactCollection<InterferenceOpportunity> {
+    match position_for_analysis_side(pos, side) {
+        Ok(probe) => interference_opportunities(&probe),
+        Err(reason) => FactCollection::unavailable(reason),
+    }
+}
+
+fn interference_after_move(pos: &Position, mv: Move, us: Color) -> Option<InterferenceOpportunity> {
+    let (_, moving_piece) = pos.piece_at(mv.from)?;
+    let interposer_piece = mv.flag.promo_piece().unwrap_or(moving_piece);
+    let enemy = us.flip();
+    let s = mv.to;
+
+    let mut check_probe = pos.clone();
+    let gives_check_flag = gives_check(&mut check_probe, mv);
+
+    let mut after = pos.clone();
+    after.make(mv); // after.stm == enemy
+
+    // (A) Our interposer must not simply hang on S (to a non-reopening capture).
+    if forker_capturable_for_gain(&mut after.clone(), s) {
+        return None;
+    }
+    // (B) us-to-move probe; Err bails on our-king-in-check and on mv-gives-check.
+    let after_us = position_for_analysis_side(&after, us).ok()?;
+    // (C) enemy-to-move probe + reply list for the worst-case.
+    let enemy_probe = position_for_analysis_side(&after, enemy).ok()?;
+    let mut enemy_gen = enemy_probe.clone();
+    let enemy_legal = generate_legal(&mut enemy_gen);
+    if enemy_legal.is_empty() {
+        return None;
+    }
+
+    let mut best: Option<InterferenceOpportunity> = None;
+    for d_piece in [Piece::Bishop, Piece::Rook, Piece::Queen] {
+        let mut dbb = pos.pieces[enemy.index()][d_piece.index()];
+        while dbb != 0 {
+            let d_sq = dbb.trailing_zeros() as u8;
+            dbb &= dbb - 1;
+            let Some(d_ray_before) = slider_attacks(d_piece, d_sq, pos.all) else {
+                continue;
+            };
+            let d_bit = 1u64 << d_sq;
+            for p_piece in [Piece::Knight, Piece::Bishop, Piece::Rook, Piece::Queen] {
+                let mut pbb = pos.pieces[enemy.index()][p_piece.index()] & d_ray_before;
+                while pbb != 0 {
+                    let p_sq = pbb.trailing_zeros() as u8;
+                    pbb &= pbb - 1;
+                    if p_sq == d_sq {
+                        continue;
+                    }
+                    // S strictly between D and P on the (colinear) ray.
+                    if !squares_between(d_sq, p_sq).contains(&s) {
+                        continue;
+                    }
+                    // D must be a live defender of P on the pre-move board.
+                    let defenders =
+                        attackers_of(&pos.pieces, p_sq, enemy, pos.all) & !(1u64 << p_sq);
+                    if defenders & d_bit == 0 {
+                        continue;
+                    }
+                    // Causality: P not already winnable before the interposition.
+                    if best_see_capture(pos, p_sq) > 0 {
+                        continue;
+                    }
+                    // Severance proof: after the move, D no longer sees P through S.
+                    let Some(d_ray_after) = slider_attacks(d_piece, d_sq, after.all) else {
+                        continue;
+                    };
+                    if d_ray_after & (1u64 << p_sq) != 0 {
+                        continue;
+                    }
+                    // P winnable now the ray is cut (SEE counts every other remaining defender).
+                    if best_see_capture(&after_us, p_sq) <= 0 {
+                        continue;
+                    }
+                    // Worst-case over ALL enemy replies (recapture-on-S reopen handled for free).
+                    let Some(worst) =
+                        interference_worst_case(&enemy_probe, &enemy_legal, enemy, p_sq)
+                    else {
+                        continue;
+                    };
+                    debug_assert!(worst > 0);
+
+                    let cand = InterferenceOpportunity {
+                        kind: "interference".to_string(),
+                        validator: "interference_validation".to_string(),
+                        move_uci: mv.to_uci(),
+                        interposer: piece_ref(us, interposer_piece, s),
+                        cut_defender: piece_ref(enemy, d_piece, d_sq),
+                        target: piece_ref(enemy, p_piece, p_sq),
+                        gives_check: gives_check_flag,
+                        material_gain: worst,
+                    };
+                    match &best {
+                        Some(b) if b.material_gain >= cand.material_gain => {}
+                        _ => best = Some(cand),
+                    }
+                }
+            }
+        }
+    }
+    best
+}
+
+/// Least-bad-for-us material outcome on P after we interpose, over EVERY legal enemy reply.
+/// `None` if any reply saves P — including the enemy recapturing our interposer on S, which
+/// re-opens D's ray so `best_see_capture` sees P re-defended (blocker-aware) and yields <= 0.
+fn interference_worst_case(
+    enemy_probe: &Position, // stm == enemy
+    enemy_legal: &[Move],
+    enemy: Color,
+    p_sq: u8,
+) -> Option<i32> {
+    let mut worst = i32::MAX;
+    for m in enemy_legal {
+        let mut esc = enemy_probe.clone();
+        esc.make(*m); // stm flips back to us
+        let p_now = if m.from == p_sq { m.to } else { p_sq };
+        let mut our_best = 0;
+        if esc.occ[enemy.index()] & (1u64 << p_now) != 0 {
+            our_best = best_see_capture(&esc, p_now);
+        }
+        if our_best <= 0 {
+            return None; // this reply saves the target
         }
         worst = worst.min(our_best);
     }

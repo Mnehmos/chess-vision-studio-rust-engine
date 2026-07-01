@@ -149,6 +149,7 @@ fn registry_provenance_lists_every_active_validator() {
             "mate_pattern_validation",
             "overload_validation",
             "attack_defender_validation",
+            "interference_validation",
         ]
     );
 }
