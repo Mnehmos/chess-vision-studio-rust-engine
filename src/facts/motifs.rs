@@ -768,6 +768,15 @@ fn discovery_after_move(
                 "double_check"
             } else if discovered_check {
                 "discovered_check"
+            } else if moved_gives_check {
+                // The MOVING piece gives check while the unveiled slider wins a non-king
+                // target — the "discoverer checks" motif (distinct from discovered_check,
+                // where the UNVEILED piece checks). The mover's check is the forcing element:
+                // the enemy must answer it, so it cannot freely defend the unveiled target.
+                // Material is the unveiled slider's winnable gain (the else branch below), the
+                // same standard as a plain discovered attack — the check only makes it harder
+                // for the enemy to parry, never easier.
+                "discoverer_checks"
             } else {
                 "discovered_attack"
             };
