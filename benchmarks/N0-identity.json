@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "role": "N0",
+  "note": "Frozen baseline N0 for CLASSICAL_EVAL_EXPERIMENT.md = the gen9 config the live Lichess bot runs (g9.current-default.raw-plus-residual). Eval = raw NNUE (matrix-raw) + core104 residual helper (matrix-residual, via --cvs-helpers) + rung2 handcrafted contribution. All artifacts verified present 2026-07-01; nothing deleted (gen8v2 was a superseded historical champion whose net was never in git).",
+  "engineId": "g9.current-default.raw-plus-residual",
+  "generation": 9,
+  "architecture": "raw-h256-main-plus-core104-residual-helper",
+  "artifacts": {
+    "serveBinary": {
+      "path": "f:/Github/chess-vision-studio-rust-engine/target/release/analyze.exe",
+      "sha256": "00ccf79f13bdc5cbc85ffeb7f017ae7c06cff55a80100bc76a45845f320b69ef"
+    },
+    "mainNet": {
+      "path": "f:/Github/chess-vision-studio-rust-engine/target-cvs/matrix-raw.json",
+      "sha256": "b23c75b8e25d7480038f270255b3625556ecbdb1d53964cd60719871ff47c4e1"
+    },
+    "helperNet": {
+      "path": "f:/Github/chess-vision-studio-rust-engine/target-cvs/matrix-residual.json",
+      "sha256": "d2a98888ad83a356cc1aa1a5a74086fa9741247ccd676086f0db9d022693fcfc"
+    },
+    "baseWeights": {
+      "path": "f:/Github/chess-vision-studio/arena/out/value-weights-mixed.json",
+      "sha256": "a3435d1a89f3ae0675d64cbc1a33d73d1d23081cff4334d8d022040353b0ba6c"
+    },
+    "rung2Weights": {
+      "path": "f:/Github/chess-vision-studio/arena/out/rung2-weights-mixed.json",
+      "sha256": "a91268e53567b8047325e781f25f55d80d0733c969d78d51a8c1c9c69cb9d9d3"
+    }
+  },
+  "frozenBinarySnapshot": "F:/tools/cvs-baselines/analyze-gen9-N0-00ccf79f.exe",
+  "searchProfile": "current-default-2026-06-19",
+  "liveBotFlags": [
+    "--futility",
+    "--rfp",
+    "--tt-prune-store",
+    "--qtt",
+    "--histmalus",
+    "--histlmr",
+    "--lmp",
+    "--smarttime"
+  ],
+  "defaultThreads": 1,
+  "build": {
+    "gitSha": "abbd18da29ab9306050d88d1186587512607b2e9",
+    "rustc": "rustc 1.96.1 (31fca3adb 2026-06-26)",
+    "host": "Windows AMD64"
+  },
+  "openFollowups": [
+    "engines.json g9.current-default status is 'audit-control' + searchProfile args are empty (CLI defaults) \u2014 pin the exact default flags into a named frozen profile for a formal freeze.",
+    "gitSha here is the current HEAD; the exact commit the shipped release binary was built from is not embedded (CVS_ENGINE_COMMIT unset). For a fully reproducible N0, rebuild release from a tagged champion commit and re-snapshot.",
+    "engines.json still points the historical g8v2 entry at a net (gen8-raw-h256-v2.json) that is not on disk \u2014 mark it archived to stop it reading as a live pointer."
+  ]
+}
