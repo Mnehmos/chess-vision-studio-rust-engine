@@ -148,6 +148,7 @@ fn registry_provenance_lists_every_active_validator() {
             "trapped_piece_validation",
             "mate_pattern_validation",
             "overload_validation",
+            "attack_defender_validation",
         ]
     );
 }

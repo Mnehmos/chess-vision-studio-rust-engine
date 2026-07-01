@@ -259,6 +259,10 @@
       "status": "uncomputed",
       "reason": "not_requested"
     },
+    "availableAttackDefender": {
+      "status": "uncomputed",
+      "reason": "not_requested"
+    },
     "opponentAvailableMotifs": {
       "status": "uncomputed",
       "reason": "not_requested"
@@ -288,6 +292,10 @@
       "reason": "not_requested"
     },
     "opponentAvailableOverload": {
+      "status": "uncomputed",
+      "reason": "not_requested"
+    },
+    "opponentAvailableAttackDefender": {
       "status": "uncomputed",
       "reason": "not_requested"
     },
@@ -1912,6 +1920,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableAttackDefender": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "opponentAvailableMotifs": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -1941,6 +1953,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableOverload": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableAttackDefender": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -3805,6 +3821,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableAttackDefender": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "opponentAvailableMotifs": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -3834,6 +3854,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableOverload": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableAttackDefender": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -5351,6 +5375,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableAttackDefender": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "opponentAvailableMotifs": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -5380,6 +5408,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableOverload": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableAttackDefender": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -6987,7 +7019,7 @@
   },
   "provenance": {
     "engine": "cvs-bitboard-core",
-    "factsRegistryVersion": 12,
+    "factsRegistryVersion": 13,
     "validators": [
       "legal_move_generation",
       "attack_map",

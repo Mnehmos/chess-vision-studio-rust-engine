@@ -219,6 +219,10 @@
       "status": "computed",
       "items": []
     },
+    "availableAttackDefender": {
+      "status": "computed",
+      "items": []
+    },
     "opponentAvailableMotifs": {
       "status": "computed",
       "items": []
@@ -248,6 +252,10 @@
       "items": []
     },
     "opponentAvailableOverload": {
+      "status": "computed",
+      "items": []
+    },
+    "opponentAvailableAttackDefender": {
       "status": "computed",
       "items": []
     },
@@ -1932,6 +1940,10 @@
         "status": "computed",
         "items": []
       },
+      "availableAttackDefender": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMotifs": {
         "status": "computed",
         "items": []
@@ -1961,6 +1973,10 @@
         "items": []
       },
       "opponentAvailableOverload": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableAttackDefender": {
         "status": "computed",
         "items": []
       },
@@ -3662,6 +3678,10 @@
         "status": "computed",
         "items": []
       },
+      "availableAttackDefender": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMotifs": {
         "status": "computed",
         "items": []
@@ -3725,6 +3745,10 @@
         "items": []
       },
       "opponentAvailableOverload": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableAttackDefender": {
         "status": "computed",
         "items": []
       },
@@ -5440,6 +5464,10 @@
         "status": "computed",
         "items": []
       },
+      "availableAttackDefender": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMotifs": {
         "status": "unavailable",
         "reason": "opposite_side_probe_while_in_check"
@@ -5469,6 +5497,10 @@
         "reason": "opposite_side_probe_while_in_check"
       },
       "opponentAvailableOverload": {
+        "status": "unavailable",
+        "reason": "opposite_side_probe_while_in_check"
+      },
+      "opponentAvailableAttackDefender": {
         "status": "unavailable",
         "reason": "opposite_side_probe_while_in_check"
       },
@@ -6775,7 +6807,7 @@
   },
   "provenance": {
     "engine": "cvs-bitboard-core",
-    "factsRegistryVersion": 12,
+    "factsRegistryVersion": 13,
     "validators": [
       "legal_move_generation",
       "attack_map",
@@ -6791,7 +6823,8 @@
       "remove_guard_validation",
       "trapped_piece_validation",
       "mate_pattern_validation",
-      "overload_validation"
+      "overload_validation",
+      "attack_defender_validation"
     ]
   },
   "errors": []
