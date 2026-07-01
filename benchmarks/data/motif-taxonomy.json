@@ -33,7 +33,7 @@
     { "slug": "discovered-check", "name": "Discovered Check", "category": "tactical", "family": "discovery", "parent": "discovered-attack", "definition": "A discovered attack where the unveiled piece gives check.", "detectedBy": "facts::motifs(discovery)" },
     { "slug": "discoverer-checks", "name": "Discoverer Checks", "category": "tactical", "family": "discovery", "parent": "discovered-attack", "definition": "A discovered attack where the MOVING piece gives check.", "detectedBy": "facts::motifs(discovery)" },
     { "slug": "double-check", "name": "Double Check", "category": "tactical", "family": "discovery", "definition": "Both the moving piece and the unveiled piece check the king; the king must move.", "detectedBy": "facts::motifs(discovery)" },
-    { "slug": "discovered-defense", "name": "Discovered Defense", "category": "tactical", "family": "discovery", "definition": "Moving a piece unveils a defense of a friendly piece/square behind it.", "detectedBy": null },
+    { "slug": "discovered-defense", "name": "Discovered Defense", "category": "tactical", "family": "discovery", "definition": "Moving a piece unveils a defense of a friendly piece/square behind it.", "detectedBy": "facts::motifs(discovered_defense)" },
 
     { "slug": "removing-the-guard", "name": "Removing the Guard", "category": "tactical", "family": "remove-the-defender", "definition": "Eliminate or neutralize the piece guarding a key target.", "detectedBy": null },
     { "slug": "capturing-defender", "name": "Capturing the Defender", "category": "tactical", "family": "remove-the-defender", "parent": "removing-the-guard", "definition": "Capture the defender of a target.", "detectedBy": "facts::motifs(remove_guard)" },

@@ -1052,6 +1052,29 @@ pub fn discovered_defense_opportunities_for(
     }
 }
 
+/// Material the side to move wins on `sq` with LEGAL play only — a legality-aware SEE. Unlike
+/// `best_see_capture`, `generate_legal` respects absolute pins (a pinned "defender" is absent)
+/// AND the alternating recursion honours the standard SEE stop rule, so a defender too valuable
+/// to be the last recapturer (e.g. a queen behind pawns) is correctly not forced to recapture.
+/// Both blind spots produced fuzz-found discovered-defense false positives.
+fn legal_capture_gain(pos: &Position, sq: u8, depth: u8) -> i32 {
+    if depth == 0 {
+        return 0;
+    }
+    let mut gen = pos.clone();
+    let cheapest = generate_legal(&mut gen)
+        .into_iter()
+        .filter(|m| m.to == sq)
+        .min_by_key(|m| pos.piece_at(m.from).map(|(_, p)| VALUE[p.index()]).unwrap_or(0));
+    let Some(cap) = cheapest else {
+        return 0;
+    };
+    let victim = pos.piece_at(sq).map(|(_, p)| VALUE[p.index()]).unwrap_or(0);
+    let mut after = pos.clone();
+    after.make(cap);
+    (victim - legal_capture_gain(&after, sq, depth - 1)).max(0)
+}
+
 fn discovered_defense_after_move(
     pos: &Position,
     mv: Move,
@@ -1122,21 +1145,28 @@ fn discovered_defense_after_move(
                 continue;
             }
 
-            // TRIGGER — G must have NEEDED the defense: hanging BEFORE the discovery, from
-            // the enemy's perspective, on the ORIGINAL board. best_see_capture scores the
-            // probe side-to-move's captures of g_sq; enemy_pre is enemy-to-move, so this is
-            // the enemy winning material on G.
+            // TRIGGER — G must have NEEDED the defense: hanging BEFORE the discovery, from the
+            // enemy's perspective, on the ORIGINAL board. best_see_capture gives the reported
+            // material estimate (refined SEE values, consistent with the other detectors)…
             let loss_before = best_see_capture(&enemy_pre, g_sq);
             if loss_before <= 0 {
                 continue; // G was NOT losing → nothing to rescue
             }
+            // …and it must be a LEGAL loss (best_see_capture ignores pins, so it can over-report
+            // a hang whose only attacker is itself pinned — we must not claim to "rescue" an
+            // already-safe piece).
+            if legal_capture_gain(&enemy_pre, g_sq, 8) <= 0 {
+                continue;
+            }
 
-            // PROOF the discovery rescues it: same enemy-to-move view of the AFTER board.
-            // With S now defending (attackers_of inside SEE is blocker-aware, so the opened
-            // ray is reflected), the enemy's best capture of G is no longer profitable.
-            let loss_after = best_see_capture(&enemy_after, g_sq);
-            if loss_after > 0 {
-                continue; // still hanging → not actually rescued
+            // PROOF the discovery rescues it, LEGALITY-AWARE. best_see_capture ignores absolute
+            // pins (a pinned unveiled slider fakes a defender) and can force a too-valuable last
+            // recapturer; both produced fuzz-found false positives (e.g. a queen unveiled behind
+            // pawns onto a square with more attackers than safe defenders). legal_capture_gain
+            // replays the swap with generate_legal (pins respected, standard SEE stop rule), so
+            // the enemy's TRUE legal win on G must be ≤ 0 for the rescue to hold.
+            if legal_capture_gain(&enemy_after, g_sq, 8) > 0 {
+                continue; // still legally winnable → not actually rescued
             }
 
             // FP guard (a): the mover must not create a NEW hang on mv.to, else the "rescue"

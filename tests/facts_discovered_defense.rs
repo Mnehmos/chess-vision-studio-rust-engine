@@ -123,6 +123,31 @@ fn rejects_when_the_defense_is_insufficient_and_the_piece_still_hangs() {
 }
 
 #[test]
+fn rejects_a_pinned_unveiled_slider() {
+    // Nd2-f3 unveils rook d1 "onto" the hanging bishop d3, but Rd1 is ABSOLUTELY PINNED along
+    // rank 1 to Kf1 by Rb1 — it can never legally recapture on d3. best_see_capture ignores the
+    // pin (fake rescue); the legality-aware gate rejects it. Regression for the fuzz-found FP.
+    let items = defenses("3r2k1/8/8/8/8/3BN3/3N4/1r1R1K2 w - - 0 1");
+    assert!(
+        items.iter().all(|d| d.move_uci != "d2f3"),
+        "a pinned unveiled slider cannot rescue, got {items:?}"
+    );
+}
+
+#[test]
+fn rejects_a_too_valuable_unveiled_defender_that_still_loses_the_exchange() {
+    // Kd7-c7 unveils the queen d8 to "defend" pawn d5, but d5 has three white attackers
+    // (c4, e4 pawns + Nf4) and the queen cannot be the last recapturer (Nxd5 wins her), so d5
+    // is legally lost anyway. The legality-aware SEE (standard stop rule) rejects it while the
+    // pin-blind best_see_capture accepted it — the second fuzz-found FP class.
+    let items = defenses("rn1q2nr/3k4/2p2p1p/pP1p4/Pb1pPNP1/2Q4P/1P2B1P1/R3K1NR b - - 3 19");
+    assert!(
+        items.iter().all(|d| d.move_uci != "d7c7" && d.move_uci != "d7c8"),
+        "a too-valuable unveiled defender does not rescue, got {items:?}"
+    );
+}
+
+#[test]
 fn rejects_when_the_rear_piece_is_a_non_slider() {
     // The piece behind the knight on d1 is another knight, not a slider — nothing can be
     // unveiled to defend the hanging bishop d3.
