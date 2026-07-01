@@ -336,6 +336,10 @@
       "status": "uncomputed",
       "reason": "not_requested"
     },
+    "availableLureDefender": {
+      "status": "uncomputed",
+      "reason": "not_requested"
+    },
     "availableInterference": {
       "status": "uncomputed",
       "reason": "not_requested"
@@ -393,6 +397,10 @@
       "reason": "not_requested"
     },
     "opponentAvailableDeflection": {
+      "status": "uncomputed",
+      "reason": "not_requested"
+    },
+    "opponentAvailableLureDefender": {
       "status": "uncomputed",
       "reason": "not_requested"
     },
@@ -1936,6 +1944,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableLureDefender": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "availableInterference": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -1993,6 +2005,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableDeflection": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableLureDefender": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -3632,6 +3648,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableLureDefender": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "availableInterference": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -3689,6 +3709,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableDeflection": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableLureDefender": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -5240,6 +5264,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableLureDefender": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "availableInterference": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -5297,6 +5325,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableDeflection": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableLureDefender": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -6599,7 +6631,7 @@
   },
   "provenance": {
     "engine": "cvs-bitboard-core",
-    "factsRegistryVersion": 19,
+    "factsRegistryVersion": 20,
     "validators": [
       "legal_move_generation",
       "attack_map",

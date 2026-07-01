@@ -4,7 +4,8 @@ use crate::facts::motifs::{
     deflection_opportunities_for, discovered_defense_opportunities,
     discovered_defense_opportunities_for, discovery_opportunities, discovery_opportunities_for,
     double_attack_opportunities, double_attack_opportunities_for, interference_opportunities,
-    interference_opportunities_for, motif_opportunities,
+    interference_opportunities_for, lure_defender_opportunities, lure_defender_opportunities_for,
+    motif_opportunities,
     motif_opportunities_for, overload_opportunities, overload_opportunities_for, pin_opportunities,
     pin_opportunities_for, remove_guard_opportunities, remove_guard_opportunities_for,
     skewer_opportunities, skewer_opportunities_for, trapped_pieces, trapped_pieces_for,
@@ -34,6 +35,7 @@ fn facts_for(pos: &Position, include_motifs: bool) -> PositionFacts {
         facts.available_overload = overload_opportunities(pos);
         facts.available_attack_defender = attack_defender_opportunities(pos);
         facts.available_deflection = deflection_opportunities(pos);
+        facts.available_lure_defender = lure_defender_opportunities(pos);
         facts.available_interference = interference_opportunities(pos);
         facts.available_double_attack = double_attack_opportunities(pos);
         facts.available_xray_attack = xray_attack_opportunities(pos);
@@ -53,6 +55,8 @@ fn facts_for(pos: &Position, include_motifs: bool) -> PositionFacts {
             attack_defender_opportunities_for(pos, pos.stm.flip());
         facts.opponent_available_deflection =
             deflection_opportunities_for(pos, pos.stm.flip());
+        facts.opponent_available_lure_defender =
+            lure_defender_opportunities_for(pos, pos.stm.flip());
         facts.opponent_available_interference =
             interference_opportunities_for(pos, pos.stm.flip());
         facts.opponent_available_double_attack =
@@ -145,6 +149,7 @@ pub fn build_teaching_fact_bundle(
         validators.push("xray_defense_validation".to_string());
         validators.push("discovered_defense_validation".to_string());
         validators.push("deflection_validation".to_string());
+        validators.push("lure_defender_validation".to_string());
     }
 
     Ok(TeachingFactBundleV1 {
