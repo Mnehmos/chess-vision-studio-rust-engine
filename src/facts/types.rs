@@ -58,6 +58,7 @@ pub struct PositionFacts {
     pub available_mate_patterns: FactCollection<MatePatternFact>,
     pub available_overload: FactCollection<OverloadOpportunity>,
     pub available_attack_defender: FactCollection<AttackDefenderOpportunity>,
+    pub available_interference: FactCollection<InterferenceOpportunity>,
     /// Analysis-only legal opportunities for the side that is not to move.
     /// These let the application prove a motif was newly allowed by a move.
     pub opponent_available_motifs: FactCollection<MotifOpportunity>,
@@ -69,6 +70,7 @@ pub struct PositionFacts {
     pub opponent_available_mate_patterns: FactCollection<MatePatternFact>,
     pub opponent_available_overload: FactCollection<OverloadOpportunity>,
     pub opponent_available_attack_defender: FactCollection<AttackDefenderOpportunity>,
+    pub opponent_available_interference: FactCollection<InterferenceOpportunity>,
     pub hazards: FactCollection<HazardFact>,
     pub square_facts: FactCollection<SquareFact>,
 }
@@ -452,6 +454,28 @@ pub struct AttackDefenderOpportunity {
     pub gives_check: bool,
     /// SEE centipawns we win against the enemy's best reply — the least-bad outcome over
     /// every reply of (win the standing/relocated defender, or win an abandoned charge).
+    pub material_gain: i32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InterferenceOpportunity {
+    /// Motif family — always "interference".
+    pub kind: String,
+    /// Validator that proved it — "interference_validation".
+    pub validator: String,
+    /// The move that interposes on the line (long UCI); quiet or a capture landing on S.
+    pub move_uci: String,
+    /// Our interposing piece, at its post-move square S (promoted type if a promotion).
+    pub interposer: PieceRef,
+    /// The enemy slider whose defense of the target is severed, at its (unchanged) square.
+    pub cut_defender: PieceRef,
+    /// The enemy piece (non-king, non-pawn) that becomes winnable once the line is cut.
+    pub target: PieceRef,
+    /// Whether the interposing move gives check.
+    pub gives_check: bool,
+    /// SEE centipawns we win on the target against the enemy's best reply (least-bad over
+    /// every reply; a recapture that re-opens the line and re-defends the target refutes it).
     pub material_gain: i32,
 }
 

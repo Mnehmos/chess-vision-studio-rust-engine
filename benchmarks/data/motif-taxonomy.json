@@ -41,7 +41,7 @@
     { "slug": "attacking-the-defender", "name": "Attacking the Defender", "category": "tactical", "family": "remove-the-defender", "parent": "removing-the-guard", "definition": "Attack the defender so it must move or be lost.", "detectedBy": "facts::motifs(attacking_the_defender)" },
     { "slug": "luring-the-defender", "name": "Luring the Defender", "category": "tactical", "family": "remove-the-defender", "parent": "removing-the-guard", "definition": "Entice a defender off its post (decoy a defender).", "detectedBy": null },
     { "slug": "overloading", "name": "Overloading", "category": "tactical", "family": "remove-the-defender", "definition": "A defender tasked with too many duties is exploited.", "detectedBy": "facts::motifs(overloading)" },
-    { "slug": "interference", "name": "Interference", "category": "tactical", "family": "remove-the-defender", "definition": "Interpose to cut the defensive connection between two enemy pieces.", "detectedBy": null },
+    { "slug": "interference", "name": "Interference", "category": "tactical", "family": "remove-the-defender", "definition": "Interpose to cut the defensive connection between two enemy pieces.", "detectedBy": "facts::motifs(interference)" },
 
     { "slug": "attraction", "name": "Attraction", "category": "tactical", "family": "lure", "definition": "Pull an enemy piece to a bad square, usually via an active sacrifice (decoy-toward).", "detectedBy": null },
     { "slug": "coercion", "name": "Coercion", "category": "tactical", "family": "lure", "definition": "Force a piece to a bad square via a direct attack or passive sacrifice (push, not pull).", "detectedBy": null },
