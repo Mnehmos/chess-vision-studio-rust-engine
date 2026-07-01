@@ -134,6 +134,22 @@ fn black_exploits_an_overloaded_white_defender() {
 }
 
 #[test]
+fn queen_defends_a_rook_and_a_bishop_on_two_lines() {
+    // (11) Black Qd6 is the sole defender of the rook a6 (along rank 6) and the bishop f4
+    // (down the d6-f4 diagonal). White Ra1 attacks a6, Rf1 attacks f4 — distinct pieces.
+    // Regression: the D-removed probe must keep occ[] in sync, else Ra1 sliding onto the
+    // vacated d6-defender line makes movegen emit a phantom capture and make() panics.
+    let items = ov("6k1/8/r2q4/8/5b2/8/8/R4R1K w - - 0 1");
+    let o = on_defender(&items, "d6").expect("Qd6 is overloaded defending a6 and f4");
+    assert_eq!(o.overloaded_defender.piece_type, PieceType::Queen);
+    let mut sqs = target_squares(o);
+    sqs.sort();
+    assert_eq!(sqs, vec!["a6", "f4"]);
+    // Opponent saves the dearer rook (500); we collect the next-best bishop (330).
+    assert_eq!(o.material_gain, 330);
+}
+
+#[test]
 fn a_pawn_can_be_the_overloaded_defender() {
     // (10) A cheap PAWN as the overloaded defender. Black pawn d6 guards the knight c5
     // and the bishop e5 (it covers both c5 and e5). White Rc1 attacks c5, white Re1

@@ -423,8 +423,10 @@ pub struct OverloadOpportunity {
     pub overloaded_defender: PieceRef,
     /// The enemy pieces D critically guards, each winnable once D leaves (sorted by id).
     pub targets: Vec<PieceRef>,
-    /// SEE centipawns won — the second-best contested target (the opponent saves the
-    /// dearer; we collect the next-best).
+    /// The second-best per-target SEE once the defender is removed (the opponent saves
+    /// the dearer charge; we collect the next-best). This is a static teaching figure —
+    /// it excludes the deflection sacrifice cost of actually pulling the defender off, so
+    /// the realized net can be lower. Mirrors the fork detector's second-best convention.
     pub material_gain: i32,
 }
 

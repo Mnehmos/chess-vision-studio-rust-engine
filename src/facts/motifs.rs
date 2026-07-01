@@ -868,9 +868,13 @@ fn overload_for_defender(
 ) -> Option<OverloadOpportunity> {
     let d_bit = 1u64 << d_sq;
 
-    // D-removed probe: clear D, keep stm == us (no make(), no turn flip).
+    // D-removed probe: clear D, keep stm == us (no make(), no turn flip). All THREE
+    // occupancy views must stay in sync — `pieces`, per-color `occ`, and `all` — or
+    // movegen (which flags captures off `occ[them]`) emits a phantom capture onto D's
+    // vacated square and `make` panics "capture on empty".
     let mut probe = pos.clone();
     probe.pieces[enemy.index()][d_piece.index()] &= !d_bit;
+    probe.occ[enemy.index()] &= !d_bit;
     probe.all &= !d_bit;
     probe.ep = None;
 
