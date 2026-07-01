@@ -9,9 +9,9 @@ use crate::attacks::{attackers_of, bishop_attacks, queen_attacks, rook_attacks};
 use crate::facts::piece_safety::piece_ref;
 use crate::facts::position::{position_for_analysis_side, square_name};
 use crate::facts::types::{
-    AttackDefenderOpportunity, DiscoveryOpportunity, FactCollection, InterferenceOpportunity,
-    MotifOpportunity, OverloadOpportunity, PieceRef, PinOpportunity, RemoveGuardOpportunity,
-    SkewerOpportunity, TrappedPieceOpportunity,
+    AttackDefenderOpportunity, DiscoveryOpportunity, DoubleAttackOpportunity, FactCollection,
+    InterferenceOpportunity, MotifOpportunity, OverloadOpportunity, PieceRef, PinOpportunity,
+    RemoveGuardOpportunity, SkewerOpportunity, TrappedPieceOpportunity,
 };
 use crate::movegen::{generate_legal, gives_check};
 use crate::see::see;
@@ -1422,4 +1422,242 @@ fn trapped_for_piece(
         escape_squares_tried: escapes,
         material_gain: worst,
     })
+}
+
+// ── Double attack (two distinct pieces, one move) ────────────────────────────
+// One legal move where the MOVED piece threatens target A AND that same move makes a
+// SECOND, DIFFERENT friendly piece's threat on a distinct target B newly realizable,
+// and the enemy cannot parry both. This is the two-DIFFERENT-pieces multiple-attack
+// that the fork detector structurally cannot see (a fork is one moved piece hitting
+// ≥2 winnable targets). Disjointness we ENFORCE:
+//   • vs fork:      B is threatened by a distinct piece q_sq != mv.to (G5).
+//   • vs discovery: q must not be a rear slider that gained sight of B only because
+//                   mv.from was vacated (G6, `double_attack_is_discovery`).
+// A and B are on distinct squares attacked by distinct pieces, each SEE-proven
+// winnable after the move with correct causality, so one enemy tempo can rescue at
+// most one prong — material_gain = min(A, B). G7 hardening (require one prong
+// undefended) rules out the single edge case where one enemy move re-guards both.
+
+/// Validated double-attack opportunities for the side to move, sorted by move then
+/// target ids.
+pub fn double_attack_opportunities(pos: &Position) -> FactCollection<DoubleAttackOpportunity> {
+    let us = pos.stm;
+    let mut probe = pos.clone();
+    let legal = generate_legal(&mut probe);
+    let mut out = Vec::new();
+    for mv in legal {
+        if let Some(op) = double_attack_after_move(pos, mv, us) {
+            out.push(op);
+        }
+    }
+    out.sort_by(|a, b| {
+        a.move_uci
+            .cmp(&b.move_uci)
+            .then_with(|| a.target_a.id.cmp(&b.target_a.id))
+            .then_with(|| a.target_b.id.cmp(&b.target_b.id))
+    });
+    FactCollection::computed(out)
+}
+
+/// Validated double attacks for a requested side. See `motif_opportunities_for` for the
+/// counterfactual side-to-move semantics.
+pub fn double_attack_opportunities_for(
+    pos: &Position,
+    side: Color,
+) -> FactCollection<DoubleAttackOpportunity> {
+    match position_for_analysis_side(pos, side) {
+        Ok(probe) => double_attack_opportunities(&probe),
+        Err(reason) => FactCollection::unavailable(reason),
+    }
+}
+
+fn double_attack_after_move(
+    pos: &Position,
+    mv: Move,
+    us: Color,
+) -> Option<DoubleAttackOpportunity> {
+    let (_, moving_piece) = pos.piece_at(mv.from)?;
+    let mover_piece = mv.flag.promo_piece().unwrap_or(moving_piece);
+    // A king mover cannot "win" defended material and is never itself capturable — the
+    // same exclusion the fork detector makes. (King as a TARGET is excluded via
+    // mover_threat_gain and the Piece::King guards in the threat-B scan.)
+    if mover_piece == Piece::King {
+        return None;
+    }
+    let enemy = us.flip();
+
+    let mut check_probe = pos.clone();
+    let gives_check_flag = gives_check(&mut check_probe, mv);
+
+    let mut after = pos.clone();
+    after.make(mv); // after.stm == enemy
+    let from_bit = 1u64 << mv.from;
+
+    // (G1) Our moved piece must not be simply hung on mv.to.
+    if forker_capturable_for_gain(&mut after.clone(), mv.to) {
+        return None;
+    }
+    // us-to-move probe so best_see_capture / see score OUR captures. Err bails on our
+    // king-in-check AND on mv-gives-check (documented false-negative, same as
+    // attack_defender / remove_guard).
+    let after_us = position_for_analysis_side(&after, us).ok()?;
+
+    // THREAT A: the discovery helper's rule — best winnable enemy piece the moved piece
+    // attacks from mv.to (king excluded, SEE-style winnable). > 0 required (G2).
+    let threat_a = mover_threat_gain(&after, us, enemy, mv.to);
+    if threat_a <= 0 {
+        return None;
+    }
+    // Recover A's square by the same rule mover_threat_gain uses so the PieceRef is exact.
+    let (a_piece, a_sq) = double_attack_best_mover_target(&after, us, enemy, mv.to, threat_a)?;
+    let a_undefended = is_undefended(&after, a_sq, enemy);
+
+    // THREAT B: every OTHER friendly piece q (q_sq != mv.to) that attacks some enemy t,
+    // where t is newly winnable BECAUSE of mv and q is NOT a discovery rear slider.
+    let mut best: Option<DoubleAttackOpportunity> = None;
+    for q_piece in Piece::ALL {
+        if q_piece == Piece::King {
+            continue; // the king never "wins" material as an attacker
+        }
+        let mut qbb = after.pieces[us.index()][q_piece.index()];
+        while qbb != 0 {
+            let q_sq = qbb.trailing_zeros() as u8;
+            qbb &= qbb - 1;
+            if q_sq == mv.to {
+                continue; // that is the mover → fork territory (G5)
+            }
+            let q_bit = 1u64 << q_sq;
+
+            for t_piece in Piece::ALL {
+                if t_piece == Piece::King {
+                    continue; // king is a check, not a material win (G8)
+                }
+                let mut tbb = after.pieces[enemy.index()][t_piece.index()];
+                while tbb != 0 {
+                    let t_sq = tbb.trailing_zeros() as u8;
+                    tbb &= tbb - 1;
+                    if t_sq == a_sq {
+                        continue; // DISTINCT targets — one enemy move can't save both (G7)
+                    }
+                    // q must actually attack t on the post-move board.
+                    if attackers_of(&after.pieces, t_sq, us, after.all) & q_bit == 0 {
+                        continue;
+                    }
+                    // (G3) CAUSALITY: t NOT already winnable before mv; winnable now.
+                    if best_see_capture(pos, t_sq) > 0 {
+                        continue;
+                    }
+                    let gain_b = best_see_capture(&after_us, t_sq);
+                    if gain_b <= 0 {
+                        continue;
+                    }
+                    // (G4) q ITSELF must be the winning attacker of t (not a rear discovered
+                    // slider that only fires down q's line).
+                    if see(&after_us, q_sq, t_sq) <= 0 {
+                        continue;
+                    }
+                    // (G6) NON-DISCOVERY: reject a slider q that saw t only via the mv.from
+                    // vacancy — that is the discovery detector's fact, not ours.
+                    if double_attack_is_discovery(q_piece, q_sq, t_sq, pos.all, after.all, from_bit)
+                    {
+                        continue;
+                    }
+                    // (G7) hardening: at least one prong must be undefended so a single enemy
+                    // tempo cannot re-guard both lines. An undefended target must be answered
+                    // on its own square, leaving the other prong standing.
+                    if !a_undefended && !is_undefended(&after, t_sq, enemy) {
+                        continue;
+                    }
+
+                    // material_gain = min(A, B): enemy saves the dearer, we take the lesser.
+                    let gain = threat_a.min(gain_b);
+                    debug_assert!(gain > 0);
+
+                    let cand = DoubleAttackOpportunity {
+                        kind: "double_attack".to_string(),
+                        validator: "double_attack_validation".to_string(),
+                        move_uci: mv.to_uci(),
+                        mover: piece_ref(us, mover_piece, mv.to),
+                        second_attacker: piece_ref(us, q_piece, q_sq),
+                        target_a: piece_ref(enemy, a_piece, a_sq),
+                        target_b: piece_ref(enemy, t_piece, t_sq),
+                        gives_check: gives_check_flag,
+                        material_gain: gain,
+                    };
+                    // Keep the highest-gain pair; ties resolve to the first-seen (lowest ids
+                    // via the ordered Piece::ALL + trailing_zeros scan) for determinism.
+                    match &best {
+                        Some(b) if b.material_gain >= cand.material_gain => {}
+                        _ => best = Some(cand),
+                    }
+                }
+            }
+        }
+    }
+    best
+}
+
+/// The (piece, sq) of the single best winnable enemy target the moved piece hits from
+/// `from_sq`, recomputed by mover_threat_gain's exact rule so the emitted PieceRef
+/// matches the value used for threat A. King excluded.
+fn double_attack_best_mover_target(
+    after: &Position,
+    us: Color,
+    enemy: Color,
+    from_sq: u8,
+    want: i32,
+) -> Option<(Piece, u8)> {
+    let mover_value = VALUE[after.piece_at(from_sq)?.1.index()];
+    let bit = 1u64 << from_sq;
+    let mut best: Option<(Piece, u8)> = None;
+    for piece in Piece::ALL {
+        if piece == Piece::King {
+            continue;
+        }
+        let mut bb = after.pieces[enemy.index()][piece.index()];
+        while bb != 0 {
+            let sq = bb.trailing_zeros() as u8;
+            bb &= bb - 1;
+            if attackers_of(&after.pieces, sq, us, after.all) & bit == 0 {
+                continue;
+            }
+            let winnable = VALUE[piece.index()] > mover_value || is_undefended(after, sq, enemy);
+            if winnable && VALUE[piece.index()] == want {
+                // tie-break: lowest square, deterministic.
+                match best {
+                    Some((_, s)) if s <= sq => {}
+                    _ => best = Some((piece, sq)),
+                }
+            }
+        }
+    }
+    best
+}
+
+/// True iff `q` is a slider that gained sight of `t_sq` ONLY because `mv.from` was
+/// vacated — i.e. this threat belongs to the discovery detector. Non-sliders are never
+/// discoveries here.
+fn double_attack_is_discovery(
+    q_piece: Piece,
+    q_sq: u8,
+    t_sq: u8,
+    occ_before: u64,
+    occ_after: u64,
+    from_bit: u64,
+) -> bool {
+    let (Some(before), Some(after_ray)) = (
+        slider_attacks(q_piece, q_sq, occ_before),
+        slider_attacks(q_piece, q_sq, occ_after),
+    ) else {
+        return false; // knight / pawn second attacker — never a discovery
+    };
+    let t_bit = 1u64 << t_sq;
+    // Already saw t pre-move → not newly unblocked → keep (not a discovery).
+    if before & t_bit != 0 {
+        return false;
+    }
+    // Newly sees t. It IS a discovery iff q had mv.from as a blocker on its ray pre-move
+    // (from_bit was on q's ray) AND now sees t — vacating mv.from opened the line. This
+    // mirrors discovery's `before_atk & from_bit != 0` gate.
+    (after_ray & t_bit != 0) && (before & from_bit != 0)
 }

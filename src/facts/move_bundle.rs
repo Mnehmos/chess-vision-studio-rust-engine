@@ -1,11 +1,11 @@
 use crate::facts::hazards::{hazard_deltas, position_hazards};
 use crate::facts::motifs::{
-    discovery_opportunities, discovery_opportunities_for, motif_opportunities,
-    attack_defender_opportunities, attack_defender_opportunities_for, interference_opportunities,
-    interference_opportunities_for, motif_opportunities_for, overload_opportunities,
-    overload_opportunities_for, pin_opportunities, pin_opportunities_for, remove_guard_opportunities,
-    remove_guard_opportunities_for, skewer_opportunities, skewer_opportunities_for, trapped_pieces,
-    trapped_pieces_for,
+    discovery_opportunities, discovery_opportunities_for, double_attack_opportunities,
+    double_attack_opportunities_for, motif_opportunities, attack_defender_opportunities,
+    attack_defender_opportunities_for, interference_opportunities, interference_opportunities_for,
+    motif_opportunities_for, overload_opportunities, overload_opportunities_for, pin_opportunities,
+    pin_opportunities_for, remove_guard_opportunities, remove_guard_opportunities_for,
+    skewer_opportunities, skewer_opportunities_for, trapped_pieces, trapped_pieces_for,
 };
 use crate::facts::mate_patterns::{mate_pattern_opportunities, mate_pattern_opportunities_for};
 use crate::facts::pawn_structure::structure_deltas;
@@ -29,6 +29,7 @@ fn facts_for(pos: &Position, include_motifs: bool) -> PositionFacts {
         facts.available_overload = overload_opportunities(pos);
         facts.available_attack_defender = attack_defender_opportunities(pos);
         facts.available_interference = interference_opportunities(pos);
+        facts.available_double_attack = double_attack_opportunities(pos);
         facts.opponent_available_motifs = motif_opportunities_for(pos, pos.stm.flip());
         facts.opponent_available_pins = pin_opportunities_for(pos, pos.stm.flip());
         facts.opponent_available_skewers = skewer_opportunities_for(pos, pos.stm.flip());
@@ -42,6 +43,8 @@ fn facts_for(pos: &Position, include_motifs: bool) -> PositionFacts {
             attack_defender_opportunities_for(pos, pos.stm.flip());
         facts.opponent_available_interference =
             interference_opportunities_for(pos, pos.stm.flip());
+        facts.opponent_available_double_attack =
+            double_attack_opportunities_for(pos, pos.stm.flip());
         facts.hazards = position_hazards(pos, &facts);
     }
     facts
@@ -121,6 +124,7 @@ pub fn build_teaching_fact_bundle(
         validators.push("overload_validation".to_string());
         validators.push("attack_defender_validation".to_string());
         validators.push("interference_validation".to_string());
+        validators.push("double_attack_validation".to_string());
     }
 
     Ok(TeachingFactBundleV1 {

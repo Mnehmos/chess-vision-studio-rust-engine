@@ -27,6 +27,7 @@ pub fn position_facts(pos: &Position) -> PositionFacts {
         available_overload: FactCollection::uncomputed("not_requested"),
         available_attack_defender: FactCollection::uncomputed("not_requested"),
         available_interference: FactCollection::uncomputed("not_requested"),
+        available_double_attack: FactCollection::uncomputed("not_requested"),
         opponent_available_motifs: FactCollection::uncomputed("not_requested"),
         opponent_available_pins: FactCollection::uncomputed("not_requested"),
         opponent_available_skewers: FactCollection::uncomputed("not_requested"),
@@ -37,6 +38,7 @@ pub fn position_facts(pos: &Position) -> PositionFacts {
         opponent_available_overload: FactCollection::uncomputed("not_requested"),
         opponent_available_attack_defender: FactCollection::uncomputed("not_requested"),
         opponent_available_interference: FactCollection::uncomputed("not_requested"),
+        opponent_available_double_attack: FactCollection::uncomputed("not_requested"),
         hazards: FactCollection::uncomputed("motifs_not_requested"),
         square_facts: crate::facts::square_control::square_control_facts(pos),
     }

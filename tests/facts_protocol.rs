@@ -150,6 +150,7 @@ fn registry_provenance_lists_every_active_validator() {
             "overload_validation",
             "attack_defender_validation",
             "interference_validation",
+            "double_attack_validation",
         ]
     );
 }
