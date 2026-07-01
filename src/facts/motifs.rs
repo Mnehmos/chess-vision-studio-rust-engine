@@ -11,8 +11,9 @@ use crate::facts::position::{position_for_analysis_side, square_name};
 use crate::facts::types::{
     AttackDefenderOpportunity, DeflectionOpportunity, DiscoveredDefenseOpportunity,
     DiscoveryOpportunity, DoubleAttackOpportunity, FactCollection, InterferenceOpportunity,
-    MotifOpportunity, OverloadOpportunity, PieceRef, PinOpportunity, RemoveGuardOpportunity,
-    SkewerOpportunity, TrappedPieceOpportunity, XRayDefenseOpportunity, XRayOpportunity,
+    LureDefenderOpportunity, MotifOpportunity, OverloadOpportunity, PieceRef, PinOpportunity,
+    RemoveGuardOpportunity, SkewerOpportunity, TrappedPieceOpportunity, XRayDefenseOpportunity,
+    XRayOpportunity,
 };
 use crate::movegen::{generate_legal, gives_check};
 use crate::see::see;
@@ -2087,6 +2088,185 @@ fn deflection_after_move(pos: &Position, mv: Move, us: Color) -> Option<Deflecti
                 move_uci: mv.to_uci(),
                 mover: piece_ref(us, mover_piece, mv.to),
                 distracted_defender: piece_ref(enemy, d_piece, d_sq),
+                targets,
+                gives_check: gives_check_flag,
+                material_gain: worst,
+            };
+            // Keep the highest-gain D for this move; ties -> first (deterministic).
+            match &best {
+                Some(b) if b.material_gain >= cand.material_gain => {}
+                _ => best = Some(cand),
+            }
+        }
+    }
+    best
+}
+
+// ── Luring the Defender (Decoy) ────────────────────────────────────────────────
+// A MOVE detector (mirrors deflection_after_move's skeleton, occupies the DISJOINT
+// sac-to-decoy slice deflection/attack_defender/fork/double_attack all REJECT): the mover
+// lands on a square s where it IS profitably capturable (an offered SACRIFICE), and the
+// enemy's forced recapture is by a piece D that is the SOLE guard of a charge P. The
+// defining gate is forker_capturable_for_gain(after, s) == TRUE — the exact case those four
+// detectors bail on (they `return None` there) — so this detector is provably disjoint from
+// them and never double-emits. D is additionally required to BE the forced recapturer of s
+// (cheapest_legal_capturer_from), otherwise the enemy takes s with a throwaway and keeps
+// guarding P. Against EVERY legal enemy reply we still net material AFTER paying the sac:
+// attack_defender_worst_case debits enemy_take (our decoy on s) exactly once and, for the
+// forced Dxs reply, re-evaluates D on s (d_now == s). Every board mutation goes through
+// make() (never a hand-edited probe — the overload occ-desync panic trap).
+
+/// Validated luring-the-defender (decoy) moves for the side to move, sorted by move then
+/// lured defender.
+pub fn lure_defender_opportunities(pos: &Position) -> FactCollection<LureDefenderOpportunity> {
+    let us = pos.stm;
+    let mut probe = pos.clone();
+    let legal = generate_legal(&mut probe);
+    let mut out = Vec::new();
+    for mv in legal {
+        if let Some(op) = lure_defender_after_move(pos, mv, us) {
+            out.push(op);
+        }
+    }
+    out.sort_by(|a, b| {
+        a.move_uci
+            .cmp(&b.move_uci)
+            .then_with(|| a.lured_defender.id.cmp(&b.lured_defender.id))
+    });
+    FactCollection::computed(out)
+}
+
+/// Validated luring-the-defender moves from a requested side's perspective.
+pub fn lure_defender_opportunities_for(
+    pos: &Position,
+    side: Color,
+) -> FactCollection<LureDefenderOpportunity> {
+    match position_for_analysis_side(pos, side) {
+        Ok(probe) => lure_defender_opportunities(&probe),
+        Err(reason) => FactCollection::unavailable(reason),
+    }
+}
+
+/// from-square of the CHEAPEST (min piece-value) legal capture of `sq` for `pos`'s side to
+/// move; `None` if `sq` has no legal capturer. This is the piece the enemy is FORCED to
+/// recapture with — the defender the sac decoys. Ties → lowest from-square (deterministic).
+fn cheapest_legal_capturer_from(pos: &Position, sq: u8) -> Option<u8> {
+    let mut probe = pos.clone();
+    generate_legal(&mut probe)
+        .into_iter()
+        .filter(|mv| mv.to == sq && mv.flag.is_capture())
+        .min_by_key(|mv| {
+            (
+                pos.piece_at(mv.from)
+                    .map(|(_, p)| VALUE[p.index()])
+                    .unwrap_or(0),
+                mv.from,
+            )
+        })
+        .map(|mv| mv.from)
+}
+
+fn lure_defender_after_move(
+    pos: &Position,
+    mv: Move,
+    us: Color,
+) -> Option<LureDefenderOpportunity> {
+    let (_, moving_piece) = pos.piece_at(mv.from)?;
+    let mover_piece = mv.flag.promo_piece().unwrap_or(moving_piece);
+    let enemy = us.flip();
+
+    // King mover exclusion: a king can never be the offered/sacrificed decoy — it is never
+    // capturable-for-gain and cannot "land" on a square the enemy wins. Bail early.
+    if mover_piece == Piece::King {
+        return None;
+    }
+
+    let mut check_probe = pos.clone();
+    let gives_check_flag = gives_check(&mut check_probe, mv);
+
+    let mut after = pos.clone();
+    after.make(mv); // after.stm == enemy
+    let s = mv.to;
+
+    // DEFINING LURE GATE: the mover lands on a square where it IS profitably capturable — an
+    // offered sac. This is the EXACT case deflection/attack_defender/fork/double_attack REJECT
+    // (they `return None` here), so this detector is provably DISJOINT from all of them.
+    if !forker_capturable_for_gain(&mut after.clone(), s) {
+        return None; // not a sacrifice → not a lure
+    }
+
+    // us-to-move probe (built for symmetry; Err bails on our-king-in-check and on
+    // mv-gives-OUR-check — documented false-negative, same as every move detector).
+    let _after_us = position_for_analysis_side(&after, us).ok()?;
+    // enemy-to-move probe + reply list drive the shipped worst-case AND the forced-recapturer
+    // identity. (== after here; routed for symmetry with deflection.)
+    let enemy_probe = position_for_analysis_side(&after, enemy).ok()?;
+    let mut enemy_gen = enemy_probe.clone();
+    let enemy_legal = generate_legal(&mut enemy_gen);
+    if enemy_legal.is_empty() {
+        return None; // stalemate/mate edge — no reply to exploit
+    }
+
+    // Identity of the FORCED recapturer of s: the least-cost enemy piece that legally captures
+    // s. If a cheaper NON-defender can take s, the lure of a specific D is not forced — we
+    // later require D to BE this piece.
+    let recapturer_from = cheapest_legal_capturer_from(&enemy_probe, s)?; // no capturer → bail
+
+    let mut best: Option<LureDefenderOpportunity> = None;
+    for d_piece in [
+        Piece::Pawn,
+        Piece::Knight,
+        Piece::Bishop,
+        Piece::Rook,
+        Piece::Queen,
+    ] {
+        let mut dbb = after.pieces[enemy.index()][d_piece.index()];
+        while dbb != 0 {
+            let d_sq = dbb.trailing_zeros() as u8;
+            dbb &= dbb - 1;
+            if d_sq == s {
+                continue; // D is not the square we sac'd onto.
+            }
+            // LURE FORCE: D must be THE forced recapturer of s. If a different (cheaper) enemy
+            // piece can recapture s, the lure of D is not forced — skip.
+            if recapturer_from != d_sq {
+                continue;
+            }
+            // CAUSALITY on D: D not already winnable before mv (the D half; attack_defender_charges
+            // enforces the charge half). Mirror deflection.
+            if best_see_capture(pos, d_sq) > 0 {
+                continue;
+            }
+            // Charges D is the SOLE defender of (pre-move geometry), not already winnable — the
+            // shipped helper: non-king/non-pawn, sole-defended, causal.
+            let charges = attack_defender_charges(pos, enemy, d_sq);
+            if charges.is_empty() {
+                continue;
+            }
+            // FORCING + NET-MATERIAL PROOF: the shipped all-replies worst-case. It ranges over
+            // EVERY enemy reply and DEBITS enemy_take (the piece the reply grabs — here our
+            // sacrificed mover on s), returning Some(worst) only if NO reply saves both
+            // D-post-recapture AND every charge. That is EXACTLY "D is lured off P and we net
+            // material even after paying the sac". None → this line refutes the lure.
+            let Some(worst) =
+                attack_defender_worst_case(&enemy_probe, &enemy_legal, enemy, d_sq, &charges)
+            else {
+                continue;
+            };
+            debug_assert!(worst > 0);
+
+            let mut targets: Vec<PieceRef> = charges
+                .iter()
+                .map(|(p, sq)| piece_ref(enemy, *p, *sq))
+                .collect();
+            targets.sort_by(|a, b| a.id.cmp(&b.id));
+
+            let cand = LureDefenderOpportunity {
+                kind: "luring_the_defender".to_string(),
+                validator: "lure_defender_validation".to_string(),
+                move_uci: mv.to_uci(),
+                mover: piece_ref(us, mover_piece, s), // the sacrificed decoy, on s
+                lured_defender: piece_ref(enemy, d_piece, d_sq),
                 targets,
                 gives_check: gives_check_flag,
                 material_gain: worst,

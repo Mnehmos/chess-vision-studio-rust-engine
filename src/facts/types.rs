@@ -60,6 +60,7 @@ pub struct PositionFacts {
     pub available_overload: FactCollection<OverloadOpportunity>,
     pub available_attack_defender: FactCollection<AttackDefenderOpportunity>,
     pub available_deflection: FactCollection<DeflectionOpportunity>,
+    pub available_lure_defender: FactCollection<LureDefenderOpportunity>,
     pub available_interference: FactCollection<InterferenceOpportunity>,
     pub available_double_attack: FactCollection<DoubleAttackOpportunity>,
     pub available_xray_attack: FactCollection<XRayOpportunity>,
@@ -77,6 +78,7 @@ pub struct PositionFacts {
     pub opponent_available_overload: FactCollection<OverloadOpportunity>,
     pub opponent_available_attack_defender: FactCollection<AttackDefenderOpportunity>,
     pub opponent_available_deflection: FactCollection<DeflectionOpportunity>,
+    pub opponent_available_lure_defender: FactCollection<LureDefenderOpportunity>,
     pub opponent_available_interference: FactCollection<InterferenceOpportunity>,
     pub opponent_available_double_attack: FactCollection<DoubleAttackOpportunity>,
     pub opponent_available_xray_attack: FactCollection<XRayOpportunity>,
@@ -512,6 +514,33 @@ pub struct DeflectionOpportunity {
     /// SEE centipawns we win against the enemy's best reply — the least-bad outcome over
     /// every reply of (win the standing/relocated defender, or a charge the eviction
     /// abandons). SEE_VALUE scale (knight 320, bishop 330, rook 500).
+    pub material_gain: i32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LureDefenderOpportunity {
+    /// Motif family — always "luring_the_defender".
+    pub kind: String,
+    /// Validator that proved it — "lure_defender_validation".
+    pub validator: String,
+    /// The offered-sacrifice move that decoys the guard (long UCI); the mover lands on a
+    /// square where it IS profitably capturable, forcing the recapture.
+    pub move_uci: String,
+    /// Our SACRIFICED piece (the decoy), at its post-move square s — the piece the enemy
+    /// defender is forced to recapture.
+    pub mover: PieceRef,
+    /// The enemy defender lured off its post by being forced to recapture s — the sole
+    /// guard of the target(s), at its (pre-recapture) square.
+    pub lured_defender: PieceRef,
+    /// The enemy charge(s) the defender solely guards, winnable once it is lured away
+    /// (sorted by id). Non-king, non-pawn.
+    pub targets: Vec<PieceRef>,
+    /// Whether the luring move gives check.
+    pub gives_check: bool,
+    /// SEE centipawns we net against the enemy's best reply — least-bad over every reply,
+    /// already DEBITED for the sacrificed decoy (attack_defender_worst_case subtracts
+    /// enemy_take). SEE_VALUE scale.
     pub material_gain: i32,
 }
 
