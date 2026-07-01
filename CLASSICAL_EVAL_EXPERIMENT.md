@@ -179,7 +179,12 @@ baseline hash in output; refuse unknown/incomplete eval identity in promotion ru
 
 ## Remaining Repository Work Directly Blocking This Experiment
 
-- [ ] Complete the analysis-side fixed-node and isolation interface (#6).
+- [x] Complete the analysis-side fixed-node and isolation interface (#6). `analyze --serve`
+      accepts `nodeBudget` + `diagnosticIsolation` (cold|warm) on go/analyze JSON requests;
+      reports `diagnostic.{requestedNodes,consumedNodes,singleThread,multithreadRefused,book}`;
+      cold = fresh searcher per request (empty TT, prior search cannot alter it), warm =
+      persisted searcher (aged TT carries forward); forced-root supported. Single-thread is
+      forced (INV-2). Tests: tests/serve_diagnostic.rs (determinism, cold isolation, warm carry).
 - [ ] Complete the canonical SPRT match runner (#5).
 - [ ] Complete independent verification and calibration (#7).
 - [ ] Complete P-EVAL-K, P-EVAL-C, P-GRID (#8).
