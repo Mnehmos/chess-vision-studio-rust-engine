@@ -169,6 +169,47 @@ fn forker_capturable_for_gain(after: &mut Position, sq: u8) -> bool {
     best > 0
 }
 
+/// True if a piece on `from` may LEGALLY move to `to` without exposing `us`'s king — i.e. the
+/// move is not blocked by an absolute pin. Pure king-ray geometry, so it holds regardless of
+/// whose turn it is or any check state (unlike a generate_legal probe, which is unavailable when
+/// our move gave check). A pinned piece may still travel ALONG its pin ray, so a capture whose
+/// `to` stays collinear with king↔from on the pin axis is permitted.
+fn capture_legal_wrt_pin(pos: &Position, from: u8, to: u8, us: Color) -> bool {
+    let king = pos.king_sq(us);
+    let enemy = us.flip();
+    let from_bit = 1u64 << from;
+    let occ = pos.all;
+    let major = |p: Piece| pos.pieces[enemy.index()][p.index()];
+    // Orthogonal (rank/file) pin.
+    let orth = rook_attacks(king, occ);
+    if orth & from_bit != 0 {
+        let exposed = rook_attacks(king, occ & !from_bit) & !orth;
+        if exposed & (major(Piece::Rook) | major(Piece::Queen)) != 0 {
+            // Pinned orthogonally: legal only if king, from, to share the SAME rank or file.
+            let same_file = file_of(king) == file_of(from) && file_of(from) == file_of(to);
+            let same_rank = rank_of(king) == rank_of(from) && rank_of(from) == rank_of(to);
+            return same_file || same_rank;
+        }
+    }
+    // Diagonal pin.
+    let diag = bishop_attacks(king, occ);
+    if diag & from_bit != 0 {
+        let exposed = bishop_attacks(king, occ & !from_bit) & !diag;
+        if exposed & (major(Piece::Bishop) | major(Piece::Queen)) != 0 {
+            // Pinned diagonally: legal only if to stays on the king↔from diagonal.
+            let kf = file_of(king) as i8 - file_of(from) as i8;
+            let kr = rank_of(king) as i8 - rank_of(from) as i8;
+            let tf = file_of(to) as i8 - file_of(from) as i8;
+            let tr = rank_of(to) as i8 - rank_of(from) as i8;
+            // collinear on a diagonal: same slope magnitude and both diagonal steps.
+            return kf.abs() == kr.abs()
+                && tf.abs() == tr.abs()
+                && kf.signum() * kr.signum() == tf.signum() * tr.signum();
+        }
+    }
+    true // `from` is not absolutely pinned
+}
+
 /// True if `owner` has no defender (other than the piece itself) for `sq`.
 fn is_undefended(pos: &Position, sq: u8, owner: Color) -> bool {
     let defenders = attackers_of(&pos.pieces, sq, owner, pos.all) & !(1u64 << sq);
@@ -953,6 +994,14 @@ fn discovery_after_move(
                 let undefended = is_undefended(&after, t_sq, enemy);
                 let winnable = undefended || VALUE[t_piece.index()] > s_value;
                 if !winnable || slider_tradeable(&mut after.clone(), s_sq) {
+                    continue;
+                }
+                // LEGALITY: attackers_of / see() are pin-blind — an ABSOLUTELY PINNED unveiled
+                // slider attacks t geometrically but can never legally capture it (fuzz-found
+                // false positive, 45/19671 discovered_attack ops). capture_legal_wrt_pin is pure
+                // king-ray geometry, so it also covers discoverer_checks (whose us-to-move probe
+                // is unavailable because the move gave check).
+                if !capture_legal_wrt_pin(&after, s_sq, t_sq, discoverer_color) {
                     continue;
                 }
                 if undefended {
