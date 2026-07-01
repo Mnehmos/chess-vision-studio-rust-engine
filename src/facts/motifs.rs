@@ -9,8 +9,9 @@ use crate::attacks::{attackers_of, bishop_attacks, queen_attacks, rook_attacks};
 use crate::facts::piece_safety::piece_ref;
 use crate::facts::position::{position_for_analysis_side, square_name};
 use crate::facts::types::{
-    DiscoveryOpportunity, FactCollection, MotifOpportunity, OverloadOpportunity, PieceRef,
-    PinOpportunity, RemoveGuardOpportunity, SkewerOpportunity, TrappedPieceOpportunity,
+    AttackDefenderOpportunity, DiscoveryOpportunity, FactCollection, MotifOpportunity,
+    OverloadOpportunity, PieceRef, PinOpportunity, RemoveGuardOpportunity, SkewerOpportunity,
+    TrappedPieceOpportunity,
 };
 use crate::movegen::{generate_legal, gives_check};
 use crate::see::see;
@@ -951,6 +952,210 @@ fn best_capture_from(pos: &Position, target: u8) -> Option<u8> {
         .filter(|mv| mv.to == target && mv.flag.is_capture())
         .max_by_key(|mv| see(&probe, mv.from, mv.to))
         .map(|mv| mv.from)
+}
+
+// ── Attacking the defender ────────────────────────────────────────────────────
+// A MOVE detector (mirrors remove_guard/fork): a move whose moved piece newly attacks
+// an enemy piece D that is the SOLE defender of one or more enemy charges P. D must move
+// or be lost, and — against EVERY legal enemy reply — we still win material (win the
+// relocated/standing D, or a charge the eviction abandons). Disjoint from remove_guard
+// (that CAPTURES D). Every board mutation goes through make() (never a hand-edited probe),
+// so the pieces/occ/all views stay coherent by construction — do NOT "optimize" this into
+// a hand-removed-D probe (that is the trap that panicked the overload detector).
+//
+// SOUNDNESS depends on the worst-case ranging over ALL enemy replies, not just D's own
+// moves: the enemy may ignore D and instead capture our attacker (often with check),
+// interpose a new guard, or move a charge to safety. A D-escape-only loop is a false
+// positive (e.g. after our Bc4 attacking a rook-guard, the guarded rook plays Rxd1+).
+
+/// Validated attacking-the-defender moves for the side to move, sorted by move then D.
+pub fn attack_defender_opportunities(pos: &Position) -> FactCollection<AttackDefenderOpportunity> {
+    let us = pos.stm;
+    let mut probe = pos.clone();
+    let legal = generate_legal(&mut probe);
+    let mut out = Vec::new();
+    for mv in legal {
+        if let Some(op) = attack_defender_after_move(pos, mv, us) {
+            out.push(op);
+        }
+    }
+    out.sort_by(|a, b| {
+        a.move_uci
+            .cmp(&b.move_uci)
+            .then_with(|| a.attacked_defender.id.cmp(&b.attacked_defender.id))
+    });
+    FactCollection::computed(out)
+}
+
+/// Validated attacking-the-defender moves from a requested side's perspective.
+pub fn attack_defender_opportunities_for(
+    pos: &Position,
+    side: Color,
+) -> FactCollection<AttackDefenderOpportunity> {
+    match position_for_analysis_side(pos, side) {
+        Ok(probe) => attack_defender_opportunities(&probe),
+        Err(reason) => FactCollection::unavailable(reason),
+    }
+}
+
+fn attack_defender_after_move(pos: &Position, mv: Move, us: Color) -> Option<AttackDefenderOpportunity> {
+    let (_, moving_piece) = pos.piece_at(mv.from)?;
+    let mover_piece = mv.flag.promo_piece().unwrap_or(moving_piece);
+    let enemy = us.flip();
+
+    let mut check_probe = pos.clone();
+    let gives_check_flag = gives_check(&mut check_probe, mv);
+
+    let mut after = pos.clone();
+    after.make(mv); // after.stm == enemy
+    let mover_bit = 1u64 << mv.to;
+
+    // (A) Our moved piece must not be simply hung on mv.to.
+    if forker_capturable_for_gain(&mut after.clone(), mv.to) {
+        return None;
+    }
+    // (B) us-to-move probe (best_see_capture scores OUR captures). Err bails on
+    //     our-king-in-check and on mv-gives-check (documented false-negative).
+    let after_us = position_for_analysis_side(&after, us).ok()?;
+    // (C) enemy-to-move probe for the reply enumeration (== after here; routed for symmetry).
+    let enemy_probe = position_for_analysis_side(&after, enemy).ok()?;
+    let mut enemy_gen = enemy_probe.clone();
+    let enemy_legal = generate_legal(&mut enemy_gen);
+    if enemy_legal.is_empty() {
+        return None; // stalemate/mate edge — no reply to exploit
+    }
+
+    let mut best: Option<AttackDefenderOpportunity> = None;
+    for d_piece in [
+        Piece::Pawn,
+        Piece::Knight,
+        Piece::Bishop,
+        Piece::Rook,
+        Piece::Queen,
+    ] {
+        let mut dbb = after.pieces[enemy.index()][d_piece.index()];
+        while dbb != 0 {
+            let d_sq = dbb.trailing_zeros() as u8;
+            dbb &= dbb - 1;
+            if d_sq == mv.to {
+                continue;
+            }
+            // mv.to must newly attack D on the post-move board.
+            if attackers_of(&after.pieces, d_sq, us, after.all) & mover_bit == 0 {
+                continue;
+            }
+            // CAUSALITY: D not already winnable before mv; winnable in place now; and mv.to
+            // itself is the winning attacker (not a discovered rear attacker — that is the
+            // discovery motif, not this one).
+            if best_see_capture(pos, d_sq) > 0 {
+                continue;
+            }
+            let d_in_place = best_see_capture(&after_us, d_sq);
+            if d_in_place <= 0 {
+                continue;
+            }
+            if see(&after_us, mv.to, d_sq) <= 0 {
+                continue;
+            }
+            // Charges D is the SOLE defender of (pre-move geometry), not already winnable.
+            let charges = attack_defender_charges(pos, enemy, d_sq);
+            if charges.is_empty() {
+                continue;
+            }
+            // Worst-case over ALL enemy replies. None if any reply saves D and every charge.
+            let Some(worst) =
+                attack_defender_worst_case(&enemy_probe, &enemy_legal, enemy, d_sq, &charges)
+            else {
+                continue;
+            };
+            debug_assert!(worst > 0);
+
+            let mut targets: Vec<PieceRef> = charges
+                .iter()
+                .map(|(p, sq)| piece_ref(enemy, *p, *sq))
+                .collect();
+            targets.sort_by(|a, b| a.id.cmp(&b.id));
+
+            let cand = AttackDefenderOpportunity {
+                kind: "attacking_the_defender".to_string(),
+                validator: "attack_defender_validation".to_string(),
+                move_uci: mv.to_uci(),
+                mover: piece_ref(us, mover_piece, mv.to),
+                attacked_defender: piece_ref(enemy, d_piece, d_sq),
+                targets,
+                gives_check: gives_check_flag,
+                material_gain: worst,
+            };
+            // Keep the highest-gain D for this move; ties -> first (deterministic).
+            match &best {
+                Some(b) if b.material_gain >= cand.material_gain => {}
+                _ => best = Some(cand),
+            }
+        }
+    }
+    best
+}
+
+/// Enemy non-king, non-pawn charges that `d_sq` is the SOLE defender of on `pos`, and that
+/// are not already winnable for us (the eviction, not a pre-existing hang, wins them).
+fn attack_defender_charges(pos: &Position, enemy: Color, d_sq: u8) -> Vec<(Piece, u8)> {
+    let d_bit = 1u64 << d_sq;
+    let mut out = Vec::new();
+    for p_piece in [Piece::Knight, Piece::Bishop, Piece::Rook, Piece::Queen] {
+        let mut bb = pos.pieces[enemy.index()][p_piece.index()];
+        while bb != 0 {
+            let p_sq = bb.trailing_zeros() as u8;
+            bb &= bb - 1;
+            if p_sq == d_sq {
+                continue;
+            }
+            let defenders = attackers_of(&pos.pieces, p_sq, enemy, pos.all) & !(1u64 << p_sq);
+            if defenders == d_bit && best_see_capture(pos, p_sq) <= 0 {
+                out.push((p_piece, p_sq));
+            }
+        }
+    }
+    out
+}
+
+/// The least-bad-for-us material outcome after we attack D, taken over EVERY legal enemy
+/// reply. `None` if any reply leaves both D safe and every charge defended (no sound win).
+fn attack_defender_worst_case(
+    enemy_probe: &Position, // stm == enemy
+    enemy_legal: &[Move],
+    enemy: Color,
+    d_sq: u8,
+    charges: &[(Piece, u8)],
+) -> Option<i32> {
+    let mut worst = i32::MAX;
+    for m in enemy_legal {
+        let mut esc = enemy_probe.clone();
+        esc.make(*m); // stm flips back to us
+        let enemy_occ = esc.occ[enemy.index()];
+        // D's square after this reply (the enemy may have moved D itself).
+        let d_now = if m.from == d_sq { m.to } else { d_sq };
+        let mut our_best = 0;
+        if enemy_occ & (1u64 << d_now) != 0 {
+            our_best = our_best.max(best_see_capture(&esc, d_now));
+        }
+        for (_, p_sq) in charges {
+            if m.from == *p_sq {
+                continue; // the enemy saved this charge by moving it
+            }
+            if enemy_occ & (1u64 << *p_sq) != 0 {
+                our_best = our_best.max(best_see_capture(&esc, *p_sq));
+            }
+        }
+        if our_best <= 0 {
+            return None; // this reply saves everything — not a sound win
+        }
+        worst = worst.min(our_best);
+    }
+    if worst > 0 && worst != i32::MAX {
+        Some(worst)
+    } else {
+        None
+    }
 }
 
 // ── Trapped pieces ───────────────────────────────────────────────────────────

@@ -57,6 +57,7 @@ pub struct PositionFacts {
     pub available_trapped: FactCollection<TrappedPieceOpportunity>,
     pub available_mate_patterns: FactCollection<MatePatternFact>,
     pub available_overload: FactCollection<OverloadOpportunity>,
+    pub available_attack_defender: FactCollection<AttackDefenderOpportunity>,
     /// Analysis-only legal opportunities for the side that is not to move.
     /// These let the application prove a motif was newly allowed by a move.
     pub opponent_available_motifs: FactCollection<MotifOpportunity>,
@@ -67,6 +68,7 @@ pub struct PositionFacts {
     pub opponent_available_trapped: FactCollection<TrappedPieceOpportunity>,
     pub opponent_available_mate_patterns: FactCollection<MatePatternFact>,
     pub opponent_available_overload: FactCollection<OverloadOpportunity>,
+    pub opponent_available_attack_defender: FactCollection<AttackDefenderOpportunity>,
     pub hazards: FactCollection<HazardFact>,
     pub square_facts: FactCollection<SquareFact>,
 }
@@ -427,6 +429,29 @@ pub struct OverloadOpportunity {
     /// the dearer charge; we collect the next-best). This is a static teaching figure —
     /// it excludes the deflection sacrifice cost of actually pulling the defender off, so
     /// the realized net can be lower. Mirrors the fork detector's second-best convention.
+    pub material_gain: i32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AttackDefenderOpportunity {
+    /// Motif family — always "attacking_the_defender".
+    pub kind: String,
+    /// Validator that proved it — "attack_defender_validation".
+    pub validator: String,
+    /// The move that attacks the guard (long UCI); never a capture of the defender.
+    pub move_uci: String,
+    /// Our piece that now attacks the defender, at its post-move square.
+    pub mover: PieceRef,
+    /// The enemy defender we attack — the sole guard of the target(s), at its square.
+    pub attacked_defender: PieceRef,
+    /// The enemy charge(s) the defender solely guards, winnable once it is evicted
+    /// (sorted by id). Non-king, non-pawn.
+    pub targets: Vec<PieceRef>,
+    /// Whether the attacking move gives check.
+    pub gives_check: bool,
+    /// SEE centipawns we win against the enemy's best reply — the least-bad outcome over
+    /// every reply of (win the standing/relocated defender, or win an abandoned charge).
     pub material_gain: i32,
 }
 
