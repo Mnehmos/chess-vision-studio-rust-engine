@@ -7,7 +7,7 @@
     "chesstempo.com/positional-motifs — authoritative positional definitions (provided verbatim by the user); the positional set below has been reconciled and expanded from ~59 ChessTempo positional motifs (plus a few taxonomy-specific entries ChessTempo omits: hanging-pawns, pawn-island, weak-square, color-complex, fianchetto)."
   ],
   "motifs": [
-    { "slug": "double-attack", "name": "Double Attack", "category": "tactical", "family": "multiple-attack", "definition": "One move creates two or more threats at once.", "detectedBy": null },
+    { "slug": "double-attack", "name": "Double Attack", "category": "tactical", "family": "multiple-attack", "definition": "One move creates two or more threats at once.", "detectedBy": "facts::motifs(double_attack)" },
     { "slug": "fork", "name": "Fork", "category": "tactical", "family": "multiple-attack", "definition": "A single piece attacks two or more targets simultaneously.", "detectedBy": "facts::motifs(fork)" },
     { "slug": "family-fork", "name": "Family Fork", "category": "tactical", "family": "multiple-attack", "parent": "fork", "definition": "A knight fork hitting the king plus several major/minor pieces at once.", "detectedBy": "facts::motifs(fork)" },
     { "slug": "royal-fork", "name": "Royal Fork", "category": "tactical", "family": "multiple-attack", "parent": "fork", "definition": "A fork that hits both the enemy king and queen.", "detectedBy": "facts::motifs(fork)" },

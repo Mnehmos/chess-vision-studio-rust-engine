@@ -31,6 +31,7 @@ MOTIF_TO_VALIDATOR = {
     "overloading": "overload_validation",
     "attacking_the_defender": "attack_defender_validation",
     "interference": "interference_validation",
+    "double_attack": "double_attack_validation",
 }
 # facts::<subsystem> that are NOT the motif/mate validators but are real engine subsystems.
 SUBSYSTEM_TO_VALIDATOR = {"pawn_structure": "pawn_structure", "piece_safety": "king_safety",
@@ -109,7 +110,7 @@ def main() -> int:
     if failures:
         print(f"\nFAIL: {len(failures)} taxonomy claim(s) not backed by the registry:")
         for f in failures:
-            print("  ✗ " + f)
+            print("  x " + f)
         return 1
     print("\nOK: every facts::motifs / mate_patterns / pawn_structure detectedBy claim is "
           "backed by a registered validator.")
