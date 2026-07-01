@@ -167,6 +167,22 @@ fn a_pawn_can_be_the_overloaded_defender() {
     assert_eq!(o.material_gain, 320);
 }
 
+#[test]
+fn recovers_overload_when_targets_share_a_best_capturer() {
+    // (12) Black Nd4 is the sole defender of the rook b5 and the bishop f5. White Re5
+    // attacks BOTH (rank 5), and Bb1 also attacks f5. The per-target BEST capturer of
+    // each is Re5 (an SEE tie on f5), so a distinct-best-capturer guard would wrongly
+    // reject — yet a real win exists: Bxf5, Nxf5, Rxb5 wins the rook. The bipartite guard
+    // (Bb1->f5, Re5->b5) recovers it. Opponent saves the rook (500); we collect f5 (330).
+    let items = ov("2N5/2k5/7q/1r2Rb2/3n4/8/6K1/1B6 w - - 0 1");
+    let o = on_defender(&items, "d4").expect("Nd4 is overloaded defending b5 and f5");
+    assert_eq!(o.overloaded_defender.piece_type, PieceType::Knight);
+    let mut sqs = target_squares(o);
+    sqs.sort();
+    assert_eq!(sqs, vec!["b5", "f5"]);
+    assert_eq!(o.material_gain, 330);
+}
+
 // ── adversarial negatives (must NOT fire) ─────────────────────────────────────
 
 #[test]

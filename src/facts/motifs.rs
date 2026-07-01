@@ -878,8 +878,8 @@ fn overload_for_defender(
     probe.all &= !d_bit;
     probe.ep = None;
 
-    // Charges D critically guards: (piece, sq, gain_if_gone, winning-capturer from-sq).
-    let mut charges: Vec<(Piece, u8, i32, u8)> = Vec::new();
+    // Charges D critically guards: (piece, sq, gain_if_gone, winning-capturer from-squares).
+    let mut charges: Vec<(Piece, u8, i32, Vec<u8>)> = Vec::new();
     for p_piece in [Piece::Knight, Piece::Bishop, Piece::Rook, Piece::Queen] {
         let mut pbb = pos.pieces[enemy.index()][p_piece.index()];
         while pbb != 0 {
@@ -902,21 +902,24 @@ fn overload_for_defender(
             if gain <= 0 {
                 continue;
             }
-            let from = best_capture_from(&probe, p_sq)?;
-            charges.push((p_piece, p_sq, gain, from));
+            let froms = winning_capture_froms(&probe, p_sq);
+            if froms.is_empty() {
+                continue; // gain > 0 implies a winning capture exists, but stay safe
+            }
+            charges.push((p_piece, p_sq, gain, froms));
         }
     }
     if charges.len() < 2 {
         return None;
     }
-    // Shared-attacker guard: the exploitation deflects one of our pieces onto a target (D
-    // recaptures it); a DIFFERENT piece must remain to take the other. Require >=2 charges
-    // whose winning captures use distinct pieces — else the single shared attacker is
-    // consumed deflecting D and nothing wins the second piece.
-    let mut froms: Vec<u8> = charges.iter().map(|c| c.3).collect();
-    froms.sort_unstable();
-    froms.dedup();
-    if froms.len() < 2 {
+    // Shared-attacker guard (bipartite form): the exploitation deflects one of our pieces
+    // onto a target (D recaptures it, consuming that piece); a DIFFERENT piece must remain
+    // to take the other. Require a size-2 matching of charges to DISTINCT winning-capturer
+    // squares — i.e. two charges served by two different pieces. This still rejects the
+    // single-shared-attacker case (all charges winnable only from one square), but unlike a
+    // distinct-BEST-capturer test it does not miss overloads where the two charges share a
+    // best capturer by an SEE tie yet a distinct assignment exists.
+    if !has_distinct_capturer_pair(&charges) {
         return None;
     }
 
@@ -941,16 +944,36 @@ fn overload_for_defender(
     })
 }
 
-/// from-square of the best (max-SEE) legal capture of `target` for `pos`'s side to move;
-/// `None` if no capture of `target` exists.
-fn best_capture_from(pos: &Position, target: u8) -> Option<u8> {
+/// The from-squares of every legal capture of `target` that wins material (SEE > 0) for
+/// `pos`'s side to move, sorted and deduped. Empty when `target` cannot be won.
+fn winning_capture_froms(pos: &Position, target: u8) -> Vec<u8> {
     let mut probe = pos.clone();
     let legal = generate_legal(&mut probe);
-    legal
+    let mut froms: Vec<u8> = legal
         .into_iter()
-        .filter(|mv| mv.to == target && mv.flag.is_capture())
-        .max_by_key(|mv| see(&probe, mv.from, mv.to))
+        .filter(|mv| mv.to == target && mv.flag.is_capture() && see(&probe, mv.from, mv.to) > 0)
         .map(|mv| mv.from)
+        .collect();
+    froms.sort_unstable();
+    froms.dedup();
+    froms
+}
+
+/// True when two distinct charges can be won by two DIFFERENT pieces — a size-2 matching
+/// of charges to winning-capturer squares (the exploitability condition for an overload).
+fn has_distinct_capturer_pair(charges: &[(Piece, u8, i32, Vec<u8>)]) -> bool {
+    for i in 0..charges.len() {
+        for j in (i + 1)..charges.len() {
+            for &a in &charges[i].3 {
+                for &b in &charges[j].3 {
+                    if a != b {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    false
 }
 
 // ── Trapped pieces ───────────────────────────────────────────────────────────
