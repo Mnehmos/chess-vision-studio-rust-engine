@@ -53,6 +53,7 @@ pub struct PositionFacts {
     pub available_pins: FactCollection<PinOpportunity>,
     pub available_skewers: FactCollection<SkewerOpportunity>,
     pub available_discoveries: FactCollection<DiscoveryOpportunity>,
+    pub available_discovered_defense: FactCollection<DiscoveredDefenseOpportunity>,
     pub available_remove_guard: FactCollection<RemoveGuardOpportunity>,
     pub available_trapped: FactCollection<TrappedPieceOpportunity>,
     pub available_mate_patterns: FactCollection<MatePatternFact>,
@@ -68,6 +69,7 @@ pub struct PositionFacts {
     pub opponent_available_pins: FactCollection<PinOpportunity>,
     pub opponent_available_skewers: FactCollection<SkewerOpportunity>,
     pub opponent_available_discoveries: FactCollection<DiscoveryOpportunity>,
+    pub opponent_available_discovered_defense: FactCollection<DiscoveredDefenseOpportunity>,
     pub opponent_available_remove_guard: FactCollection<RemoveGuardOpportunity>,
     pub opponent_available_trapped: FactCollection<TrappedPieceOpportunity>,
     pub opponent_available_mate_patterns: FactCollection<MatePatternFact>,
@@ -380,6 +382,29 @@ pub struct DiscoveryOpportunity {
     pub mover_threatens: bool,
     /// Estimated material consequence in centipawns (the unveiled target, or the moved
     /// piece's simultaneous threat for a forcing discovered check).
+    pub material_gain: i32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DiscoveredDefenseOpportunity {
+    /// Motif family — always "discovered_defense".
+    pub kind: String,
+    /// Validator that proved it — "discovered_defense_validation".
+    pub validator: String,
+    /// The single move that unveils the defense (long UCI).
+    pub move_uci: String,
+    /// The piece that moves off the line, at its post-move square (promoted type if a promotion).
+    pub mover: PieceRef,
+    /// The rear friendly slider unveiled by the move, at its unchanged square.
+    pub slider: PieceRef,
+    /// The friendly piece (non-king) that was hanging and is now defended by the unveiled slider.
+    pub defended_piece: PieceRef,
+    /// Squares between the slider and the defended piece along the unveiled line.
+    pub ray: Vec<String>,
+    /// Whether the move gives check.
+    pub gives_check: bool,
+    /// Centipawns the discovery saves — the enemy's pre-move winning SEE on the rescued square.
     pub material_gain: i32,
 }
 

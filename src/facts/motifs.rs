@@ -9,10 +9,10 @@ use crate::attacks::{attackers_of, bishop_attacks, queen_attacks, rook_attacks};
 use crate::facts::piece_safety::piece_ref;
 use crate::facts::position::{position_for_analysis_side, square_name};
 use crate::facts::types::{
-    AttackDefenderOpportunity, DiscoveryOpportunity, DoubleAttackOpportunity, FactCollection,
-    InterferenceOpportunity, MotifOpportunity, OverloadOpportunity, PieceRef, PinOpportunity,
-    RemoveGuardOpportunity, SkewerOpportunity, TrappedPieceOpportunity, XRayDefenseOpportunity,
-    XRayOpportunity,
+    AttackDefenderOpportunity, DiscoveredDefenseOpportunity, DiscoveryOpportunity,
+    DoubleAttackOpportunity, FactCollection, InterferenceOpportunity, MotifOpportunity,
+    OverloadOpportunity, PieceRef, PinOpportunity, RemoveGuardOpportunity, SkewerOpportunity,
+    TrappedPieceOpportunity, XRayDefenseOpportunity, XRayOpportunity,
 };
 use crate::movegen::{generate_legal, gives_check};
 use crate::see::see;
@@ -994,6 +994,203 @@ fn discovery_after_move(
                 double_check,
                 mover_threatens: mover_threat > 0,
                 material_gain,
+            });
+        }
+    }
+    None
+}
+
+// ── Discovered defense ───────────────────────────────────────────────────────
+// The exact defensive mirror of `discovery_after_move`: a stationary friendly rear
+// slider S and a MOVING piece that merely vacates the only blocker on S's ray toward
+// a FRIENDLY target G. After the move S newly DEFENDS G, which was hanging before the
+// move. We reuse discovery's proven `after & !before & our_occ` ray recomputation
+// (pointed at our own occupancy) and swap the "attack" verdict for a "rescue" verdict,
+// proven with SEE from the enemy's perspective: G was losing material before (enemy's
+// best capture SEE > 0) and is no longer profitable to take after S is unveiled.
+
+/// Every friendly piece on the board (mirror of `enemy_occupancy`, us-side).
+fn friendly_occupancy(pos: &Position, us: Color) -> u64 {
+    let mut bb = 0u64;
+    for piece in Piece::ALL {
+        bb |= pos.pieces[us.index()][piece.index()];
+    }
+    bb
+}
+
+/// Validated discovered-defense opportunities for the side to move, sorted by move
+/// then defended-piece id.
+pub fn discovered_defense_opportunities(
+    pos: &Position,
+) -> FactCollection<DiscoveredDefenseOpportunity> {
+    let us = pos.stm;
+    let mut probe = pos.clone();
+    let legal = generate_legal(&mut probe);
+    let mut out = Vec::new();
+    for mv in legal {
+        if let Some(d) = discovered_defense_after_move(pos, mv, us) {
+            out.push(d);
+        }
+    }
+    out.sort_by(|a, b| {
+        a.move_uci
+            .cmp(&b.move_uci)
+            .then_with(|| a.defended_piece.id.cmp(&b.defended_piece.id))
+    });
+    FactCollection::computed(out)
+}
+
+/// Validated discovered defenses for a requested side. See `motif_opportunities_for`
+/// for the counterfactual side-to-move semantics.
+pub fn discovered_defense_opportunities_for(
+    pos: &Position,
+    side: Color,
+) -> FactCollection<DiscoveredDefenseOpportunity> {
+    match position_for_analysis_side(pos, side) {
+        Ok(probe) => discovered_defense_opportunities(&probe),
+        Err(reason) => FactCollection::unavailable(reason),
+    }
+}
+
+/// Material the side to move wins on `sq` with LEGAL play only — a legality-aware SEE. Unlike
+/// `best_see_capture`, `generate_legal` respects absolute pins (a pinned "defender" is absent)
+/// AND the alternating recursion honours the standard SEE stop rule, so a defender too valuable
+/// to be the last recapturer (e.g. a queen behind pawns) is correctly not forced to recapture.
+/// Both blind spots produced fuzz-found discovered-defense false positives.
+fn legal_capture_gain(pos: &Position, sq: u8, depth: u8) -> i32 {
+    if depth == 0 {
+        return 0;
+    }
+    let mut gen = pos.clone();
+    let cheapest = generate_legal(&mut gen)
+        .into_iter()
+        .filter(|m| m.to == sq)
+        .min_by_key(|m| pos.piece_at(m.from).map(|(_, p)| VALUE[p.index()]).unwrap_or(0));
+    let Some(cap) = cheapest else {
+        return 0;
+    };
+    let victim = pos.piece_at(sq).map(|(_, p)| VALUE[p.index()]).unwrap_or(0);
+    let mut after = pos.clone();
+    after.make(cap);
+    (victim - legal_capture_gain(&after, sq, depth - 1)).max(0)
+}
+
+fn discovered_defense_after_move(
+    pos: &Position,
+    mv: Move,
+    us: Color,
+) -> Option<DiscoveredDefenseOpportunity> {
+    let (_, moving_piece) = pos.piece_at(mv.from)?;
+    let mover_piece = mv.flag.promo_piece().unwrap_or(moving_piece);
+    let enemy = us.flip();
+
+    // gives_check on a throwaway pre-move clone (make() mutates) — same as discovery.
+    let mut check_probe = pos.clone();
+    let gives_check_flag = gives_check(&mut check_probe, mv);
+
+    let mut after = pos.clone(); // after.stm == enemy (make flips the turn)
+    after.make(mv);
+    let our_occ_after = friendly_occupancy(&after, us);
+    let from_bit = 1u64 << mv.from;
+
+    // Enemy-to-move view of the ORIGINAL board, for the causality/hanging probe. Built
+    // once, reused per rescued square. In a legal position the enemy cannot be the side
+    // that gives check while it is our turn, so this only fails on the routed-parity edge.
+    let enemy_pre = position_for_analysis_side(pos, enemy).ok()?;
+    // Enemy-to-move view of the AFTER board. after.stm is ALREADY enemy, so this is the
+    // routed identity path of position_for_analysis_side (clone, stm already == enemy, no
+    // ep wipe, no in-check gate) — a proven no-op probe, not a turn grant.
+    let enemy_after = position_for_analysis_side(&after, enemy).ok()?;
+
+    // Every friendly rear slider on the POST-move board, excluding the mover's square.
+    for s_piece in [Piece::Bishop, Piece::Rook, Piece::Queen] {
+        let mut bb = after.pieces[us.index()][s_piece.index()];
+        while bb != 0 {
+            let s_sq = bb.trailing_zeros() as u8;
+            bb &= bb - 1;
+            if s_sq == mv.to {
+                continue; // the mover (even a slider promotion) is never its own rear slider
+            }
+            let before_atk = match slider_attacks(s_piece, s_sq, pos.all) {
+                Some(a) => a,
+                None => continue,
+            };
+            // mv.from must have been S's nearest blocker on this ray, so vacating it is
+            // exactly what opens the line (slider_attacks stops at the first occupant).
+            if before_atk & from_bit == 0 {
+                continue;
+            }
+            let after_atk = match slider_attacks(s_piece, s_sq, after.all) {
+                Some(a) => a,
+                None => continue,
+            };
+            // Newly-DEFENDED friendly square(s). ≤1 relevant bit by discovery's one-bit
+            // argument (removing mv.from opens only S's mv.from ray; slider_attacks stops at
+            // the first occupant past it). A mover that slid ALONG S's ray re-blocks it in
+            // after.all, so G is absent here — this recomputation IS the soundness guard.
+            let unveiled_friendly = after_atk & !before_atk & our_occ_after;
+            if unveiled_friendly == 0 {
+                continue;
+            }
+            let g_sq = unveiled_friendly.trailing_zeros() as u8;
+
+            // FP guard (b): the rescued square is neither the mover's landing nor the slider.
+            if g_sq == mv.to || g_sq == s_sq {
+                continue;
+            }
+
+            let (_, g_piece) = after.piece_at(g_sq)?;
+            // FP guard (d): a king "hanging" is check, a different fact (hazards), not defense.
+            if g_piece == Piece::King {
+                continue;
+            }
+
+            // TRIGGER — G must have NEEDED the defense: hanging BEFORE the discovery, from the
+            // enemy's perspective, on the ORIGINAL board. best_see_capture gives the reported
+            // material estimate (refined SEE values, consistent with the other detectors)…
+            let loss_before = best_see_capture(&enemy_pre, g_sq);
+            if loss_before <= 0 {
+                continue; // G was NOT losing → nothing to rescue
+            }
+            // …and it must be a LEGAL loss (best_see_capture ignores pins, so it can over-report
+            // a hang whose only attacker is itself pinned — we must not claim to "rescue" an
+            // already-safe piece).
+            if legal_capture_gain(&enemy_pre, g_sq, 8) <= 0 {
+                continue;
+            }
+
+            // PROOF the discovery rescues it, LEGALITY-AWARE. best_see_capture ignores absolute
+            // pins (a pinned unveiled slider fakes a defender) and can force a too-valuable last
+            // recapturer; both produced fuzz-found false positives (e.g. a queen unveiled behind
+            // pawns onto a square with more attackers than safe defenders). legal_capture_gain
+            // replays the swap with generate_legal (pins respected, standard SEE stop rule), so
+            // the enemy's TRUE legal win on G must be ≤ 0 for the rescue to hold.
+            if legal_capture_gain(&enemy_after, g_sq, 8) > 0 {
+                continue; // still legally winnable → not actually rescued
+            }
+
+            // FP guard (a): the mover must not create a NEW hang on mv.to, else the "rescue"
+            // is illusory (we traded one hang for another). forker_capturable_for_gain needs
+            // stm == enemy, which `after` already is.
+            if forker_capturable_for_gain(&mut after.clone(), mv.to) {
+                continue;
+            }
+
+            let ray: Vec<String> = squares_between(s_sq, g_sq)
+                .into_iter()
+                .map(square_name)
+                .collect();
+
+            return Some(DiscoveredDefenseOpportunity {
+                kind: "discovered_defense".to_string(),
+                validator: "discovered_defense_validation".to_string(),
+                move_uci: mv.to_uci(),
+                mover: piece_ref(us, mover_piece, mv.to),
+                slider: piece_ref(us, s_piece, s_sq),
+                defended_piece: piece_ref(us, g_piece, g_sq),
+                ray,
+                gives_check: gives_check_flag,
+                material_gain: loss_before,
             });
         }
     }

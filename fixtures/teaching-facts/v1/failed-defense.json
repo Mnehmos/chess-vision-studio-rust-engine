@@ -217,6 +217,10 @@
       "status": "computed",
       "items": []
     },
+    "availableDiscoveredDefense": {
+      "status": "computed",
+      "items": []
+    },
     "availableRemoveGuard": {
       "status": "computed",
       "items": []
@@ -266,6 +270,10 @@
       "items": []
     },
     "opponentAvailableDiscoveries": {
+      "status": "computed",
+      "items": []
+    },
+    "opponentAvailableDiscoveredDefense": {
       "status": "computed",
       "items": []
     },
@@ -2032,6 +2040,10 @@
         "status": "computed",
         "items": []
       },
+      "availableDiscoveredDefense": {
+        "status": "computed",
+        "items": []
+      },
       "availableRemoveGuard": {
         "status": "computed",
         "items": []
@@ -2081,6 +2093,10 @@
         "items": []
       },
       "opponentAvailableDiscoveries": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableDiscoveredDefense": {
         "status": "computed",
         "items": []
       },
@@ -3863,6 +3879,10 @@
         "status": "computed",
         "items": []
       },
+      "availableDiscoveredDefense": {
+        "status": "computed",
+        "items": []
+      },
       "availableRemoveGuard": {
         "status": "computed",
         "items": []
@@ -3941,6 +3961,10 @@
         "items": []
       },
       "opponentAvailableDiscoveries": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableDiscoveredDefense": {
         "status": "computed",
         "items": []
       },
@@ -5714,6 +5738,10 @@
         "status": "computed",
         "items": []
       },
+      "availableDiscoveredDefense": {
+        "status": "computed",
+        "items": []
+      },
       "availableRemoveGuard": {
         "status": "computed",
         "items": []
@@ -5763,6 +5791,10 @@
         "items": []
       },
       "opponentAvailableDiscoveries": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableDiscoveredDefense": {
         "status": "computed",
         "items": []
       },
@@ -7180,7 +7212,7 @@
   },
   "provenance": {
     "engine": "cvs-bitboard-core",
-    "factsRegistryVersion": 17,
+    "factsRegistryVersion": 18,
     "validators": [
       "legal_move_generation",
       "attack_map",
@@ -7201,7 +7233,8 @@
       "interference_validation",
       "double_attack_validation",
       "xray_attack_validation",
-      "xray_defense_validation"
+      "xray_defense_validation",
+      "discovered_defense_validation"
     ]
   },
   "errors": []

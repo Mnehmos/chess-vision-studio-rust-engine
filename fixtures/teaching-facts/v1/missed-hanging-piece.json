@@ -243,6 +243,10 @@
       "status": "uncomputed",
       "reason": "not_requested"
     },
+    "availableDiscoveredDefense": {
+      "status": "uncomputed",
+      "reason": "not_requested"
+    },
     "availableRemoveGuard": {
       "status": "uncomputed",
       "reason": "not_requested"
@@ -292,6 +296,10 @@
       "reason": "not_requested"
     },
     "opponentAvailableDiscoveries": {
+      "status": "uncomputed",
+      "reason": "not_requested"
+    },
+    "opponentAvailableDiscoveredDefense": {
       "status": "uncomputed",
       "reason": "not_requested"
     },
@@ -1936,6 +1944,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableDiscoveredDefense": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "availableRemoveGuard": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -1985,6 +1997,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableDiscoveries": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableDiscoveredDefense": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -3869,6 +3885,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableDiscoveredDefense": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "availableRemoveGuard": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -3918,6 +3938,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableDiscoveries": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableDiscoveredDefense": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -5455,6 +5479,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableDiscoveredDefense": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "availableRemoveGuard": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -5504,6 +5532,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableDiscoveries": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableDiscoveredDefense": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -7147,7 +7179,7 @@
   },
   "provenance": {
     "engine": "cvs-bitboard-core",
-    "factsRegistryVersion": 17,
+    "factsRegistryVersion": 18,
     "validators": [
       "legal_move_generation",
       "attack_map",
