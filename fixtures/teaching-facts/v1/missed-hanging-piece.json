@@ -243,10 +243,6 @@
       "status": "uncomputed",
       "reason": "not_requested"
     },
-    "availableDiscoveredDefense": {
-      "status": "uncomputed",
-      "reason": "not_requested"
-    },
     "availableRemoveGuard": {
       "status": "uncomputed",
       "reason": "not_requested"
@@ -267,6 +263,10 @@
       "status": "uncomputed",
       "reason": "not_requested"
     },
+    "availableDeflection": {
+      "status": "uncomputed",
+      "reason": "not_requested"
+    },
     "availableInterference": {
       "status": "uncomputed",
       "reason": "not_requested"
@@ -276,10 +276,6 @@
       "reason": "not_requested"
     },
     "availableXrayAttack": {
-      "status": "uncomputed",
-      "reason": "not_requested"
-    },
-    "availableXrayDefense": {
       "status": "uncomputed",
       "reason": "not_requested"
     },
@@ -296,10 +292,6 @@
       "reason": "not_requested"
     },
     "opponentAvailableDiscoveries": {
-      "status": "uncomputed",
-      "reason": "not_requested"
-    },
-    "opponentAvailableDiscoveredDefense": {
       "status": "uncomputed",
       "reason": "not_requested"
     },
@@ -323,6 +315,10 @@
       "status": "uncomputed",
       "reason": "not_requested"
     },
+    "opponentAvailableDeflection": {
+      "status": "uncomputed",
+      "reason": "not_requested"
+    },
     "opponentAvailableInterference": {
       "status": "uncomputed",
       "reason": "not_requested"
@@ -332,10 +328,6 @@
       "reason": "not_requested"
     },
     "opponentAvailableXrayAttack": {
-      "status": "uncomputed",
-      "reason": "not_requested"
-    },
-    "opponentAvailableXrayDefense": {
       "status": "uncomputed",
       "reason": "not_requested"
     },
@@ -1944,10 +1936,6 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
-      "availableDiscoveredDefense": {
-        "status": "uncomputed",
-        "reason": "not_requested"
-      },
       "availableRemoveGuard": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -1968,6 +1956,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableDeflection": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "availableInterference": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -1977,10 +1969,6 @@
         "reason": "not_requested"
       },
       "availableXrayAttack": {
-        "status": "uncomputed",
-        "reason": "not_requested"
-      },
-      "availableXrayDefense": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -1997,10 +1985,6 @@
         "reason": "not_requested"
       },
       "opponentAvailableDiscoveries": {
-        "status": "uncomputed",
-        "reason": "not_requested"
-      },
-      "opponentAvailableDiscoveredDefense": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -2024,6 +2008,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "opponentAvailableDeflection": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "opponentAvailableInterference": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -2033,10 +2021,6 @@
         "reason": "not_requested"
       },
       "opponentAvailableXrayAttack": {
-        "status": "uncomputed",
-        "reason": "not_requested"
-      },
-      "opponentAvailableXrayDefense": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -3885,10 +3869,6 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
-      "availableDiscoveredDefense": {
-        "status": "uncomputed",
-        "reason": "not_requested"
-      },
       "availableRemoveGuard": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -3909,6 +3889,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableDeflection": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "availableInterference": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -3918,10 +3902,6 @@
         "reason": "not_requested"
       },
       "availableXrayAttack": {
-        "status": "uncomputed",
-        "reason": "not_requested"
-      },
-      "availableXrayDefense": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -3938,10 +3918,6 @@
         "reason": "not_requested"
       },
       "opponentAvailableDiscoveries": {
-        "status": "uncomputed",
-        "reason": "not_requested"
-      },
-      "opponentAvailableDiscoveredDefense": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -3965,6 +3941,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "opponentAvailableDeflection": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "opponentAvailableInterference": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -3974,10 +3954,6 @@
         "reason": "not_requested"
       },
       "opponentAvailableXrayAttack": {
-        "status": "uncomputed",
-        "reason": "not_requested"
-      },
-      "opponentAvailableXrayDefense": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -5479,10 +5455,6 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
-      "availableDiscoveredDefense": {
-        "status": "uncomputed",
-        "reason": "not_requested"
-      },
       "availableRemoveGuard": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -5503,6 +5475,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableDeflection": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "availableInterference": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -5512,10 +5488,6 @@
         "reason": "not_requested"
       },
       "availableXrayAttack": {
-        "status": "uncomputed",
-        "reason": "not_requested"
-      },
-      "availableXrayDefense": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -5532,10 +5504,6 @@
         "reason": "not_requested"
       },
       "opponentAvailableDiscoveries": {
-        "status": "uncomputed",
-        "reason": "not_requested"
-      },
-      "opponentAvailableDiscoveredDefense": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -5559,6 +5527,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "opponentAvailableDeflection": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "opponentAvailableInterference": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -5568,10 +5540,6 @@
         "reason": "not_requested"
       },
       "opponentAvailableXrayAttack": {
-        "status": "uncomputed",
-        "reason": "not_requested"
-      },
-      "opponentAvailableXrayDefense": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -7179,7 +7147,7 @@
   },
   "provenance": {
     "engine": "cvs-bitboard-core",
-    "factsRegistryVersion": 18,
+    "factsRegistryVersion": 17,
     "validators": [
       "legal_move_generation",
       "attack_map",

@@ -258,10 +258,6 @@
       "status": "computed",
       "items": []
     },
-    "availableDiscoveredDefense": {
-      "status": "computed",
-      "items": []
-    },
     "availableRemoveGuard": {
       "status": "computed",
       "items": []
@@ -282,6 +278,10 @@
       "status": "computed",
       "items": []
     },
+    "availableDeflection": {
+      "status": "computed",
+      "items": []
+    },
     "availableInterference": {
       "status": "computed",
       "items": []
@@ -291,10 +291,6 @@
       "items": []
     },
     "availableXrayAttack": {
-      "status": "computed",
-      "items": []
-    },
-    "availableXrayDefense": {
       "status": "computed",
       "items": []
     },
@@ -311,10 +307,6 @@
       "items": []
     },
     "opponentAvailableDiscoveries": {
-      "status": "computed",
-      "items": []
-    },
-    "opponentAvailableDiscoveredDefense": {
       "status": "computed",
       "items": []
     },
@@ -338,6 +330,10 @@
       "status": "computed",
       "items": []
     },
+    "opponentAvailableDeflection": {
+      "status": "computed",
+      "items": []
+    },
     "opponentAvailableInterference": {
       "status": "computed",
       "items": []
@@ -347,10 +343,6 @@
       "items": []
     },
     "opponentAvailableXrayAttack": {
-      "status": "computed",
-      "items": []
-    },
-    "opponentAvailableXrayDefense": {
       "status": "computed",
       "items": []
     },
@@ -2023,10 +2015,6 @@
         "status": "computed",
         "items": []
       },
-      "availableDiscoveredDefense": {
-        "status": "computed",
-        "items": []
-      },
       "availableRemoveGuard": {
         "status": "computed",
         "items": []
@@ -2047,6 +2035,10 @@
         "status": "computed",
         "items": []
       },
+      "availableDeflection": {
+        "status": "computed",
+        "items": []
+      },
       "availableInterference": {
         "status": "computed",
         "items": []
@@ -2056,10 +2048,6 @@
         "items": []
       },
       "availableXrayAttack": {
-        "status": "computed",
-        "items": []
-      },
-      "availableXrayDefense": {
         "status": "computed",
         "items": []
       },
@@ -2076,10 +2064,6 @@
         "items": []
       },
       "opponentAvailableDiscoveries": {
-        "status": "computed",
-        "items": []
-      },
-      "opponentAvailableDiscoveredDefense": {
         "status": "computed",
         "items": []
       },
@@ -2103,6 +2087,10 @@
         "status": "computed",
         "items": []
       },
+      "opponentAvailableDeflection": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableInterference": {
         "status": "computed",
         "items": []
@@ -2112,10 +2100,6 @@
         "items": []
       },
       "opponentAvailableXrayAttack": {
-        "status": "computed",
-        "items": []
-      },
-      "opponentAvailableXrayDefense": {
         "status": "computed",
         "items": []
       },
@@ -3842,10 +3826,6 @@
         "status": "computed",
         "items": []
       },
-      "availableDiscoveredDefense": {
-        "status": "computed",
-        "items": []
-      },
       "availableRemoveGuard": {
         "status": "computed",
         "items": []
@@ -3866,6 +3846,10 @@
         "status": "computed",
         "items": []
       },
+      "availableDeflection": {
+        "status": "computed",
+        "items": []
+      },
       "availableInterference": {
         "status": "computed",
         "items": []
@@ -3875,10 +3859,6 @@
         "items": []
       },
       "availableXrayAttack": {
-        "status": "computed",
-        "items": []
-      },
-      "availableXrayDefense": {
         "status": "computed",
         "items": []
       },
@@ -3895,10 +3875,6 @@
         "items": []
       },
       "opponentAvailableDiscoveries": {
-        "status": "computed",
-        "items": []
-      },
-      "opponentAvailableDiscoveredDefense": {
         "status": "computed",
         "items": []
       },
@@ -3922,6 +3898,10 @@
         "status": "computed",
         "items": []
       },
+      "opponentAvailableDeflection": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableInterference": {
         "status": "computed",
         "items": []
@@ -3931,10 +3911,6 @@
         "items": []
       },
       "opponentAvailableXrayAttack": {
-        "status": "computed",
-        "items": []
-      },
-      "opponentAvailableXrayDefense": {
         "status": "computed",
         "items": []
       },
@@ -5682,10 +5658,6 @@
         "status": "computed",
         "items": []
       },
-      "availableDiscoveredDefense": {
-        "status": "computed",
-        "items": []
-      },
       "availableRemoveGuard": {
         "status": "computed",
         "items": []
@@ -5706,6 +5678,10 @@
         "status": "computed",
         "items": []
       },
+      "availableDeflection": {
+        "status": "computed",
+        "items": []
+      },
       "availableInterference": {
         "status": "computed",
         "items": []
@@ -5715,10 +5691,6 @@
         "items": []
       },
       "availableXrayAttack": {
-        "status": "computed",
-        "items": []
-      },
-      "availableXrayDefense": {
         "status": "computed",
         "items": []
       },
@@ -5769,10 +5741,6 @@
         "status": "computed",
         "items": []
       },
-      "opponentAvailableDiscoveredDefense": {
-        "status": "computed",
-        "items": []
-      },
       "opponentAvailableRemoveGuard": {
         "status": "computed",
         "items": []
@@ -5814,6 +5782,10 @@
         "status": "computed",
         "items": []
       },
+      "opponentAvailableDeflection": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableInterference": {
         "status": "computed",
         "items": []
@@ -5823,10 +5795,6 @@
         "items": []
       },
       "opponentAvailableXrayAttack": {
-        "status": "computed",
-        "items": []
-      },
-      "opponentAvailableXrayDefense": {
         "status": "computed",
         "items": []
       },
@@ -7281,7 +7249,7 @@
   },
   "provenance": {
     "engine": "cvs-bitboard-core",
-    "factsRegistryVersion": 18,
+    "factsRegistryVersion": 17,
     "validators": [
       "legal_move_generation",
       "attack_map",
@@ -7302,8 +7270,7 @@
       "interference_validation",
       "double_attack_validation",
       "xray_attack_validation",
-      "xray_defense_validation",
-      "discovered_defense_validation"
+      "deflection_validation"
     ]
   },
   "errors": []

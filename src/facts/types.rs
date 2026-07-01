@@ -59,6 +59,7 @@ pub struct PositionFacts {
     pub available_mate_patterns: FactCollection<MatePatternFact>,
     pub available_overload: FactCollection<OverloadOpportunity>,
     pub available_attack_defender: FactCollection<AttackDefenderOpportunity>,
+    pub available_deflection: FactCollection<DeflectionOpportunity>,
     pub available_interference: FactCollection<InterferenceOpportunity>,
     pub available_double_attack: FactCollection<DoubleAttackOpportunity>,
     pub available_xray_attack: FactCollection<XRayOpportunity>,
@@ -75,6 +76,7 @@ pub struct PositionFacts {
     pub opponent_available_mate_patterns: FactCollection<MatePatternFact>,
     pub opponent_available_overload: FactCollection<OverloadOpportunity>,
     pub opponent_available_attack_defender: FactCollection<AttackDefenderOpportunity>,
+    pub opponent_available_deflection: FactCollection<DeflectionOpportunity>,
     pub opponent_available_interference: FactCollection<InterferenceOpportunity>,
     pub opponent_available_double_attack: FactCollection<DoubleAttackOpportunity>,
     pub opponent_available_xray_attack: FactCollection<XRayOpportunity>,
@@ -485,6 +487,31 @@ pub struct AttackDefenderOpportunity {
     pub gives_check: bool,
     /// SEE centipawns we win against the enemy's best reply — the least-bad outcome over
     /// every reply of (win the standing/relocated defender, or win an abandoned charge).
+    pub material_gain: i32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeflectionOpportunity {
+    /// Motif family — always "deflection".
+    pub kind: String,
+    /// Validator that proved it — "deflection_validation".
+    pub validator: String,
+    /// The non-capturing-of-D move that distracts the guard (long UCI); never captures D.
+    pub move_uci: String,
+    /// Our piece that creates the forcing threat, at its post-move square.
+    pub mover: PieceRef,
+    /// The enemy defender lured off its post — the sole guard of the target(s), NOT
+    /// profitably capturable in place. At its (pre-eviction) square.
+    pub distracted_defender: PieceRef,
+    /// The enemy charge(s) the defender solely guards, winnable once it is deflected
+    /// (sorted by id). Non-king, non-pawn.
+    pub targets: Vec<PieceRef>,
+    /// Whether the deflecting move gives check.
+    pub gives_check: bool,
+    /// SEE centipawns we win against the enemy's best reply — the least-bad outcome over
+    /// every reply of (win the standing/relocated defender, or a charge the eviction
+    /// abandons). SEE_VALUE scale (knight 320, bishop 330, rook 500).
     pub material_gain: i32,
 }
 
