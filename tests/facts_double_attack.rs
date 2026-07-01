@@ -130,6 +130,15 @@ fn no_double_attacks_in_the_opening_position() {
     assert!(double_attacks("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").is_empty());
 }
 
+#[test]
+fn rejects_a_pinned_mover_threat() {
+    // Bf1-e2 interposes against a check (Qd2 on the 2nd rank); the bishop is then pinned to
+    // its own king and can NEVER capture c4, so its "threat A" is not real. A double attack
+    // must not be claimed (regression for the pinned-mover false positive found by fuzzing).
+    let items = double_attacks("r3kbnr/1p1bp1pp/pQ1P4/2p2p2/2p1PP2/6PP/PP1q1K2/R1B2BNR w kq - 0 14");
+    assert!(find(&items, "f1e2").is_none(), "a pinned mover has no real threat A");
+}
+
 // ── determinism / purity ─────────────────────────────────────────────────────
 
 #[test]

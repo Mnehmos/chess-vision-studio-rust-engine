@@ -1510,6 +1510,18 @@ fn double_attack_after_move(
     }
     // Recover A's square by the same rule mover_threat_gain uses so the PieceRef is exact.
     let (a_piece, a_sq) = double_attack_best_mover_target(&after, us, enemy, mv.to, threat_a)?;
+    // Threat A must be LEGALLY executable by the mover. mover_threat_gain is attack-geometry
+    // only, so a PINNED mover (e.g. mv itself interposed against a check) passes it while
+    // being unable to ever capture a_sq — the pinned-mover false positive. Require a legal,
+    // winning capture of a_sq FROM mv.to on the us-to-move probe (generate_legal respects the
+    // pin), mirroring threat B's best_see_capture/see legality.
+    let mut a_legal_probe = after_us.clone();
+    if !generate_legal(&mut a_legal_probe)
+        .into_iter()
+        .any(|m| m.from == mv.to && m.to == a_sq && see(&after_us, m.from, m.to) > 0)
+    {
+        return None;
+    }
     let a_undefended = is_undefended(&after, a_sq, enemy);
 
     // THREAT B: every OTHER friendly piece q (q_sq != mv.to) that attacks some enemy t,
