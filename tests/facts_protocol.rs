@@ -151,6 +151,7 @@ fn registry_provenance_lists_every_active_validator() {
             "attack_defender_validation",
             "interference_validation",
             "double_attack_validation",
+            "xray_attack_validation",
         ]
     );
 }

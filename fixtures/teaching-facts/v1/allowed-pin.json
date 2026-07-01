@@ -286,6 +286,10 @@
       "status": "computed",
       "items": []
     },
+    "availableXrayAttack": {
+      "status": "computed",
+      "items": []
+    },
     "opponentAvailableMotifs": {
       "status": "computed",
       "items": []
@@ -327,6 +331,10 @@
       "items": []
     },
     "opponentAvailableDoubleAttack": {
+      "status": "computed",
+      "items": []
+    },
+    "opponentAvailableXrayAttack": {
       "status": "computed",
       "items": []
     },
@@ -2027,6 +2035,10 @@
         "status": "computed",
         "items": []
       },
+      "availableXrayAttack": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMotifs": {
         "status": "computed",
         "items": []
@@ -2068,6 +2080,10 @@
         "items": []
       },
       "opponentAvailableDoubleAttack": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableXrayAttack": {
         "status": "computed",
         "items": []
       },
@@ -3822,6 +3838,10 @@
         "status": "computed",
         "items": []
       },
+      "availableXrayAttack": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMotifs": {
         "status": "computed",
         "items": []
@@ -3863,6 +3883,10 @@
         "items": []
       },
       "opponentAvailableDoubleAttack": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableXrayAttack": {
         "status": "computed",
         "items": []
       },
@@ -5638,6 +5662,10 @@
         "status": "computed",
         "items": []
       },
+      "availableXrayAttack": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMotifs": {
         "status": "computed",
         "items": []
@@ -5731,6 +5759,10 @@
         "items": []
       },
       "opponentAvailableDoubleAttack": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableXrayAttack": {
         "status": "computed",
         "items": []
       },
@@ -7185,7 +7217,7 @@
   },
   "provenance": {
     "engine": "cvs-bitboard-core",
-    "factsRegistryVersion": 15,
+    "factsRegistryVersion": 16,
     "validators": [
       "legal_move_generation",
       "attack_map",
@@ -7204,7 +7236,8 @@
       "overload_validation",
       "attack_defender_validation",
       "interference_validation",
-      "double_attack_validation"
+      "double_attack_validation",
+      "xray_attack_validation"
     ]
   },
   "errors": []

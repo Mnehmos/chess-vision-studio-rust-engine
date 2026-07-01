@@ -60,6 +60,7 @@ pub struct PositionFacts {
     pub available_attack_defender: FactCollection<AttackDefenderOpportunity>,
     pub available_interference: FactCollection<InterferenceOpportunity>,
     pub available_double_attack: FactCollection<DoubleAttackOpportunity>,
+    pub available_xray_attack: FactCollection<XRayOpportunity>,
     /// Analysis-only legal opportunities for the side that is not to move.
     /// These let the application prove a motif was newly allowed by a move.
     pub opponent_available_motifs: FactCollection<MotifOpportunity>,
@@ -73,6 +74,7 @@ pub struct PositionFacts {
     pub opponent_available_attack_defender: FactCollection<AttackDefenderOpportunity>,
     pub opponent_available_interference: FactCollection<InterferenceOpportunity>,
     pub opponent_available_double_attack: FactCollection<DoubleAttackOpportunity>,
+    pub opponent_available_xray_attack: FactCollection<XRayOpportunity>,
     pub hazards: FactCollection<HazardFact>,
     pub square_facts: FactCollection<SquareFact>,
 }
@@ -501,6 +503,30 @@ pub struct DoubleAttackOpportunity {
     /// Whether the double-attack move gives check.
     pub gives_check: bool,
     /// Estimated forced material: the enemy saves the dearer target, we take the lesser — min(threatA, threatB).
+    pub material_gain: i32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct XRayOpportunity {
+    /// Motif family — always "xray_attack".
+    pub kind: String,
+    /// Validator that proved it — "xray_attack_validation".
+    pub validator: String,
+    /// The single move that creates the x-ray alignment (long UCI).
+    pub move_uci: String,
+    /// Our slider, at its post-move square (promoted type if a slider promotion).
+    pub xrayer: PieceRef,
+    /// The defended front enemy piece attacked directly.
+    pub front: PieceRef,
+    /// The rear enemy piece seen THROUGH the front on the same line — the piece whose
+    /// presence, revealed by the shrinking occupancy, makes the counting-through win.
+    pub back: PieceRef,
+    /// Squares between the xrayer and the back piece along the x-ray line.
+    pub ray: Vec<String>,
+    /// Whether the move gives check.
+    pub gives_check: bool,
+    /// Full-SEE centipawns won on the front square, counting through the reveal.
     pub material_gain: i32,
 }
 

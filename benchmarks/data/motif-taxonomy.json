@@ -26,7 +26,7 @@
     { "slug": "skewer-of-rook", "name": "Skewer of Rook", "category": "tactical", "family": "skewer", "parent": "skewer", "definition": "The skewered (front) piece is a rook.", "detectedBy": null },
     { "slug": "skewer-of-king", "name": "Skewer of King", "category": "tactical", "family": "skewer", "parent": "skewer", "definition": "The king is forced to move off the line, winning the piece behind it.", "detectedBy": null },
 
-    { "slug": "xray-attack", "name": "X-Ray Attack", "category": "tactical", "family": "xray", "definition": "A slider attacks through an enemy piece to a target behind it.", "detectedBy": null },
+    { "slug": "xray-attack", "name": "X-Ray Attack", "category": "tactical", "family": "xray", "definition": "A slider attacks through an enemy piece to a target behind it.", "detectedBy": "facts::motifs(xray_attack)" },
     { "slug": "xray-defense", "name": "X-Ray Defense", "category": "tactical", "family": "xray", "definition": "A slider defends a friendly piece through an enemy piece.", "detectedBy": null },
 
     { "slug": "discovered-attack", "name": "Discovered Attack", "category": "tactical", "family": "discovery", "definition": "Moving a piece unveils an attack from a piece behind it.", "detectedBy": "facts::motifs(discovery)" },
