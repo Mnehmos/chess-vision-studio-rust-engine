@@ -227,7 +227,7 @@
       "status": "computed",
       "items": []
     },
-    "availableDoubleAttack": {
+    "availableXrayAttack": {
       "status": "computed",
       "items": []
     },
@@ -271,7 +271,7 @@
       "status": "computed",
       "items": []
     },
-    "opponentAvailableDoubleAttack": {
+    "opponentAvailableXrayAttack": {
       "status": "computed",
       "items": []
     },
@@ -1964,7 +1964,7 @@
         "status": "computed",
         "items": []
       },
-      "availableDoubleAttack": {
+      "availableXrayAttack": {
         "status": "computed",
         "items": []
       },
@@ -2008,7 +2008,7 @@
         "status": "computed",
         "items": []
       },
-      "opponentAvailableDoubleAttack": {
+      "opponentAvailableXrayAttack": {
         "status": "computed",
         "items": []
       },
@@ -3718,7 +3718,7 @@
         "status": "computed",
         "items": []
       },
-      "availableDoubleAttack": {
+      "availableXrayAttack": {
         "status": "computed",
         "items": []
       },
@@ -3796,7 +3796,7 @@
         "status": "computed",
         "items": []
       },
-      "opponentAvailableDoubleAttack": {
+      "opponentAvailableXrayAttack": {
         "status": "computed",
         "items": []
       },
@@ -5520,7 +5520,7 @@
         "status": "computed",
         "items": []
       },
-      "availableDoubleAttack": {
+      "availableXrayAttack": {
         "status": "computed",
         "items": []
       },
@@ -5564,7 +5564,7 @@
         "status": "unavailable",
         "reason": "opposite_side_probe_while_in_check"
       },
-      "opponentAvailableDoubleAttack": {
+      "opponentAvailableXrayAttack": {
         "status": "unavailable",
         "reason": "opposite_side_probe_while_in_check"
       },
@@ -6890,7 +6890,7 @@
       "overload_validation",
       "attack_defender_validation",
       "interference_validation",
-      "double_attack_validation"
+      "xray_attack_validation"
     ]
   },
   "errors": []

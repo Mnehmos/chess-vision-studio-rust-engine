@@ -11,7 +11,7 @@ use crate::facts::position::{position_for_analysis_side, square_name};
 use crate::facts::types::{
     AttackDefenderOpportunity, DiscoveryOpportunity, DoubleAttackOpportunity, FactCollection,
     InterferenceOpportunity, MotifOpportunity, OverloadOpportunity, PieceRef, PinOpportunity,
-    RemoveGuardOpportunity, SkewerOpportunity, TrappedPieceOpportunity,
+    RemoveGuardOpportunity, SkewerOpportunity, TrappedPieceOpportunity, XRayOpportunity,
 };
 use crate::movegen::{generate_legal, gives_check};
 use crate::see::see;
@@ -433,6 +433,163 @@ fn skewer_after_move(pos: &Position, mv: Move, skewerer_color: Color) -> Option<
         });
     }
     None
+}
+
+// ── X-ray attack (attack through an enemy piece) ─────────────────────────────
+// Our slider attacks a DEFENDED front enemy piece F, with a second enemy piece B
+// directly behind F on the SAME slider line. This is neither a pin (B would be the
+// king) nor a skewer (F would be worth more than B and be forced to flee): here
+// VALUE[F] <= VALUE[B], B is not the king, and F is not the king, so F is NOT forced
+// to move. The tactic is a COUNTING win — take F, get recaptured, our slider
+// RE-CAPTURES down the now-cleared line; `see` reveals the rear same-line slider
+// through the shrinking occupancy, so a naive one-square count on F
+// (`best_see_capture`) MISSES it while the full swap on F wins. That gap IS the motif.
+//
+// No worst-case-over-all-replies loop is needed (unlike attack_defender/interference):
+// the win is a pure exchange on ONE square that `see` already minimaxes over both
+// sides' best recaptures. `best_see_capture(pos, f_sq) <= 0` pre-move plus
+// `see(after_us, s, f_sq) > 0` post-move is the complete proof.
+
+/// Validated x-ray-attack opportunities for the side to move, sorted by move then front id.
+pub fn xray_attack_opportunities(pos: &Position) -> FactCollection<XRayOpportunity> {
+    let xrayer_color = pos.stm;
+    let mut probe = pos.clone();
+    let legal = generate_legal(&mut probe);
+    let mut out = Vec::new();
+    for mv in legal {
+        if let Some(x) = xray_attack_after_move(pos, mv, xrayer_color) {
+            out.push(x);
+        }
+    }
+    out.sort_by(|a, b| {
+        a.move_uci
+            .cmp(&b.move_uci)
+            .then_with(|| a.front.id.cmp(&b.front.id))
+    });
+    FactCollection::computed(out)
+}
+
+/// Validated x-ray attacks for a requested side. See `motif_opportunities_for` for the
+/// counterfactual side-to-move semantics.
+pub fn xray_attack_opportunities_for(
+    pos: &Position,
+    side: Color,
+) -> FactCollection<XRayOpportunity> {
+    match position_for_analysis_side(pos, side) {
+        Ok(probe) => xray_attack_opportunities(&probe),
+        Err(reason) => FactCollection::unavailable(reason),
+    }
+}
+
+fn xray_attack_after_move(pos: &Position, mv: Move, us: Color) -> Option<XRayOpportunity> {
+    let (_, moving_piece) = pos.piece_at(mv.from)?;
+    let xrayer_piece = mv.flag.promo_piece().unwrap_or(moving_piece);
+    // (G0) Only sliders x-ray.
+    slider_attacks(xrayer_piece, mv.to, 0)?;
+
+    let mut check_probe = pos.clone();
+    let gives_check_flag = gives_check(&mut check_probe, mv);
+
+    let mut after = pos.clone();
+    after.make(mv); // after.stm == enemy
+    let enemy = us.flip();
+    let s = mv.to;
+
+    // (G1) Our slider must not simply hang on s.
+    if forker_capturable_for_gain(&mut after.clone(), s) {
+        return None;
+    }
+
+    let atk = slider_attacks(xrayer_piece, s, after.all)?;
+    let enemy_occ = enemy_occupancy(&after, enemy);
+
+    // (G2) us-to-move probe so see()/best_see_capture score OUR captures. Err bails on
+    //      our-king-in-check and on a check-giving mv (documented FN).
+    let after_us = position_for_analysis_side(&after, us).ok()?;
+
+    let mut best: Option<XRayOpportunity> = None;
+    let mut front_bb = atk & enemy_occ;
+    while front_bb != 0 {
+        let f_sq = front_bb.trailing_zeros() as u8;
+        front_bb &= front_bb - 1;
+        let (_, f_piece) = match after.piece_at(f_sq) {
+            Some(x) => x,
+            None => continue,
+        };
+
+        // (G4b) A king FRONT is always a skewer (VALUE[King]=0 satisfies the value
+        //       test below), never an x-ray. Drop it here.
+        if f_piece == Piece::King {
+            continue;
+        }
+
+        // (G3) F must be DEFENDED — the whole point is counting THROUGH the defender.
+        //      An undefended F is a plain hanging capture, not an x-ray.
+        let f_defenders = attackers_of(&after.pieces, f_sq, enemy, after.all) & !(1u64 << f_sq);
+        if f_defenders == 0 {
+            continue;
+        }
+
+        // The rear enemy piece newly seen once F is removed (the pin/skewer ray probe).
+        let occ2 = after.all & !(1u64 << f_sq);
+        let atk2 = match slider_attacks(xrayer_piece, s, occ2) {
+            Some(a) => a,
+            None => continue,
+        };
+        let behind = atk2 & !atk & enemy_occ; // <= 1 relevant bit
+        if behind == 0 {
+            continue;
+        }
+        let b_sq = behind.trailing_zeros() as u8;
+        let (_, b_piece) = match after.piece_at(b_sq) {
+            Some(x) => x,
+            None => continue,
+        };
+
+        // (G4) PARTITION — disjoint from pin and skewer:
+        //   pin    => b_piece == King        (rear is the king)
+        //   skewer => VALUE[f] >  VALUE[b]    (front forced to flee a dearer attacker)
+        //   x-ray  => b_piece != King AND VALUE[f] <= VALUE[b]  (front NOT forced)
+        if b_piece == Piece::King {
+            continue; // pin geometry
+        }
+        if VALUE[f_piece.index()] > VALUE[b_piece.index()] {
+            continue; // skewer geometry
+        }
+
+        // (G5) CAUSALITY — F must NOT already be winnable by a naive one-square count on
+        //      the PRE-MOVE board. The x-ray alignment created by mv is what wins it.
+        if best_see_capture(pos, f_sq) > 0 {
+            continue;
+        }
+
+        // (G6) COUNTING PROOF — the full SEE swap on f_sq from OUR side. see() reveals the
+        //      rear same-line slider through the shrinking occupancy, so a defended F that
+        //      is not actually winnable through the x-ray returns <= 0 and is dropped.
+        let gain = see(&after_us, s, f_sq);
+        if gain <= 0 {
+            continue;
+        }
+
+        let ray: Vec<String> = squares_between(s, b_sq).into_iter().map(square_name).collect();
+        let cand = XRayOpportunity {
+            kind: "xray_attack".to_string(),
+            validator: "xray_attack_validation".to_string(),
+            move_uci: mv.to_uci(),
+            xrayer: piece_ref(us, xrayer_piece, s),
+            front: piece_ref(enemy, f_piece, f_sq),
+            back: piece_ref(enemy, b_piece, b_sq),
+            ray,
+            gives_check: gives_check_flag,
+            material_gain: gain,
+        };
+        // Highest-gain front for this move; ties -> first seen (deterministic).
+        match &best {
+            Some(b) if b.material_gain >= cand.material_gain => {}
+            _ => best = Some(cand),
+        }
+    }
+    best
 }
 
 /// Squares strictly between two colinear squares (exclusive of both endpoints).

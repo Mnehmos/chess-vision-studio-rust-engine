@@ -34,6 +34,7 @@ pub const TEACHING_FACTS_SCHEMA_VERSION: u32 = 1;
 // v13: validated attacking-the-defender move enumeration (available_attack_defender + opp probe).
 // v14: validated interference move enumeration (available_interference + opponent probe).
 // v15: validated double-attack move enumeration (available_double_attack + opponent probe).
+// v16: validated x-ray-attack move enumeration (available_xray_attack + opponent probe).
 // Schema stays additive at v1; the registry version bumps when a new validator
 // produces facts.
-pub const FACTS_REGISTRY_VERSION: u32 = 15;
+pub const FACTS_REGISTRY_VERSION: u32 = 16;

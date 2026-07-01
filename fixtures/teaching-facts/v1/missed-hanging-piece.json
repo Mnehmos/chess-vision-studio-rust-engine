@@ -267,7 +267,7 @@
       "status": "uncomputed",
       "reason": "not_requested"
     },
-    "availableDoubleAttack": {
+    "availableXrayAttack": {
       "status": "uncomputed",
       "reason": "not_requested"
     },
@@ -311,7 +311,7 @@
       "status": "uncomputed",
       "reason": "not_requested"
     },
-    "opponentAvailableDoubleAttack": {
+    "opponentAvailableXrayAttack": {
       "status": "uncomputed",
       "reason": "not_requested"
     },
@@ -1944,7 +1944,7 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
-      "availableDoubleAttack": {
+      "availableXrayAttack": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -1988,7 +1988,7 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
-      "opponentAvailableDoubleAttack": {
+      "opponentAvailableXrayAttack": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -3861,7 +3861,7 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
-      "availableDoubleAttack": {
+      "availableXrayAttack": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -3905,7 +3905,7 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
-      "opponentAvailableDoubleAttack": {
+      "opponentAvailableXrayAttack": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -5431,7 +5431,7 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
-      "availableDoubleAttack": {
+      "availableXrayAttack": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -5475,7 +5475,7 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
-      "opponentAvailableDoubleAttack": {
+      "opponentAvailableXrayAttack": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
