@@ -270,6 +270,10 @@
       "status": "computed",
       "items": []
     },
+    "availableOverload": {
+      "status": "computed",
+      "items": []
+    },
     "opponentAvailableMotifs": {
       "status": "computed",
       "items": []
@@ -295,6 +299,10 @@
       "items": []
     },
     "opponentAvailableMatePatterns": {
+      "status": "computed",
+      "items": []
+    },
+    "opponentAvailableOverload": {
       "status": "computed",
       "items": []
     },
@@ -1979,6 +1987,10 @@
         "status": "computed",
         "items": []
       },
+      "availableOverload": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMotifs": {
         "status": "computed",
         "items": []
@@ -2004,6 +2016,10 @@
         "items": []
       },
       "opponentAvailableMatePatterns": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableOverload": {
         "status": "computed",
         "items": []
       },
@@ -3742,6 +3758,10 @@
         "status": "computed",
         "items": []
       },
+      "availableOverload": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMotifs": {
         "status": "computed",
         "items": []
@@ -3767,6 +3787,10 @@
         "items": []
       },
       "opponentAvailableMatePatterns": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableOverload": {
         "status": "computed",
         "items": []
       },
@@ -5526,6 +5550,10 @@
         "status": "computed",
         "items": []
       },
+      "availableOverload": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMotifs": {
         "status": "computed",
         "items": []
@@ -5603,6 +5631,10 @@
         ]
       },
       "opponentAvailableMatePatterns": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableOverload": {
         "status": "computed",
         "items": []
       },
@@ -7057,7 +7089,7 @@
   },
   "provenance": {
     "engine": "cvs-bitboard-core",
-    "factsRegistryVersion": 11,
+    "factsRegistryVersion": 12,
     "validators": [
       "legal_move_generation",
       "attack_map",
@@ -7072,7 +7104,8 @@
       "discovery_validation",
       "remove_guard_validation",
       "trapped_piece_validation",
-      "mate_pattern_validation"
+      "mate_pattern_validation",
+      "overload_validation"
     ]
   },
   "errors": []

@@ -30,6 +30,7 @@ pub const TEACHING_FACTS_SCHEMA_VERSION: u32 = 1;
 // v9: validated capturing-the-defender enumeration (available_remove_guard + opponent probe).
 // v10: validated trapped-piece state enumeration (available_trapped + opponent probe).
 // v11: named mate-pattern classification (available_mate_patterns + opponent probe).
+// v12: validated overloaded-defender state enumeration (available_overload + opponent probe).
 // Schema stays additive at v1; the registry version bumps when a new validator
 // produces facts.
-pub const FACTS_REGISTRY_VERSION: u32 = 11;
+pub const FACTS_REGISTRY_VERSION: u32 = 12;

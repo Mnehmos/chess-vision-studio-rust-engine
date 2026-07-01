@@ -9,8 +9,8 @@ use crate::attacks::{attackers_of, bishop_attacks, queen_attacks, rook_attacks};
 use crate::facts::piece_safety::piece_ref;
 use crate::facts::position::{position_for_analysis_side, square_name};
 use crate::facts::types::{
-    DiscoveryOpportunity, FactCollection, MotifOpportunity, PieceRef, PinOpportunity,
-    RemoveGuardOpportunity, SkewerOpportunity, TrappedPieceOpportunity,
+    DiscoveryOpportunity, FactCollection, MotifOpportunity, OverloadOpportunity, PieceRef,
+    PinOpportunity, RemoveGuardOpportunity, SkewerOpportunity, TrappedPieceOpportunity,
 };
 use crate::movegen::{generate_legal, gives_check};
 use crate::see::see;
@@ -807,6 +807,150 @@ fn best_see_capture(pos: &Position, target: u8) -> i32 {
         }
     }
     best
+}
+
+// ── Overloaded defender ──────────────────────────────────────────────────────
+// A STATE detector (not move-based): an enemy piece D that is the critical defender of
+// TWO OR MORE of its own pieces, each winnable for us once D is removed but not while D
+// guards it. D cannot guard both, so we win material. Mirrors `trapped_pieces`; the
+// D-removed probe clears D's bit and keeps stm == us (no `make()`, so no turn flip), so
+// `see`/`best_see_capture` still score OUR captures. King excluded as defender and as
+// target; pawns excluded as targets (output flooding / promotion subtleties) but eligible
+// as defenders. A shared-attacker guard rejects the case where one of our pieces is the
+// sole attacker of both targets — deflecting it onto one leaves nothing to take the other,
+// which passes every per-target SEE check yet wins nothing.
+
+/// Validated overloaded enemy defenders for the side to move (the side that exploits).
+pub fn overload_opportunities(pos: &Position) -> FactCollection<OverloadOpportunity> {
+    let us = pos.stm;
+    let enemy = us.flip();
+    // We can only begin the combination on our move; if WE are in check we must respond.
+    if attackers_of(&pos.pieces, pos.king_sq(us), enemy, pos.all) != 0 {
+        return FactCollection::computed(Vec::new());
+    }
+    let mut out = Vec::new();
+    for d_piece in [
+        Piece::Pawn,
+        Piece::Knight,
+        Piece::Bishop,
+        Piece::Rook,
+        Piece::Queen,
+    ] {
+        let mut dbb = pos.pieces[enemy.index()][d_piece.index()];
+        while dbb != 0 {
+            let d_sq = dbb.trailing_zeros() as u8;
+            dbb &= dbb - 1;
+            if let Some(op) = overload_for_defender(pos, enemy, d_piece, d_sq) {
+                out.push(op);
+            }
+        }
+    }
+    out.sort_by(|a, b| a.overloaded_defender.id.cmp(&b.overloaded_defender.id));
+    FactCollection::computed(out)
+}
+
+/// Validated overloaded defenders from a requested side's perspective (the exploiter).
+pub fn overload_opportunities_for(
+    pos: &Position,
+    side: Color,
+) -> FactCollection<OverloadOpportunity> {
+    match position_for_analysis_side(pos, side) {
+        Ok(probe) => overload_opportunities(&probe),
+        Err(reason) => FactCollection::unavailable(reason),
+    }
+}
+
+fn overload_for_defender(
+    pos: &Position,
+    enemy: Color,
+    d_piece: Piece,
+    d_sq: u8,
+) -> Option<OverloadOpportunity> {
+    let d_bit = 1u64 << d_sq;
+
+    // D-removed probe: clear D, keep stm == us (no make(), no turn flip). All THREE
+    // occupancy views must stay in sync — `pieces`, per-color `occ`, and `all` — or
+    // movegen (which flags captures off `occ[them]`) emits a phantom capture onto D's
+    // vacated square and `make` panics "capture on empty".
+    let mut probe = pos.clone();
+    probe.pieces[enemy.index()][d_piece.index()] &= !d_bit;
+    probe.occ[enemy.index()] &= !d_bit;
+    probe.all &= !d_bit;
+    probe.ep = None;
+
+    // Charges D critically guards: (piece, sq, gain_if_gone, winning-capturer from-sq).
+    let mut charges: Vec<(Piece, u8, i32, u8)> = Vec::new();
+    for p_piece in [Piece::Knight, Piece::Bishop, Piece::Rook, Piece::Queen] {
+        let mut pbb = pos.pieces[enemy.index()][p_piece.index()];
+        while pbb != 0 {
+            let p_sq = pbb.trailing_zeros() as u8;
+            pbb &= pbb - 1;
+            if p_sq == d_sq {
+                continue;
+            }
+            // (a) D is a direct current defender of P on the live board.
+            let before_defs = attackers_of(&pos.pieces, p_sq, enemy, pos.all) & !(1u64 << p_sq);
+            if before_defs & d_bit == 0 {
+                continue;
+            }
+            // (b) P is not already winnable — the win must be CAUSED by removing D.
+            if best_see_capture(pos, p_sq) > 0 {
+                continue;
+            }
+            // (c) P is winnable once D is gone (SEE counts every other remaining defender).
+            let gain = best_see_capture(&probe, p_sq);
+            if gain <= 0 {
+                continue;
+            }
+            let from = best_capture_from(&probe, p_sq)?;
+            charges.push((p_piece, p_sq, gain, from));
+        }
+    }
+    if charges.len() < 2 {
+        return None;
+    }
+    // Shared-attacker guard: the exploitation deflects one of our pieces onto a target (D
+    // recaptures it); a DIFFERENT piece must remain to take the other. Require >=2 charges
+    // whose winning captures use distinct pieces — else the single shared attacker is
+    // consumed deflecting D and nothing wins the second piece.
+    let mut froms: Vec<u8> = charges.iter().map(|c| c.3).collect();
+    froms.sort_unstable();
+    froms.dedup();
+    if froms.len() < 2 {
+        return None;
+    }
+
+    // material_gain: the opponent saves the dearer; we collect the second-best realized
+    // SEE (the fork's `vals.get(1)` convention; for exactly two charges, the lesser gain).
+    let mut gains: Vec<i32> = charges.iter().map(|c| c.2).collect();
+    gains.sort_unstable_by(|a, b| b.cmp(a));
+    let material_gain = gains[1];
+
+    let mut targets: Vec<PieceRef> = charges
+        .iter()
+        .map(|(p, sq, _, _)| piece_ref(enemy, *p, *sq))
+        .collect();
+    targets.sort_by(|a, b| a.id.cmp(&b.id));
+
+    Some(OverloadOpportunity {
+        kind: "overloading".to_string(),
+        validator: "overload_validation".to_string(),
+        overloaded_defender: piece_ref(enemy, d_piece, d_sq),
+        targets,
+        material_gain,
+    })
+}
+
+/// from-square of the best (max-SEE) legal capture of `target` for `pos`'s side to move;
+/// `None` if no capture of `target` exists.
+fn best_capture_from(pos: &Position, target: u8) -> Option<u8> {
+    let mut probe = pos.clone();
+    let legal = generate_legal(&mut probe);
+    legal
+        .into_iter()
+        .filter(|mv| mv.to == target && mv.flag.is_capture())
+        .max_by_key(|mv| see(&probe, mv.from, mv.to))
+        .map(|mv| mv.from)
 }
 
 // ── Trapped pieces ───────────────────────────────────────────────────────────
