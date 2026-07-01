@@ -65,6 +65,24 @@ fn double_check_knight_checks_and_unveils_the_rook_check() {
 }
 
 #[test]
+fn discoverer_checks_mover_checks_while_unveiling_a_winning_rook() {
+    // Na4-b6+ checks the black king on d5 (the MOVING piece gives check) AND vacates the
+    // a-file so rook a1 wins the undefended rook a8. Distinct from a discovered_check (there
+    // the UNVEILED piece checks): here the mover checks and the discovery wins the material.
+    // Every knight-check response is a king move that cannot reach a8, so the win is clean.
+    let items = discoveries("r7/8/8/3k4/N7/8/8/R3K3 w - - 0 1");
+    let d = find(&items, "a4b6").expect("Nb6+ should be a discoverer-checks winning the rook a8");
+    assert_eq!(d.kind, "discoverer_checks");
+    assert!(d.gives_check, "the mover gives check");
+    assert!(!d.discovered_check, "the unveiled rook does not check the king");
+    assert!(!d.double_check);
+    assert_eq!(d.slider.square, "a1");
+    assert_eq!(d.target.piece_type, PieceType::Rook);
+    assert_eq!(d.target.square, "a8");
+    assert_eq!(d.material_gain, 500);
+}
+
+#[test]
 fn discovered_attack_winning_an_undefended_knight() {
     // Nd3-e5 vacates the d-file; rook d1 wins the undefended knight d6 (a knight, like a
     // bishop, cannot capture the rook back down the file).

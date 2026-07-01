@@ -31,7 +31,7 @@
 
     { "slug": "discovered-attack", "name": "Discovered Attack", "category": "tactical", "family": "discovery", "definition": "Moving a piece unveils an attack from a piece behind it.", "detectedBy": "facts::motifs(discovery)" },
     { "slug": "discovered-check", "name": "Discovered Check", "category": "tactical", "family": "discovery", "parent": "discovered-attack", "definition": "A discovered attack where the unveiled piece gives check.", "detectedBy": "facts::motifs(discovery)" },
-    { "slug": "discoverer-checks", "name": "Discoverer Checks", "category": "tactical", "family": "discovery", "parent": "discovered-attack", "definition": "A discovered attack where the MOVING piece gives check.", "detectedBy": null },
+    { "slug": "discoverer-checks", "name": "Discoverer Checks", "category": "tactical", "family": "discovery", "parent": "discovered-attack", "definition": "A discovered attack where the MOVING piece gives check.", "detectedBy": "facts::motifs(discovery)" },
     { "slug": "double-check", "name": "Double Check", "category": "tactical", "family": "discovery", "definition": "Both the moving piece and the unveiled piece check the king; the king must move.", "detectedBy": "facts::motifs(discovery)" },
     { "slug": "discovered-defense", "name": "Discovered Defense", "category": "tactical", "family": "discovery", "definition": "Moving a piece unveils a defense of a friendly piece/square behind it.", "detectedBy": null },
 
