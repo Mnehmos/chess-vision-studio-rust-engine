@@ -185,7 +185,13 @@ baseline hash in output; refuse unknown/incomplete eval identity in promotion ru
       cold = fresh searcher per request (empty TT, prior search cannot alter it), warm =
       persisted searcher (aged TT carries forward); forced-root supported. Single-thread is
       forced (INV-2). Tests: tests/serve_diagnostic.rs (determinism, cold isolation, warm carry).
-- [ ] Complete the canonical SPRT match runner (#5).
+- [x] Complete the canonical SPRT match runner (#5). benchmarks/scripts/sprt_runner.py: pure
+      BayesElo trinomial LLR + sequential decision (stop at the first boundary crossing or a game
+      cap), streaming candidate-POV results; emits a record valid against sprt-result.schema.json
+      and passing lint_promotion.py (INV-1: promote requires the upper boundary). CLI consumes a
+      cutechess/JSONL result stream; tc="nodes:<N>" ties it to the #6 fixed-node control. Tests:
+      benchmarks/scripts/test_sprt_runner.py (bounds, LLR sign, promote/reject/hold, malformed-
+      hypothesis guard, and a closed-loop check that produced records pass the promotion linter).
 - [ ] Complete independent verification and calibration (#7).
 - [ ] Complete P-EVAL-K, P-EVAL-C, P-GRID (#8).
 - [ ] Add complete self-play provenance through the pipeline (#9).
