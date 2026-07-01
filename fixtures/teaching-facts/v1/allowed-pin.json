@@ -282,6 +282,10 @@
       "status": "computed",
       "items": []
     },
+    "availableDeflection": {
+      "status": "computed",
+      "items": []
+    },
     "availableInterference": {
       "status": "computed",
       "items": []
@@ -335,6 +339,10 @@
       "items": []
     },
     "opponentAvailableAttackDefender": {
+      "status": "computed",
+      "items": []
+    },
+    "opponentAvailableDeflection": {
       "status": "computed",
       "items": []
     },
@@ -2047,6 +2055,10 @@
         "status": "computed",
         "items": []
       },
+      "availableDeflection": {
+        "status": "computed",
+        "items": []
+      },
       "availableInterference": {
         "status": "computed",
         "items": []
@@ -2100,6 +2112,10 @@
         "items": []
       },
       "opponentAvailableAttackDefender": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableDeflection": {
         "status": "computed",
         "items": []
       },
@@ -3866,6 +3882,10 @@
         "status": "computed",
         "items": []
       },
+      "availableDeflection": {
+        "status": "computed",
+        "items": []
+      },
       "availableInterference": {
         "status": "computed",
         "items": []
@@ -3919,6 +3939,10 @@
         "items": []
       },
       "opponentAvailableAttackDefender": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableDeflection": {
         "status": "computed",
         "items": []
       },
@@ -5706,6 +5730,10 @@
         "status": "computed",
         "items": []
       },
+      "availableDeflection": {
+        "status": "computed",
+        "items": []
+      },
       "availableInterference": {
         "status": "computed",
         "items": []
@@ -5811,6 +5839,10 @@
         "items": []
       },
       "opponentAvailableAttackDefender": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableDeflection": {
         "status": "computed",
         "items": []
       },
@@ -7281,7 +7313,7 @@
   },
   "provenance": {
     "engine": "cvs-bitboard-core",
-    "factsRegistryVersion": 18,
+    "factsRegistryVersion": 19,
     "validators": [
       "legal_move_generation",
       "attack_map",
@@ -7303,7 +7335,8 @@
       "double_attack_validation",
       "xray_attack_validation",
       "xray_defense_validation",
-      "discovered_defense_validation"
+      "discovered_defense_validation",
+      "deflection_validation"
     ]
   },
   "errors": []

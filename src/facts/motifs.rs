@@ -9,10 +9,10 @@ use crate::attacks::{attackers_of, bishop_attacks, queen_attacks, rook_attacks};
 use crate::facts::piece_safety::piece_ref;
 use crate::facts::position::{position_for_analysis_side, square_name};
 use crate::facts::types::{
-    AttackDefenderOpportunity, DiscoveredDefenseOpportunity, DiscoveryOpportunity,
-    DoubleAttackOpportunity, FactCollection, InterferenceOpportunity, MotifOpportunity,
-    OverloadOpportunity, PieceRef, PinOpportunity, RemoveGuardOpportunity, SkewerOpportunity,
-    TrappedPieceOpportunity, XRayDefenseOpportunity, XRayOpportunity,
+    AttackDefenderOpportunity, DeflectionOpportunity, DiscoveredDefenseOpportunity,
+    DiscoveryOpportunity, DoubleAttackOpportunity, FactCollection, InterferenceOpportunity,
+    MotifOpportunity, OverloadOpportunity, PieceRef, PinOpportunity, RemoveGuardOpportunity,
+    SkewerOpportunity, TrappedPieceOpportunity, XRayDefenseOpportunity, XRayOpportunity,
 };
 use crate::movegen::{generate_legal, gives_check};
 use crate::see::see;
@@ -1703,6 +1703,17 @@ fn attack_defender_worst_case(
 ) -> Option<i32> {
     let mut worst = i32::MAX;
     for m in enemy_legal {
+        // Material the enemy GRABS with this reply, debited from our recovery below. A
+        // counter-capturing refutation (e.g. the defender itself, Qc6xd5!, or a shot at our
+        // mover) must PAY for what it takes — otherwise our single-square recovery on that
+        // square is credited as a free gain, blind both to the piece the reply just captured
+        // AND to any collateral of the recapture (the fuzz-found deflection false positive:
+        // Qxd5! exd5 recovers the queen on d5 but drops the f5 rook, and never debits our
+        // captured queen, so the reply is wrongly dropped as non-minimizing).
+        let enemy_take = enemy_probe
+            .piece_at(m.to)
+            .map(|(_, p)| VALUE[p.index()])
+            .unwrap_or(0);
         let mut esc = enemy_probe.clone();
         esc.make(*m); // stm flips back to us
         let enemy_occ = esc.occ[enemy.index()];
@@ -1720,10 +1731,11 @@ fn attack_defender_worst_case(
                 our_best = our_best.max(best_see_capture(&esc, *p_sq));
             }
         }
-        if our_best <= 0 {
-            return None; // this reply saves everything — not a sound win
+        let our_net = our_best - enemy_take;
+        if our_net <= 0 {
+            return None; // this reply saves everything (or counter-wins) — not a sound win
         }
-        worst = worst.min(our_best);
+        worst = worst.min(our_net);
     }
     if worst > 0 && worst != i32::MAX {
         Some(worst)
@@ -1899,6 +1911,145 @@ fn interference_worst_case(
     } else {
         None
     }
+}
+
+// ── Deflection / Distraction (non-capturing removal of the guard) ──────────────
+// A MOVE detector (mirrors attack_defender_after_move's skeleton, occupies its DISJOINT
+// slice — the gap named at the remove_guard header): a move that does NOT capture the
+// enemy defender D yet creates a FORCING threat evicting D from its post, where D is NOT
+// profitably capturable in place (best_see_capture(after_us, d_sq) <= 0 — the exact
+// COMPLEMENT of attack_defender's see(after_us, mv.to, d_sq) > 0 gate, so the two
+// detectors are provably disjoint over the same square and never both emit). D is the
+// SOLE guard of >= 1 non-king/non-pawn charge P (attack_defender_charges). Against EVERY
+// legal enemy reply we still win material — win the relocated/standing D, or a charge the
+// eviction abandons. Every board mutation goes through make() (never a hand-edited probe —
+// the overload occ-desync panic trap). SOUNDNESS is attack_defender_worst_case ranging
+// over ALL enemy replies (rejects the "enemy ignores D and plays Rxd1+" refutation). The
+// eviction is PROVED by the worst-case rather than enumerated: it returns Some only if no
+// reply saves D AND every charge — precisely the forcing property deflection needs.
+
+/// Validated deflection/distraction moves for the side to move, sorted by move then defender.
+pub fn deflection_opportunities(pos: &Position) -> FactCollection<DeflectionOpportunity> {
+    let us = pos.stm;
+    let mut probe = pos.clone();
+    let legal = generate_legal(&mut probe);
+    let mut out = Vec::new();
+    for mv in legal {
+        if let Some(op) = deflection_after_move(pos, mv, us) {
+            out.push(op);
+        }
+    }
+    out.sort_by(|a, b| {
+        a.move_uci
+            .cmp(&b.move_uci)
+            .then_with(|| a.distracted_defender.id.cmp(&b.distracted_defender.id))
+    });
+    FactCollection::computed(out)
+}
+
+/// Validated deflection/distraction moves from a requested side's perspective.
+pub fn deflection_opportunities_for(
+    pos: &Position,
+    side: Color,
+) -> FactCollection<DeflectionOpportunity> {
+    match position_for_analysis_side(pos, side) {
+        Ok(probe) => deflection_opportunities(&probe),
+        Err(reason) => FactCollection::unavailable(reason),
+    }
+}
+
+fn deflection_after_move(pos: &Position, mv: Move, us: Color) -> Option<DeflectionOpportunity> {
+    let (_, moving_piece) = pos.piece_at(mv.from)?;
+    let mover_piece = mv.flag.promo_piece().unwrap_or(moving_piece);
+    let enemy = us.flip();
+
+    let mut check_probe = pos.clone();
+    let gives_check_flag = gives_check(&mut check_probe, mv);
+
+    let mut after = pos.clone();
+    after.make(mv); // after.stm == enemy
+
+    // (A) Our moved piece must not be simply hung on mv.to.
+    if forker_capturable_for_gain(&mut after.clone(), mv.to) {
+        return None;
+    }
+    // (B) us-to-move probe (best_see_capture scores OUR captures). Err bails on
+    //     our-king-in-check and on mv-gives-OUR-check (documented false-negative).
+    let after_us = position_for_analysis_side(&after, us).ok()?;
+    // (C) enemy-to-move probe + reply list for the worst-case.
+    let enemy_probe = position_for_analysis_side(&after, enemy).ok()?;
+    let mut enemy_gen = enemy_probe.clone();
+    let enemy_legal = generate_legal(&mut enemy_gen);
+    if enemy_legal.is_empty() {
+        return None; // stalemate/mate edge — no reply to exploit
+    }
+
+    let mut best: Option<DeflectionOpportunity> = None;
+    for d_piece in [
+        Piece::Pawn,
+        Piece::Knight,
+        Piece::Bishop,
+        Piece::Rook,
+        Piece::Queen,
+    ] {
+        let mut dbb = after.pieces[enemy.index()][d_piece.index()];
+        while dbb != 0 {
+            let d_sq = dbb.trailing_zeros() as u8;
+            dbb &= dbb - 1;
+            if d_sq == mv.to {
+                continue; // D is not the square we moved to (that would be a capture of D).
+            }
+            // CAUSALITY: D not already winnable before mv (attack_defender_charges enforces
+            // the charge half; this enforces the D half).
+            if best_see_capture(pos, d_sq) > 0 {
+                continue;
+            }
+            // DEFINING DEFLECTION GATE: D is NOT profitably capturable in place — the exact
+            // COMPLEMENT of attack_defender's d_in_place > 0 gate, so this detector is
+            // provably DISJOINT from attacking_the_defender (no double-emission).
+            if best_see_capture(&after_us, d_sq) > 0 {
+                continue;
+            }
+            // Charges D is the SOLE defender of (pre-move geometry), not already winnable —
+            // the shipped helper: non-king/non-pawn, sole-defended, causal.
+            let charges = attack_defender_charges(pos, enemy, d_sq);
+            if charges.is_empty() {
+                continue;
+            }
+            // FORCING PROOF: mv must actually EVICT D. Rather than enumerate eviction TYPES,
+            // PROVE it with the shipped worst-case — None if any enemy reply saves D AND
+            // every charge (rejects the counter-capture "Rxd1+" refutation).
+            let Some(worst) =
+                attack_defender_worst_case(&enemy_probe, &enemy_legal, enemy, d_sq, &charges)
+            else {
+                continue;
+            };
+            debug_assert!(worst > 0);
+
+            let mut targets: Vec<PieceRef> = charges
+                .iter()
+                .map(|(p, sq)| piece_ref(enemy, *p, *sq))
+                .collect();
+            targets.sort_by(|a, b| a.id.cmp(&b.id));
+
+            let cand = DeflectionOpportunity {
+                kind: "deflection".to_string(),
+                validator: "deflection_validation".to_string(),
+                move_uci: mv.to_uci(),
+                mover: piece_ref(us, mover_piece, mv.to),
+                distracted_defender: piece_ref(enemy, d_piece, d_sq),
+                targets,
+                gives_check: gives_check_flag,
+                material_gain: worst,
+            };
+            // Keep the highest-gain D for this move; ties -> first (deterministic).
+            match &best {
+                Some(b) if b.material_gain >= cand.material_gain => {}
+                _ => best = Some(cand),
+            }
+        }
+    }
+    best
 }
 
 // ── Trapped pieces ───────────────────────────────────────────────────────────

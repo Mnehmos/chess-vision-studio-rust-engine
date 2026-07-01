@@ -154,6 +154,7 @@ fn registry_provenance_lists_every_active_validator() {
             "xray_attack_validation",
             "xray_defense_validation",
             "discovered_defense_validation",
+            "deflection_validation",
         ]
     );
 }

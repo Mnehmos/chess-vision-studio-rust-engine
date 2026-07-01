@@ -332,6 +332,10 @@
       "status": "uncomputed",
       "reason": "not_requested"
     },
+    "availableDeflection": {
+      "status": "uncomputed",
+      "reason": "not_requested"
+    },
     "availableInterference": {
       "status": "uncomputed",
       "reason": "not_requested"
@@ -385,6 +389,10 @@
       "reason": "not_requested"
     },
     "opponentAvailableAttackDefender": {
+      "status": "uncomputed",
+      "reason": "not_requested"
+    },
+    "opponentAvailableDeflection": {
       "status": "uncomputed",
       "reason": "not_requested"
     },
@@ -1924,6 +1932,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableDeflection": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "availableInterference": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -1977,6 +1989,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableAttackDefender": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableDeflection": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -3612,6 +3628,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableDeflection": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "availableInterference": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -3665,6 +3685,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableAttackDefender": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableDeflection": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -5212,6 +5236,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableDeflection": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "availableInterference": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -5265,6 +5293,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableAttackDefender": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableDeflection": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -6567,7 +6599,7 @@
   },
   "provenance": {
     "engine": "cvs-bitboard-core",
-    "factsRegistryVersion": 18,
+    "factsRegistryVersion": 19,
     "validators": [
       "legal_move_generation",
       "attack_map",
