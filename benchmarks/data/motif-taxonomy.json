@@ -60,7 +60,7 @@
     { "slug": "hanging-piece", "name": "Hanging Piece", "category": "tactical", "family": "material", "definition": "An undefended (or under-defended) piece can be won for free.", "detectedBy": "facts::piece_safety(loose/SEE)" },
     { "slug": "trapped-piece", "name": "Trapped Piece", "category": "tactical", "family": "material", "definition": "A piece has no safe square and will be lost.", "detectedBy": "facts::motifs(trapped_piece)" },
     { "slug": "domination", "name": "Domination", "category": "tactical", "family": "material", "definition": "A piece is lost despite nominally having squares — every escape is covered.", "detectedBy": null },
-    { "slug": "win-the-exchange", "name": "Win the Exchange", "category": "tactical", "family": "material", "definition": "Win a rook for a minor piece.", "detectedBy": null },
+    { "slug": "win-the-exchange", "name": "Win the Exchange", "category": "tactical", "family": "material", "definition": "Win a rook for a minor piece.", "detectedBy": "facts::motifs(win_exchange)" },
     { "slug": "hook-and-ladder", "name": "Hook and Ladder", "category": "tactical", "family": "material", "definition": "A trick where stacked major pieces win material via an in-between capture.", "detectedBy": null },
     { "slug": "simplification", "name": "Simplification", "category": "tactical", "family": "material", "definition": "Trade pieces to reach a winning endgame.", "detectedBy": null },
 

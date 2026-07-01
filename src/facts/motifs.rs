@@ -12,11 +12,11 @@ use crate::facts::types::{
     AttackDefenderOpportunity, DeflectionOpportunity, DiscoveredDefenseOpportunity,
     DiscoveryOpportunity, DoubleAttackOpportunity, FactCollection, InterferenceOpportunity,
     LureDefenderOpportunity, MotifOpportunity, OverloadOpportunity, PieceRef, PinOpportunity,
-    RemoveGuardOpportunity, SkewerOpportunity, TrappedPieceOpportunity, XRayDefenseOpportunity,
-    XRayOpportunity,
+    RemoveGuardOpportunity, SkewerOpportunity, TrappedPieceOpportunity, WinExchangeOpportunity,
+    XRayDefenseOpportunity, XRayOpportunity,
 };
 use crate::movegen::{generate_legal, gives_check};
-use crate::see::see;
+use crate::see::{see, SEE_VALUE};
 use crate::{file_of, rank_of, Color, Move, MoveFlag, Piece, Position};
 
 /// Centipawn values for fork bookkeeping. The king is a sentinel 0 — it is never
@@ -2626,4 +2626,200 @@ fn double_attack_is_discovery(
     // (from_bit was on q's ray) AND now sees t — vacating mv.from opened the line. This
     // mirrors discovery's `before_atk & from_bit != 0` gate.
     (after_ray & t_bit != 0) && (before & from_bit != 0)
+}
+
+// ── Win the exchange (win a rook for a minor) ────────────────────────────────
+// A MOVE detector, disjoint material-PROFILE refinement. A single legal capture whose
+// SEE swap on the captured square nets specifically a ROOK for a MINOR (bishop or knight):
+// our minor takes an enemy rook and the exchange resolves to a gain in the rook-minus-minor
+// band. see() is the fast PROFILE pre-filter, but it IGNORES ABSOLUTE PINS and is blind to
+// non-capturing counter-resources (e.g. a lurking pawn queening), so soundness is confirmed
+// by a legality-aware make()-based WORST-CASE over EVERY legal enemy reply — debiting what
+// each reply captures AND any promotion swing (both fuzz-found FP classes). Distinct from
+// fork/skewer/remove_guard/xray: none of those classify the exchange-VALUE profile;
+// kind="win_the_exchange" is its own teaching fact and MAY legitimately co-occur with them.
+
+// Band derived from SEE_VALUE (rook - bishop = 170, rook - knight = 180). Tolerance
+// window brackets both while excluding a plain rook grab (~500) and equal/near-equal
+// trades. Kept as consts so it tracks SEE_VALUE, never a hard-coded literal.
+// SEE_VALUE is indexed pawn..king (0..5). Piece::index() is not const, so index the
+// array with the fixed enum ordinals directly: Knight=1, Bishop=2, Rook=3.
+const SEE_VALUE_KNIGHT: i32 = SEE_VALUE[1]; // 320
+const SEE_VALUE_BISHOP: i32 = SEE_VALUE[2]; // 330
+const SEE_VALUE_ROOK: i32 = SEE_VALUE[3]; // 500
+const WIN_EXCHANGE_MIN: i32 = SEE_VALUE_ROOK - SEE_VALUE_BISHOP - 20; // 150
+const WIN_EXCHANGE_MAX: i32 = SEE_VALUE_ROOK - SEE_VALUE_KNIGHT + 5; // 185
+
+/// Validated win-the-exchange opportunities for the side to move, sorted by move then
+/// victim id.
+pub fn win_exchange_opportunities(pos: &Position) -> FactCollection<WinExchangeOpportunity> {
+    let us = pos.stm;
+    let mut probe = pos.clone();
+    let legal = generate_legal(&mut probe);
+    let mut out = Vec::new();
+    for mv in legal {
+        if let Some(w) = win_exchange_after_move(pos, mv, us) {
+            out.push(w);
+        }
+    }
+    out.sort_by(|a, b| {
+        a.move_uci
+            .cmp(&b.move_uci)
+            .then_with(|| a.victim.id.cmp(&b.victim.id))
+    });
+    FactCollection::computed(out)
+}
+
+/// Validated win-the-exchange for a requested side. See `motif_opportunities_for` for the
+/// counterfactual side-to-move semantics.
+pub fn win_exchange_opportunities_for(
+    pos: &Position,
+    side: Color,
+) -> FactCollection<WinExchangeOpportunity> {
+    match position_for_analysis_side(pos, side) {
+        Ok(probe) => win_exchange_opportunities(&probe),
+        Err(reason) => FactCollection::unavailable(reason),
+    }
+}
+
+fn win_exchange_after_move(pos: &Position, mv: Move, us: Color) -> Option<WinExchangeOpportunity> {
+    // (G0) Capturing moves only. A quiet move wins no material on a square.
+    if !mv.flag.is_capture() {
+        return None;
+    }
+    let (_, moving_piece) = pos.piece_at(mv.from)?;
+    let attacker_piece = mv.flag.promo_piece().unwrap_or(moving_piece);
+
+    // (G3a) Attacker profile: only a MINOR can "win the exchange". This also excludes a
+    //       King attacker (a plain grab) and rook/queen/pawn attackers (R-for-R, queen
+    //       sac, pawn-takes are not this motif). A promotion capture yields a non-minor
+    //       promo_piece except PromoN/PromoB — still gated by the band below.
+    if attacker_piece != Piece::Bishop && attacker_piece != Piece::Knight {
+        return None;
+    }
+
+    let enemy = us.flip();
+
+    // Victim square: EP handled like remove_guard (captured pawn sits behind mv.to). A
+    // pawn victim can never yield the exchange, so EP is excluded by (G3b) below, but we
+    // still resolve d_sq correctly for the piece_at lookup / determinism id.
+    let d_sq = if matches!(mv.flag, MoveFlag::EnPassant) {
+        if us == Color::White {
+            mv.to - 8
+        } else {
+            mv.to + 8
+        }
+    } else {
+        mv.to
+    };
+    let (v_color, victim_piece) = pos.piece_at(d_sq)?;
+
+    // (G3b) Victim profile: only an enemy ROOK yields the exchange. Excludes pawn victim
+    //       (EP + plain, no exchange), minor victim (equal trade), queen victim (winning
+    //       the queen, not the exchange), and — since v_color must be enemy — self-capture.
+    if v_color != enemy || victim_piece != Piece::Rook {
+        return None;
+    }
+
+    let mut check_probe = pos.clone();
+    let gives_check_flag = gives_check(&mut check_probe, mv);
+
+    // (G6) COUNTING PROOF — full SEE swap on the captured square from OUR (pre-move) side.
+    //      see() minimaxes the recapture sequence (our minor is given up, we take their
+    //      rook, x-ray reveals any rear same-line recapturer through the shrinking occ).
+    //      pos.stm == us and mv.from holds our minor, so see(pos, mv.from, mv.to) scores
+    //      exactly this exchange. EP is unreachable here (pawn victim rejected by G3b), so
+    //      the rook always sits on mv.to == d_sq for the plain-capture path.
+    let score = see(pos, mv.from, mv.to);
+    if score <= 0 {
+        return None; // must actually be a net win
+    }
+    // (G4) EXCHANGE BAND — the net must be specifically rook-for-minor, not a hanging-rook
+    //      grab (~500, already covered by counting/piece_safety) nor an equal/near trade.
+    if !(WIN_EXCHANGE_MIN..=WIN_EXCHANGE_MAX).contains(&score) {
+        return None;
+    }
+
+    // (G7) LEGALITY (SEE ignores absolute pins) — mv came from generate_legal(pos)
+    //      (pins dropped), so a pinned minor that see() would wrongly let capture the
+    //      rook is never a candidate here. Structurally guaranteed by the enumeration.
+
+    // (G8) LEGALITY-AWARE WORST-CASE CONFIRM — see() ignores absolute pins in the recapture
+    //      sequence and can therefore credit an ILLEGAL recapture (inflating the net) or a
+    //      too-valuable last recapturer. A plain forker_capturable_for_gain on mv.to is WRONG
+    //      here: the enemy recapturing our minor is EXPECTED and already priced into `score`
+    //      (that is WHY the net is ~170 not ~500), so it would reject every real exchange.
+    //      Instead we recompute the realized net over EVERY LEGAL enemy reply (make()-based,
+    //      pins dropped by generate_legal), debiting whatever each reply itself captures and
+    //      crediting only our own LEGAL recovery. The rook we already banked is `+victim`.
+    let mut after = pos.clone();
+    after.make(mv); // after.stm == enemy
+    let banked = SEE_VALUE[victim_piece.index()];
+    let realized = win_exchange_worst_case(&after, enemy, mv.to, banked)?;
+    // (G4b) The legality-aware realized net must ALSO land in the rook-for-minor band; a pin
+    //       that inflated see() collapses here, and a plain rook grab never reaches this path.
+    if !(WIN_EXCHANGE_MIN..=WIN_EXCHANGE_MAX).contains(&realized) {
+        return None;
+    }
+
+    Some(WinExchangeOpportunity {
+        kind: "win_the_exchange".to_string(),
+        validator: "win_exchange_validation".to_string(),
+        move_uci: mv.to_uci(),
+        mover: piece_ref(us, attacker_piece, mv.to),
+        victim: piece_ref(enemy, victim_piece, d_sq),
+        gives_check: gives_check_flag,
+        material_gain: realized,
+    })
+}
+
+/// Realized material for us after we have PLAYED the winning capture (our minor now stands
+/// on `sq`, having banked `banked` centipawns for the captured rook; `after.stm == enemy`).
+/// Minimax over EVERY legal enemy reply: the enemy grabs `enemy_gain` — debited — which is
+/// what the reply CAPTURES (our minor on `sq` OR collateral elsewhere) PLUS any PROMOTION
+/// swing (a non-capturing counter-resource like h1=Q must still be paid for, or we falsely
+/// bank the exchange while the enemy queens). After the reply WE recover our best LEGAL
+/// single-square SEE on `sq`. The worst-case (minimum) net = `banked + our_recovery -
+/// enemy_gain`. `None` if any legal reply drives the net non-positive (no sound win) or the
+/// enemy has no reply (mate/stalemate edge — no exchange to bank). Using generate_legal on
+/// each make()-produced board makes this pin-aware, unlike raw see().
+fn win_exchange_worst_case(after: &Position, enemy: Color, sq: u8, banked: i32) -> Option<i32> {
+    let mut enemy_probe = after.clone();
+    let enemy_legal = generate_legal(&mut enemy_probe);
+    if enemy_legal.is_empty() {
+        return None; // mate/stalemate: nothing recaptures, no exchange resolved
+    }
+    let mut worst = i32::MAX;
+    for m in &enemy_legal {
+        // Debit what this reply itself captures (collateral or our minor).
+        let mut enemy_gain = enemy_probe
+            .piece_at(m.to)
+            .map(|(_, p)| SEE_VALUE[p.index()])
+            .unwrap_or(0);
+        // Debit a promotion swing: the reply may ignore our minor and QUEEN instead — a
+        // material resource that captures nothing on `m.to`, so it is invisible to the
+        // capture debit above. Without this, a lurking passed pawn (e.g. h2h1=Q) lets us
+        // wrongly bank the exchange while the enemy nets a queen. (fuzz-found FP)
+        if let Some(promo) = m.flag.promo_piece() {
+            enemy_gain += SEE_VALUE[promo.index()] - SEE_VALUE[Piece::Pawn.index()];
+        }
+        let mut esc = enemy_probe.clone();
+        esc.make(*m); // stm flips back to us
+        // Our best LEGAL recovery on the contested square (0 if we cannot recapture there).
+        let our_recovery = if esc.occ[enemy.index()] & (1u64 << sq) != 0 {
+            best_see_capture(&esc, sq).max(0)
+        } else {
+            0
+        };
+        let net = banked + our_recovery - enemy_gain;
+        if net <= 0 {
+            return None; // some legal reply refutes the exchange — not a sound win
+        }
+        worst = worst.min(net);
+    }
+    if worst > 0 && worst != i32::MAX {
+        Some(worst)
+    } else {
+        None
+    }
 }

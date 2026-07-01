@@ -265,6 +265,10 @@
       "status": "computed",
       "items": []
     },
+    "availableWinExchange": {
+      "status": "computed",
+      "items": []
+    },
     "opponentAvailableMotifs": {
       "status": "computed",
       "items": []
@@ -326,6 +330,10 @@
       "items": []
     },
     "opponentAvailableXrayDefense": {
+      "status": "computed",
+      "items": []
+    },
+    "opponentAvailableWinExchange": {
       "status": "computed",
       "items": []
     },
@@ -2104,6 +2112,10 @@
         "status": "computed",
         "items": []
       },
+      "availableWinExchange": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMotifs": {
         "status": "computed",
         "items": []
@@ -2165,6 +2177,10 @@
         "items": []
       },
       "opponentAvailableXrayDefense": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableWinExchange": {
         "status": "computed",
         "items": []
       },
@@ -3959,6 +3975,10 @@
         "status": "computed",
         "items": []
       },
+      "availableWinExchange": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMotifs": {
         "status": "computed",
         "items": [
@@ -4049,6 +4069,10 @@
         "items": []
       },
       "opponentAvailableXrayDefense": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableWinExchange": {
         "status": "computed",
         "items": []
       },
@@ -5834,6 +5858,10 @@
         "status": "computed",
         "items": []
       },
+      "availableWinExchange": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMotifs": {
         "status": "computed",
         "items": []
@@ -5895,6 +5923,10 @@
         "items": []
       },
       "opponentAvailableXrayDefense": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableWinExchange": {
         "status": "computed",
         "items": []
       },
@@ -7276,7 +7308,7 @@
   },
   "provenance": {
     "engine": "cvs-bitboard-core",
-    "factsRegistryVersion": 20,
+    "factsRegistryVersion": 21,
     "validators": [
       "legal_move_generation",
       "attack_map",
@@ -7300,7 +7332,8 @@
       "xray_defense_validation",
       "discovered_defense_validation",
       "deflection_validation",
-      "lure_defender_validation"
+      "lure_defender_validation",
+      "win_exchange_validation"
     ]
   },
   "errors": []
