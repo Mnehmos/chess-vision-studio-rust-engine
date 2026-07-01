@@ -32,6 +32,7 @@ MOTIF_TO_VALIDATOR = {
     "attacking_the_defender": "attack_defender_validation",
     "interference": "interference_validation",
     "double_attack": "double_attack_validation",
+    "xray_attack": "xray_attack_validation",
 }
 # facts::<subsystem> that are NOT the motif/mate validators but are real engine subsystems.
 SUBSYSTEM_TO_VALIDATOR = {"pawn_structure": "pawn_structure", "piece_safety": "king_safety",

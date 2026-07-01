@@ -135,6 +135,20 @@ fn respects_causality_when_the_front_is_already_winnable() {
 }
 
 #[test]
+fn rejects_a_pinned_xrayer() {
+    // Bd7-c6 lands the bishop on the a4-e8 diagonal where the white bishop b5 pins it to
+    // the black king on e8 (b5-c6-d7-e8). The counting proof see(s, e4) is positive because
+    // see() ignores the pin, but the bishop can NEVER legally capture e4 — moving off the
+    // diagonal exposes the king. The legality guard (G7) must reject it. Regression for the
+    // pinned-xrayer false positive found by oracle fuzzing.
+    let items = xr("rq2kbnr/1ppbppp1/p2p1n1Q/1B6/3PP3/1P4P1/P1PN1P1P/R3K2R b KQkq - 8 12");
+    assert!(
+        items.iter().all(|x| x.move_uci != "d7c6"),
+        "a pinned x-rayer cannot execute its capture, got {items:?}"
+    );
+}
+
+#[test]
 fn no_xrays_in_the_opening_position() {
     assert!(
         xr("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").is_empty(),

@@ -571,6 +571,18 @@ fn xray_attack_after_move(pos: &Position, mv: Move, us: Color) -> Option<XRayOpp
             continue;
         }
 
+        // (G7) LEGALITY — see() ignores pins, so a PINNED xrayer on s (its move to s exposed
+        //      its own king to an enemy slider through s) passes the counting proof while being
+        //      unable to ever capture f_sq. Require a legal capture s -> f_sq on the us-to-move
+        //      probe (generate_legal respects the pin). Fixes the pinned-xrayer false positive
+        //      found by oracle fuzzing (2 FPs / 1303 fired).
+        if !generate_legal(&mut after_us.clone())
+            .into_iter()
+            .any(|m| m.from == s && m.to == f_sq)
+        {
+            continue;
+        }
+
         let ray: Vec<String> = squares_between(s, b_sq).into_iter().map(square_name).collect();
         let cand = XRayOpportunity {
             kind: "xray_attack".to_string(),
