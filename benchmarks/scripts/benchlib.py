@@ -220,8 +220,13 @@ def provenance(cfg):
 
 
 def engine_cfg(name='baseline', exe=None, net=None, futility=None, extra=None,
-               threads=1, depth=30):
-    """Build an engine config. Defaults to the frozen snapshot."""
+               threads=1, depth=30, nodes=None):
+    """Build an engine config. Defaults to the frozen snapshot.
+
+    `nodes` (optional) is a fixed-node budget for the deterministic cold diagnostic control
+    (#6); a harness passes it to Engine.search_nodes. `depth` still acts as a high safety cap
+    so the node budget is the binding constraint.
+    """
     return {
         'name': name,
         'exe': exe or BASELINE['serve_exe'],
@@ -230,6 +235,7 @@ def engine_cfg(name='baseline', exe=None, net=None, futility=None, extra=None,
         'extra': extra or [],
         'threads': threads,
         'depth': depth,
+        'nodes': nodes,
     }
 
 
@@ -270,6 +276,20 @@ class Engine:
     def search_time(self, fen, ms, forced_move=None):
         """Movetime search (depth caps at the process's --depth)."""
         request = {'cmd': 'go', 'budgetMs': int(ms), 'fen': fen}
+        if forced_move:
+            request['forcedMoveUci'] = forced_move
+        return self._ask(json.dumps(request))
+
+    def search_nodes(self, fen, nodes=None, isolation='cold', forced_move=None):
+        """Deterministic fixed-node search (#6): cold = a fresh searcher (empty TT, prior
+        searches cannot alter the result), warm = the process's persisted TT carries forward.
+        Requires an analyze.exe built with the nodeBudget diagnostic interface; the reply
+        carries a `diagnostic` block with requested/consumed nodes. `nodes` defaults to the
+        cfg's `nodes` budget."""
+        budget = nodes if nodes is not None else self.cfg.get('nodes')
+        request = {'cmd': 'go', 'fen': fen, 'diagnosticIsolation': isolation}
+        if budget is not None:
+            request['nodeBudget'] = int(budget)
         if forced_move:
             request['forcedMoveUci'] = forced_move
         return self._ask(json.dumps(request))

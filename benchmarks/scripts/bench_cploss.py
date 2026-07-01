@@ -3,7 +3,11 @@
 # Gen7's lesson: exact-match was flat vs gen6 while blunders collapsed 5x.
 #
 #   python bench_cploss.py --suite suite-fresh-100 [--exe CAND] [--net N]
-#                          [--no-futility] [--depth 9 | --movetime 500]
+#                          [--no-futility] [--depth 9 | --movetime 500 | --nodes 80000]
+#
+# --nodes runs the deterministic COLD fixed-node control (#6): a fresh searcher per
+# position, single-thread, so the comparison is reproducible (the experiment's decision-
+# quality gate). Requires an analyze.exe built with the nodeBudget interface.
 #
 # Pass: avgCP improves or neutral; p90/p95 not materially worse; bl>=200 must
 # NOT increase; danger subset must not regress.
@@ -21,21 +25,25 @@ suite = B.load_suite(arg('--suite', 'suite-fresh-100'))
 assert suite['oracle'], 'suite has no saved ORACLE moves'
 depth = int(arg('--depth', '9'))
 movetime = arg('--movetime')
+nodes = arg('--nodes')
 
-configs = [B.engine_cfg('baseline', depth=depth)]
+configs = [B.engine_cfg('baseline', depth=depth, nodes=int(nodes) if nodes else None)]
 if any(fl in sys.argv for fl in ('--exe', '--net', '--no-futility', '--extra')):
     configs.append(B.engine_cfg(
         arg('--name', 'candidate'), exe=arg('--exe'), net=arg('--net'),
         futility=False if '--no-futility' in sys.argv else None,
-        extra=arg('--extra', '').split(), depth=depth))
+        extra=arg('--extra', '').split(), depth=depth,
+        nodes=int(nodes) if nodes else None))
 
 sf_depth = int(arg('--sf-depth', str(B.DEFAULT_STOCKFISH_REVIEW_DEPTH)))
 sf = B.Stockfish(depth=sf_depth)
 fens, orc, danger = suite['fens'], suite['oracle'], suite['danger'] or [False] * len(suite['fens'])
 n = len(fens)
 out = {}
+budget_label = (f'nodes {nodes} (cold)' if nodes
+                else f'movetime {movetime}ms' if movetime else 'd' + str(depth))
 print(f"# Gate 3 cp-loss — {suite['name']} (hash {suite['hash']}), "
-      f"engine {'movetime ' + movetime + 'ms' if movetime else 'd' + str(depth)}, "
+      f"engine {budget_label}, "
       f"SF-d{sf_depth} child evals")
 print(f"{'config':>12s} {'match%':>7s} {'avgCP':>7s} {'medCP':>6s} {'p90':>5s} {'p95':>5s} "
       f"{'bl100':>6s} {'bl200':>6s} {'danger':>7s} {'quiet':>7s}")
@@ -43,7 +51,12 @@ for cfg in configs:
     e = B.Engine(cfg)
     moves = []
     for f in fens:
-        r = e.search_time(f, int(movetime)) if movetime else e.search_depth(f)
+        if nodes:
+            r = e.search_nodes(f, isolation='cold')
+        elif movetime:
+            r = e.search_time(f, int(movetime))
+        else:
+            r = e.search_depth(f)
         moves.append(r.get('uci'))
     e.close()
     losses = []
@@ -86,6 +99,8 @@ if len(configs) == 2:
 B.write_result('gate3-cploss', {
     'provenance': [B.provenance(c) for c in configs],
     'suite': {'name': suite['name'], 'hash': suite['hash']},
-    'engine_budget': {'movetime_ms': movetime, 'depth': None if movetime else depth},
+    'engine_budget': {'nodes': int(nodes) if nodes else None,
+                      'movetime_ms': movetime if not nodes else None,
+                      'depth': None if (movetime or nodes) else depth},
     'results': {k: v['stats'] for k, v in out.items()},
 })
