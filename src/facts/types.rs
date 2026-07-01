@@ -65,6 +65,7 @@ pub struct PositionFacts {
     pub available_double_attack: FactCollection<DoubleAttackOpportunity>,
     pub available_xray_attack: FactCollection<XRayOpportunity>,
     pub available_xray_defense: FactCollection<XRayDefenseOpportunity>,
+    pub available_win_exchange: FactCollection<WinExchangeOpportunity>,
     /// Analysis-only legal opportunities for the side that is not to move.
     /// These let the application prove a motif was newly allowed by a move.
     pub opponent_available_motifs: FactCollection<MotifOpportunity>,
@@ -83,6 +84,7 @@ pub struct PositionFacts {
     pub opponent_available_double_attack: FactCollection<DoubleAttackOpportunity>,
     pub opponent_available_xray_attack: FactCollection<XRayOpportunity>,
     pub opponent_available_xray_defense: FactCollection<XRayDefenseOpportunity>,
+    pub opponent_available_win_exchange: FactCollection<WinExchangeOpportunity>,
     pub hazards: FactCollection<HazardFact>,
     pub square_facts: FactCollection<SquareFact>,
 }
@@ -635,6 +637,25 @@ pub struct XRayDefenseOpportunity {
     /// Whether the move gives check.
     pub gives_check: bool,
     /// Centipawns of G saved (the SEE the enemy would win if the xray were absent).
+    pub material_gain: i32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WinExchangeOpportunity {
+    /// Motif family — always "win_the_exchange".
+    pub kind: String,
+    /// Validator that proved it — "win_exchange_validation".
+    pub validator: String,
+    /// The single capturing move that wins the exchange (long UCI).
+    pub move_uci: String,
+    /// Our capturing minor (bishop/knight), at its post-move square.
+    pub mover: PieceRef,
+    /// The enemy rook captured for the minor, at its pre-move square.
+    pub victim: PieceRef,
+    /// Whether the capturing move gives check.
+    pub gives_check: bool,
+    /// Full-SEE centipawns won (SEE_VALUE scale: ~170 R-for-B, ~180 R-for-N).
     pub material_gain: i32,
 }
 

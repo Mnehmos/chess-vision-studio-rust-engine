@@ -286,10 +286,6 @@
       "status": "computed",
       "items": []
     },
-    "availableLureDefender": {
-      "status": "computed",
-      "items": []
-    },
     "availableInterference": {
       "status": "computed",
       "items": []
@@ -303,6 +299,10 @@
       "items": []
     },
     "availableXrayDefense": {
+      "status": "computed",
+      "items": []
+    },
+    "availableWinExchange": {
       "status": "computed",
       "items": []
     },
@@ -350,10 +350,6 @@
       "status": "computed",
       "items": []
     },
-    "opponentAvailableLureDefender": {
-      "status": "computed",
-      "items": []
-    },
     "opponentAvailableInterference": {
       "status": "computed",
       "items": []
@@ -367,6 +363,10 @@
       "items": []
     },
     "opponentAvailableXrayDefense": {
+      "status": "computed",
+      "items": []
+    },
+    "opponentAvailableWinExchange": {
       "status": "computed",
       "items": []
     },
@@ -2067,10 +2067,6 @@
         "status": "computed",
         "items": []
       },
-      "availableLureDefender": {
-        "status": "computed",
-        "items": []
-      },
       "availableInterference": {
         "status": "computed",
         "items": []
@@ -2084,6 +2080,10 @@
         "items": []
       },
       "availableXrayDefense": {
+        "status": "computed",
+        "items": []
+      },
+      "availableWinExchange": {
         "status": "computed",
         "items": []
       },
@@ -2131,10 +2131,6 @@
         "status": "computed",
         "items": []
       },
-      "opponentAvailableLureDefender": {
-        "status": "computed",
-        "items": []
-      },
       "opponentAvailableInterference": {
         "status": "computed",
         "items": []
@@ -2148,6 +2144,10 @@
         "items": []
       },
       "opponentAvailableXrayDefense": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableWinExchange": {
         "status": "computed",
         "items": []
       },
@@ -3902,10 +3902,6 @@
         "status": "computed",
         "items": []
       },
-      "availableLureDefender": {
-        "status": "computed",
-        "items": []
-      },
       "availableInterference": {
         "status": "computed",
         "items": []
@@ -3919,6 +3915,10 @@
         "items": []
       },
       "availableXrayDefense": {
+        "status": "computed",
+        "items": []
+      },
+      "availableWinExchange": {
         "status": "computed",
         "items": []
       },
@@ -3966,10 +3966,6 @@
         "status": "computed",
         "items": []
       },
-      "opponentAvailableLureDefender": {
-        "status": "computed",
-        "items": []
-      },
       "opponentAvailableInterference": {
         "status": "computed",
         "items": []
@@ -3983,6 +3979,10 @@
         "items": []
       },
       "opponentAvailableXrayDefense": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableWinExchange": {
         "status": "computed",
         "items": []
       },
@@ -5758,10 +5758,6 @@
         "status": "computed",
         "items": []
       },
-      "availableLureDefender": {
-        "status": "computed",
-        "items": []
-      },
       "availableInterference": {
         "status": "computed",
         "items": []
@@ -5775,6 +5771,10 @@
         "items": []
       },
       "availableXrayDefense": {
+        "status": "computed",
+        "items": []
+      },
+      "availableWinExchange": {
         "status": "computed",
         "items": []
       },
@@ -5874,10 +5874,6 @@
         "status": "computed",
         "items": []
       },
-      "opponentAvailableLureDefender": {
-        "status": "computed",
-        "items": []
-      },
       "opponentAvailableInterference": {
         "status": "computed",
         "items": []
@@ -5891,6 +5887,10 @@
         "items": []
       },
       "opponentAvailableXrayDefense": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableWinExchange": {
         "status": "computed",
         "items": []
       },
@@ -7369,7 +7369,7 @@
       "xray_defense_validation",
       "discovered_defense_validation",
       "deflection_validation",
-      "lure_defender_validation"
+      "win_exchange_validation"
     ]
   },
   "errors": []
