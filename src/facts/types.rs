@@ -59,6 +59,7 @@ pub struct PositionFacts {
     pub available_overload: FactCollection<OverloadOpportunity>,
     pub available_attack_defender: FactCollection<AttackDefenderOpportunity>,
     pub available_interference: FactCollection<InterferenceOpportunity>,
+    pub available_double_attack: FactCollection<DoubleAttackOpportunity>,
     /// Analysis-only legal opportunities for the side that is not to move.
     /// These let the application prove a motif was newly allowed by a move.
     pub opponent_available_motifs: FactCollection<MotifOpportunity>,
@@ -71,6 +72,7 @@ pub struct PositionFacts {
     pub opponent_available_overload: FactCollection<OverloadOpportunity>,
     pub opponent_available_attack_defender: FactCollection<AttackDefenderOpportunity>,
     pub opponent_available_interference: FactCollection<InterferenceOpportunity>,
+    pub opponent_available_double_attack: FactCollection<DoubleAttackOpportunity>,
     pub hazards: FactCollection<HazardFact>,
     pub square_facts: FactCollection<SquareFact>,
 }
@@ -476,6 +478,29 @@ pub struct InterferenceOpportunity {
     pub gives_check: bool,
     /// SEE centipawns we win on the target against the enemy's best reply (least-bad over
     /// every reply; a recapture that re-opens the line and re-defends the target refutes it).
+    pub material_gain: i32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DoubleAttackOpportunity {
+    /// Motif family — always "double_attack".
+    pub kind: String,
+    /// Validator that proved it — "double_attack_validation".
+    pub validator: String,
+    /// The single move that creates both threats (long UCI).
+    pub move_uci: String,
+    /// The moved piece that delivers threat A, at its post-move square (promoted type if it promotes).
+    pub mover: PieceRef,
+    /// The distinct friendly piece whose threat on B is newly realized by the move, at its (unchanged) square.
+    pub second_attacker: PieceRef,
+    /// The enemy piece the moved piece threatens (threat A).
+    pub target_a: PieceRef,
+    /// The enemy piece the second attacker threatens (threat B), distinct square from A.
+    pub target_b: PieceRef,
+    /// Whether the double-attack move gives check.
+    pub gives_check: bool,
+    /// Estimated forced material: the enemy saves the dearer target, we take the lesser — min(threatA, threatB).
     pub material_gain: i32,
 }
 

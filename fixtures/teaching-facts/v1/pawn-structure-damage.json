@@ -332,6 +332,10 @@
       "status": "uncomputed",
       "reason": "not_requested"
     },
+    "availableDoubleAttack": {
+      "status": "uncomputed",
+      "reason": "not_requested"
+    },
     "opponentAvailableMotifs": {
       "status": "uncomputed",
       "reason": "not_requested"
@@ -369,6 +373,10 @@
       "reason": "not_requested"
     },
     "opponentAvailableInterference": {
+      "status": "uncomputed",
+      "reason": "not_requested"
+    },
+    "opponentAvailableDoubleAttack": {
       "status": "uncomputed",
       "reason": "not_requested"
     },
@@ -1892,6 +1900,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableDoubleAttack": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "opponentAvailableMotifs": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -1929,6 +1941,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableInterference": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableDoubleAttack": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -3548,6 +3564,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableDoubleAttack": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "opponentAvailableMotifs": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -3585,6 +3605,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableInterference": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableDoubleAttack": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -5116,6 +5140,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableDoubleAttack": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "opponentAvailableMotifs": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -5153,6 +5181,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableInterference": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableDoubleAttack": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -6439,7 +6471,7 @@
   },
   "provenance": {
     "engine": "cvs-bitboard-core",
-    "factsRegistryVersion": 14,
+    "factsRegistryVersion": 15,
     "validators": [
       "legal_move_generation",
       "attack_map",
