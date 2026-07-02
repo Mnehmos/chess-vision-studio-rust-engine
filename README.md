@@ -16,13 +16,20 @@ launch `analyze --serve` as a localhost-only engine bridge.
 deterministic teaching facts — this engine is the **truth layer** of Chess Vision
 Studio's "Control Lens" teaching contract: it emits facts, never grades or prose.
 
-The `TeachingFactBundleV1` protocol (facts registry **v5**) returns legal
+The `TeachingFactBundleV1` protocol (facts registry **v22**) returns legal
 played/best/refutation branches, each with full position facts: per-piece
-attackers/defenders and SEE, named pawn-structure facts, king safety, available and
-opponent-available motifs and pins, and deterministic position **hazards**
-(losing-material, fork-threat, pin-constraint, king-pressure, mate-threat) with
-move-to-move deltas. No topic classification or coaching prose — the app's teaching
-compiler owns that. Validators live in `src/facts/`. See
+attackers/defenders and SEE, named pawn-structure facts, king safety, 64-square
+control, deterministic position **hazards** (losing-material, fork-threat,
+pin-constraint, king-pressure, mate-threat) with move-to-move deltas, and
+**18 validated motif detectors** for both sides — fork, pin, skewer, discovery
+(incl. discovered/double/discoverer checks), discovered defense, capturing /
+attacking / deflecting / luring the defender, overload, interference, trapped
+piece, desperado, double attack, x-ray attack/defense, win-the-exchange, and named
+mate patterns. Every detector is adversarially fuzz-verified to zero false
+positives (see [docs/DETECTOR_SOUNDNESS.md](docs/DETECTOR_SOUNDNESS.md)); the
+motif-to-detector map lives in `benchmarks/data/motif-taxonomy.json` (44 of 197
+taxonomy motifs detected). No topic classification or coaching prose — the app's
+teaching compiler owns that. Validators live in `src/facts/`. See
 [docs/TEACHING_FACTS_PROTOCOL.md](docs/TEACHING_FACTS_PROTOCOL.md).
 
 ## What It Provides
@@ -32,12 +39,23 @@ compiler owns that. Validators live in `src/facts/`. See
 - Iterative deepening alpha-beta search.
 - UCI frontend for cutechess and external harnesses.
 - JSON-line `analyze --serve` mode for the Chess Vision Studio app.
-- Deterministic teaching-facts validators (`TeachingFactBundleV1`, registry v5):
-  SEE, attackers/defenders, motifs/pins, pawn structure, king safety, hazards.
+- Deterministic teaching-facts validators (`TeachingFactBundleV1`, registry v22):
+  SEE, attackers/defenders, 18 motif detectors, pawn structure, king safety,
+  square control, hazards.
+- A deterministic fixed-node diagnostic interface (`nodeBudget` +
+  `diagnosticIsolation` cold/warm on serve requests, `go nodes N` over UCI) for
+  reproducible experiments.
 - Search telemetry for pruning, move ordering, TT, qsearch, and branching.
-- NNUE and CVS feature experiments behind explicit gates.
+- NNUE and CVS feature experiments behind explicit gates
+  (see `CLASSICAL_EVAL_EXPERIMENT.md` for the standing eval-experiment program).
 
 ## Engine-development benchmarks (2026-06-12)
+
+> **Current champion (2026-07-01):** the frozen baseline is **N0 =
+> `g9.current-default.raw-plus-residual`** (gen9 raw NNUE + core104 residual
+> helper + rung2), pinned with artifact SHAs, search profile, and live-bot flags
+> in [`benchmarks/N0-identity.json`](benchmarks/N0-identity.json). The section
+> below is the dated gen8-era gate history and is kept as a record.
 
 These are **controlled engineering benchmarks against fixed native-Stockfish
 settings — not human, FIDE, or otherwise transferable ratings.** Against pinned
@@ -181,6 +199,21 @@ eval <fen>       static eval from White's point of view
 quit             stop the server
 ```
 
+JSON requests carry game history and options:
+
+```text
+{"cmd":"go","budgetMs":500,"fen":"...","initialFen":"...","moves":[...]}
+{"cmd":"eval","fen":"..."}
+{"cmd":"facts","schemaVersion":1,"fenBefore":"...","playedMoveUci":"e2e4", ...}
+{"cmd":"go","fen":"...","nodeBudget":80000,"diagnosticIsolation":"cold"}
+```
+
+The last form is the deterministic fixed-node diagnostic interface: `nodeBudget`
+stops the search exactly at that node count (single-thread forced),
+`diagnosticIsolation` is `cold` (fresh searcher — a prior search cannot alter the
+result) or `warm` (persisted TT carries forward), and the reply carries a
+`diagnostic` block with requested/consumed nodes.
+
 The response is one JSON line with best move, score, mate distance, PV, depth,
 nodes, qnodes, TT hits, elapsed time, and telemetry.
 
@@ -239,13 +272,22 @@ The first native cutechess anchor on 2026-06-10 scored:
 
 Treat this as a controlled engineering anchor, not a human rating claim.
 
-## Search And Training Notes
+## Documentation Map
 
-Promoted and experimental work is tracked in:
+Contracts and engineering standards:
+
+- `docs/TEACHING_FACTS_PROTOCOL.md` — the facts contract (registry v22).
+- `docs/DETECTOR_SOUNDNESS.md` — detector guard patterns, the fuzz-found
+  false-positive classes, and the verification protocol.
+- `docs/RESPONSIBILITIES.md` — module ownership and change checklists.
+- `CLASSICAL_EVAL_EXPERIMENT.md` — the standing eval-experiment program
+  (frozen N0 baseline, gates, promotion policy, tooling checklist).
+- `benchmarks/N0-identity.json` — the pinned champion identity.
+
+Promoted and experimental search/training work:
 
 - `SEARCH_REPORT.md`
 - `SEARCH_PATCHES.md`
-- `GAUNTLET_REPORT.md`
 - `RSI_LOOP_REPORT.md`
 - `GEN8_TRAINING_PLAN.md`
 - `benchmarks/README.md`

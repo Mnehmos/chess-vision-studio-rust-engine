@@ -5,7 +5,9 @@ Chess Vision Studio's teaching compiler. Rust emits deterministic chess facts.
 The application combines those facts with Stockfish grades, classifies teaching
 topics, and renders committed explanation plans.
 
-The current additive contract is schema version 1, facts registry version 5.
+The current additive contract is schema version 1, facts registry version **22**
+(`FACTS_REGISTRY_VERSION` in `src/facts/mod.rs` is the source of truth; the version
+history at the bottom of this document mirrors the comment block there).
 
 ## Request
 
@@ -65,11 +67,30 @@ interface PositionFacts {
   kingSafety: FactCollection<KingSafetyFact>;
   availableCaptures: FactCollection<CaptureOpportunity>;
   opponentAvailableCaptures: FactCollection<CaptureOpportunity>;
-  availableMotifs: FactCollection<MotifOpportunity>;
-  availablePins: FactCollection<PinOpportunity>;
-  opponentAvailableMotifs: FactCollection<MotifOpportunity>;
-  opponentAvailablePins: FactCollection<PinOpportunity>;
+  // Motif-opportunity collections (gated by options.includeMotifOpportunities).
+  // Every collection below also has an opponentAvailable* twin — the symmetric
+  // analysis probe for the side not to move.
+  availableMotifs: FactCollection<MotifOpportunity>;              // forks (v2)
+  availablePins: FactCollection<PinOpportunity>;                  // v3
+  availableSkewers: FactCollection<SkewerOpportunity>;            // v7
+  availableDiscoveries: FactCollection<DiscoveryOpportunity>;     // v8
+  availableDiscoveredDefense: FactCollection<DiscoveredDefenseOpportunity>; // v18
+  availableRemoveGuard: FactCollection<RemoveGuardOpportunity>;   // v9
+  availableTrapped: FactCollection<TrappedPieceOpportunity>;      // v10
+  availableDesperado: FactCollection<DesperadoOpportunity>;       // v22
+  availableMatePatterns: FactCollection<MatePatternFact>;         // v11
+  availableOverload: FactCollection<OverloadOpportunity>;         // v12
+  availableAttackDefender: FactCollection<AttackDefenderOpportunity>; // v13
+  availableDeflection: FactCollection<DeflectionOpportunity>;     // v19
+  availableLureDefender: FactCollection<LureDefenderOpportunity>; // v20
+  availableInterference: FactCollection<InterferenceOpportunity>; // v14
+  availableDoubleAttack: FactCollection<DoubleAttackOpportunity>; // v15
+  availableXrayAttack: FactCollection<XRayOpportunity>;           // v16
+  availableXrayDefense: FactCollection<XRayDefenseOpportunity>;   // v17
+  availableWinExchange: FactCollection<WinExchangeOpportunity>;   // v21
+  // ...opponentAvailable* twins of all of the above...
   hazards: FactCollection<HazardFact>;
+  squareFacts: FactCollection<SquareFact>;                        // v6
 }
 ```
 
@@ -90,7 +111,7 @@ created and removed structure deltas.
 
 ## Captures and King Safety
 
-Registry v5 exposes structured legal captures and king-safety facts:
+Structured legal captures and king-safety facts (since registry v5):
 
 ```ts
 interface CaptureOpportunity {
@@ -117,11 +138,14 @@ interface KingSafetyFact {
 Capture ordering and flags are deterministic. Legal escape squares are computed
 symmetrically when the requested side can be probed legally.
 
-## Motifs and Pins
+## Motif Detectors
 
-When `options.includeMotifOpportunities` is true, each position view includes
-validated fork and pin opportunities for both sides. When false or absent, those
-collections are `uncomputed` with reason `not_requested`.
+When `options.includeMotifOpportunities` is true, each position view includes every
+validated motif-opportunity collection for both sides. When false or absent, those
+collections are `uncomputed` with reason `not_requested`. Two representative shapes
+(the rest follow the same conventions — camelCase serde, `kind` + `validator`
+strings, `PieceRef` participants, deterministic ordering, and a `materialGain` that
+is the engine's proven worst-case, never an optimistic count):
 
 ```ts
 interface MotifOpportunity {
@@ -148,13 +172,39 @@ interface PinOpportunity {
 }
 ```
 
-Fork validation was introduced in registry v2, pin validation in v3, and
-opponent-side motif/pin probes in v4.
+### Detector inventory (registry v22)
+
+| Detector | `kind` value(s) | Validator | Claim |
+|---|---|---|---|
+| Fork | `fork` | `fork_validation` | One moved piece attacks ≥2 winnable targets; forker not simply lost. |
+| Pin | `absolute` / `relative` | `pin_validation` | A move creates a pin against the king or a dearer piece. |
+| Skewer | `skewer` | `skewer_validation` | A dearer front piece is forced off a line, exposing the piece behind. |
+| Discovery | `discovered_attack` / `discovered_check` / `double_check` / `discoverer_checks` | `discovery_validation` | Moving unveils a rear slider's attack (or check); `discoverer_checks` = the MOVING piece checks while the unveiled slider wins material. |
+| Discovered defense | `discovered_defense` | `discovered_defense_validation` | Moving unveils a friendly slider that rescues a legally hanging piece. |
+| Capturing the defender | `capture_the_defender` | `remove_guard_validation` | Capturing a defender makes its charge winnable. |
+| Trapped piece | `trapped_piece` | `trapped_piece_validation` | An enemy piece is attacked and every escape still loses it. |
+| Desperado | `desperado` | `desperado_validation` | OUR doomed piece has a capture that recovers material before dying (worst-case gain over a full legal capture quiescence). |
+| Mate patterns | `back_rank_mate` / `smothered_mate` / `epaulette_mate` / `damiano_mate` / `boden_mate` | `mate_pattern_validation` | Post-mate classification of the delivered pattern. |
+| Overloaded defender | `overloading` | `overload_validation` | A defender guards more duties than it can meet. |
+| Attacking the defender | `attacking_the_defender` | `attack_defender_validation` | Attack a sole defender so it must move or be lost (worst-case over all enemy replies, replies debited for what they capture). |
+| Deflection | `deflection` | `deflection_validation` | A non-capturing move forces a sole defender off its charge (same debited worst-case). |
+| Luring the defender | `luring_the_defender` | `lure_defender_validation` | An offered sacrifice decoys the sole defender onto the capture square. |
+| Interference | `interference` | `interference_validation` | An interposition severs a slider's defense of a target. |
+| Double attack | `double_attack` | `double_attack_validation` | One move creates two winning threats from two DIFFERENT pieces. |
+| X-ray attack | `xray_attack` | `xray_attack_validation` | A slider wins a defended front piece by counting through it to the piece behind. |
+| X-ray defense | `xray_defense` | `xray_defense_validation` | A slider defends a friendly piece through an enemy blocker. |
+| Win the exchange | `win_the_exchange` | `win_exchange_validation` | A capture whose full SEE swap wins a rook for a minor. |
+
+The taxonomy mapping (which ChessTempo motif each detector covers) lives in
+`benchmarks/data/motif-taxonomy.json`; `benchmarks/scripts/check_detector_coverage.py`
+fails CI when the taxonomy claims a detector the registry does not register.
+Soundness rules and the false-positive classes these detectors are hardened
+against are documented in [DETECTOR_SOUNDNESS.md](DETECTOR_SOUNDNESS.md).
 
 ## Hazards and Move Deltas
 
-When motif opportunities are requested and symmetric probes are available,
-registry v5 derives stable hazards from validated lower-level facts:
+When motif opportunities are requested and symmetric probes are available, the
+engine derives stable hazards from validated lower-level facts (since registry v5):
 
 ```ts
 interface HazardFact {
@@ -215,16 +265,18 @@ A scalar fact uses the equivalent `FactValue<T>` union. A boolean inside a
 
 ## Proof and Validators
 
-Registry v5 provenance may list:
+Registry v22 provenance lists, in order (the exact list is asserted by
+`tests/facts_protocol.rs::registry_provenance_lists_every_active_validator`):
 
-- `legal_move_generation`: branch, PV, capture, and reply legality.
-- `attack_map`: attackers, defenders, loose pieces, and only defenders.
-- `see`: legal capture material consequence in centipawns.
-- `capture_opportunities`: structured legal capture candidates.
-- `king_safety`: check state, king-zone pressure, and legal escapes.
-- `pawn_structure`: pawn and king-shield structure facts and deltas.
-- `fork_validation`: validated fork opportunities.
-- `pin_validation`: validated pin opportunities.
+- `legal_move_generation`, `attack_map`, `see`, `capture_opportunities`,
+  `king_safety`, `pawn_structure`, `square_control` — the base fact layers.
+- `fork_validation`, `pin_validation`, `skewer_validation`, `discovery_validation`,
+  `remove_guard_validation`, `trapped_piece_validation`, `mate_pattern_validation`,
+  `overload_validation`, `attack_defender_validation`, `interference_validation`,
+  `double_attack_validation`, `xray_attack_validation`, `xray_defense_validation`,
+  `discovered_defense_validation`, `deflection_validation`,
+  `lure_defender_validation`, `win_exchange_validation`, `desperado_validation`
+  — the motif detectors (present only when motif opportunities were requested).
 
 The engine returns validator provenance but no causal attribution. Application
 teaching events must cite the validators that support their evidence and must fail
@@ -260,3 +312,31 @@ application consumes mirrored copies in contract and compiler tests.
 - Consumers reject unknown schema versions and incomplete current-registry shapes.
 - Cached teaching output is valid only for its schema, facts registry, compiler,
   and engine settings provenance.
+
+## Registry Version History
+
+Mirrors the comment block above `FACTS_REGISTRY_VERSION` in `src/facts/mod.rs`:
+
+| v | Added |
+|---|---|
+| 2 | fork enumeration (`availableMotifs`) |
+| 3 | pin enumeration |
+| 4 | non-moving-side motif probes (`opponentAvailable*`) |
+| 5 | structured captures, symmetric capture probes, king safety, king shields |
+| 6 | 64-square control + legal movers (`squareFacts`) |
+| 7 | skewers |
+| 8 | discovered attacks |
+| 9 | capturing-the-defender |
+| 10 | trapped pieces |
+| 11 | named mate patterns |
+| 12 | overloaded defenders |
+| 13 | attacking-the-defender |
+| 14 | interference |
+| 15 | double attack |
+| 16 | x-ray attack |
+| 17 | x-ray defense |
+| 18 | discovered defense |
+| 19 | deflection / distraction |
+| 20 | luring-the-defender (decoy) |
+| 21 | win-the-exchange |
+| 22 | desperado |

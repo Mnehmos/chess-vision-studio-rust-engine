@@ -66,6 +66,7 @@ Rust source of truth:
 | `CaptureOpportunity` | `src/facts/types.rs` | Legal capture candidate with SEE and safety flags. |
 | `MotifOpportunity` | `src/facts/types.rs` | Validated fork opportunity. |
 | `PinOpportunity` | `src/facts/types.rs` | Validated absolute/relative pin opportunity. |
+| `*Opportunity` (skewer, discovery, discovered-defense, remove-guard, trapped, desperado, overload, attack-defender, deflection, lure-defender, interference, double-attack, x-ray attack/defense, win-exchange) + `MatePatternFact` | `src/facts/types.rs` | One struct per validated motif detector — registry v22 inventory in `docs/TEACHING_FACTS_PROTOCOL.md`; soundness rules in `docs/DETECTOR_SOUNDNESS.md`. |
 | `HazardFact` | `src/facts/types.rs` | Stable summarized hazard: material, fork, pin, king pressure, or mate threat. |
 | `FactsProvenance` | `src/facts/types.rs` | Engine identity, optional commit, facts registry version, and validators. |
 
@@ -133,7 +134,9 @@ Protocol constants:
 | `src/facts/position.rs` | Builds `PositionFacts`, opposite-side probes, side conversion, and square naming. |
 | `src/facts/piece_safety.rs` | Piece refs/facts, attackers/defenders, only-defender relationships, SEE-losing facts, capture opportunities, and king safety. |
 | `src/facts/pawn_structure.rs` | Doubled/isolated/passed/island/open/semi-open/shield/chain facts and structure deltas. |
-| `src/facts/motifs.rs` | Validated fork and pin opportunities for side-to-move and analysis probes. |
+| `src/facts/motifs.rs` | All validated motif detectors (18 at registry v22: fork, pin, skewer, discovery family, discovered defense, remove-guard/attack/deflect/lure-the-defender, overload, interference, trapped, desperado, double attack, x-ray attack/defense, win-exchange) plus the shared soundness helpers (`capture_legal_wrt_pin`, `legal_capture_gain`, `legal_material_quiescence`, `attack_defender_worst_case`). See `docs/DETECTOR_SOUNDNESS.md`. |
+| `src/facts/mate_patterns.rs` | Named post-mate pattern classification (back-rank, smothered, epaulette, Damiano, Boden). |
+| `src/facts/square_control.rs` | Deterministic 64-square control and legal-mover facts. |
 | `src/facts/hazards.rs` | Derived hazards and hazard deltas from lower-level validated facts. |
 | `src/facts/move_bundle.rs` | `TeachingFactBundleV1` builder, branch application, legal UCI validation, PV validation, provenance, and optional branch errors. |
 
@@ -164,7 +167,8 @@ Protocol constants:
 | `tests/facts_position.rs` | Piece identity, relationships, SEE availability, and FEN rejection in facts. |
 | `tests/facts_piece_safety.rs` | Capture opportunities and king safety facts. |
 | `tests/facts_pawn_structure.rs` | Pawn structure facts. |
-| `tests/facts_fork.rs`, `tests/facts_pin.rs` | Motif/pin validator positives, negatives, stability, and non-mutation. |
+| `tests/facts_fork.rs`, `tests/facts_pin.rs`, and one `tests/facts_<detector>.rs` battery per motif detector (skewer, discovered, discovered_defense, remove_guard, trapped, desperado, overload, attack_defender, deflection, lure_defender, interference, double_attack, xray_attack, xray_defense, win_exchange, mate_patterns) | Detector positives, hard negatives (including the refuting reply and every fuzz-found false-positive regression), stability, and non-mutation. |
+| `tests/serve_diagnostic.rs` | Fixed-node diagnostic contract: cold determinism, exact budget, prior-search-cannot-alter-cold, warm TT carry. |
 | `tests/facts_hazards.rs` | Hazard creation/removal and unavailable states. |
 | `tests/danger.rs` | Danger extension and king-danger behavior. |
 
@@ -182,13 +186,19 @@ Protocol constants:
 When adding a new teaching fact:
 
 1. Add or extend schema structs in `src/facts/types.rs`.
-2. Add extraction/validation in the narrowest `src/facts/*` module.
+2. Add extraction/validation in the narrowest `src/facts/*` module, following the
+   guard set and counting-proof rules in `docs/DETECTOR_SOUNDNESS.md`.
 3. Wire it through `position_facts` or `move_bundle` as appropriate.
 4. Add provenance validator names when the fact is active.
-5. Add tests with positives, hard negatives, and unavailable/uncomputed behavior.
+5. Add tests with positives, hard negatives, and unavailable/uncomputed behavior,
+   then run the adversarial FP fuzz + engine-arbiter verification protocol from
+   `docs/DETECTOR_SOUNDNESS.md` before merge.
 6. Update the TypeScript mirror in `../chess-vision-studio/engine/teaching/types.ts`.
 7. Update golden fixtures and increment `FACTS_REGISTRY_VERSION` for semantic or
-   validator changes.
+   validator changes (one bump + one history line per detector).
+8. Update `benchmarks/data/motif-taxonomy.json` (`detectedBy`) and the mapping in
+   `benchmarks/scripts/check_detector_coverage.py`, and run that guard — CI fails
+   on taxonomy claims the registry does not back.
 
 When changing search:
 
