@@ -1,5 +1,11 @@
 # Benchmark Suite — baseline `snapshot/gen7-acc-futility-2026-06-11`
 
+> **Champion note (2026-07-01):** the frozen champion for the standing eval
+> experiment is **N0 = gen9 `g9.current-default.raw-plus-residual`**, pinned in
+> [`N0-identity.json`](N0-identity.json) (see `CLASSICAL_EVAL_EXPERIMENT.md`).
+> The gen7 snapshot below remains the historical gate-ladder baseline these
+> gate definitions were written against.
+
 ## Standard Entry Point
 
 Cross-generation work starts from `engines.json`:
@@ -93,6 +99,34 @@ cut/attempt pairs, TT hit/cut rates, hash-move and first-move cutoffs, qnode
 share, cutoff move index, and effective branching. Use `--base-exe` when
 comparing against the current instrumented build; legacy binaries emit only
 top-level counters and will be warned as incomplete telemetry rows.
+
+## Fixed-node experiment tooling (2026-07-01)
+
+The deterministic fixed-node control (`CLASSICAL_EVAL_EXPERIMENT.md` #6) runs a
+search that stops at an exact node count, cold (fresh searcher, single thread) —
+no clock noise, byte-reproducible. It is exposed three ways and consumed by four
+tools:
+
+- **Serve**: `{"cmd":"go","fen":...,"nodeBudget":N,"diagnosticIsolation":"cold"}`
+  (tests: `tests/serve_diagnostic.rs`). **UCI**: `go nodes N`.
+  **benchlib**: `engine_cfg(nodes=N)` + `Engine.search_nodes(...)`;
+  `bench_cploss.py --nodes N` runs Gate 3 under the control.
+- `scripts/sprt_runner.py` — the canonical SPRT statistics core (BayesElo
+  trinomial LLR, sequential stop). Consumes a per-game JSONL stream, emits a
+  `schemas/sprt-result.schema.json` record that passes `lint_promotion.py`
+  (Gate 6 / INV-1). Tests: `scripts/test_sprt_runner.py`.
+- `scripts/match_fixed_nodes.py` — the one-command experiment: cutechess-cli
+  A/B match at `tc=inf nodes=N` (color-paired, adjudicated, both sides default
+  to the N0 identity), emits candidate-POV JSONL, and with `--sprt` chains into
+  the SPRT record. `--cand-nodes/--base-nodes` runs a node-budget SPRT (the
+  P-SEARCH follow-up). Tests: `scripts/test_match_fixed_nodes.py`.
+- `de/probe_p_search.py` — the P-SEARCH probe (issue #8): decision stability
+  across node budgets, cold, per-position trajectories. First committed row:
+  `results/20260701-195605-p-search-n0-fixed-node.json` (N0 eval, 92-position
+  frozen suite, 10k→640k: moveChangeRate 0.64 — compute is unsaturated).
+- `scripts/check_detector_coverage.py` — facts-side CI guard: fails when
+  `data/motif-taxonomy.json` claims a detector the facts registry does not
+  register (Phase 8 docs-vs-registry discipline).
 
 Suite builder: `build_hard_suite.py` mines `suite-hard-100` = positions where
 the snapshot itself loses ≥50cp vs SF — "hard" defined relative to the baseline.
