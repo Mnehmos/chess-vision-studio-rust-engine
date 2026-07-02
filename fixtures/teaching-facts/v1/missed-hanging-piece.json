@@ -255,6 +255,10 @@
       "status": "uncomputed",
       "reason": "not_requested"
     },
+    "availableDesperado": {
+      "status": "uncomputed",
+      "reason": "not_requested"
+    },
     "availableMatePatterns": {
       "status": "uncomputed",
       "reason": "not_requested"
@@ -320,6 +324,10 @@
       "reason": "not_requested"
     },
     "opponentAvailableTrapped": {
+      "status": "uncomputed",
+      "reason": "not_requested"
+    },
+    "opponentAvailableDesperado": {
       "status": "uncomputed",
       "reason": "not_requested"
     },
@@ -1980,6 +1988,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableDesperado": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "availableMatePatterns": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -2045,6 +2057,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableTrapped": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableDesperado": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -3945,6 +3961,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableDesperado": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "availableMatePatterns": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -4010,6 +4030,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableTrapped": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableDesperado": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -5563,6 +5587,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableDesperado": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "availableMatePatterns": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -5628,6 +5656,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableTrapped": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableDesperado": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -7275,7 +7307,7 @@
   },
   "provenance": {
     "engine": "cvs-bitboard-core",
-    "factsRegistryVersion": 21,
+    "factsRegistryVersion": 22,
     "validators": [
       "legal_move_generation",
       "attack_map",

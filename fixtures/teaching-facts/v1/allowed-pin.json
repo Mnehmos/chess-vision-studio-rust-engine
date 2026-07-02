@@ -270,6 +270,10 @@
       "status": "computed",
       "items": []
     },
+    "availableDesperado": {
+      "status": "computed",
+      "items": []
+    },
     "availableMatePatterns": {
       "status": "computed",
       "items": []
@@ -335,6 +339,10 @@
       "items": []
     },
     "opponentAvailableTrapped": {
+      "status": "computed",
+      "items": []
+    },
+    "opponentAvailableDesperado": {
       "status": "computed",
       "items": []
     },
@@ -2059,6 +2067,10 @@
         "status": "computed",
         "items": []
       },
+      "availableDesperado": {
+        "status": "computed",
+        "items": []
+      },
       "availableMatePatterns": {
         "status": "computed",
         "items": []
@@ -2124,6 +2136,10 @@
         "items": []
       },
       "opponentAvailableTrapped": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableDesperado": {
         "status": "computed",
         "items": []
       },
@@ -3902,6 +3918,10 @@
         "status": "computed",
         "items": []
       },
+      "availableDesperado": {
+        "status": "computed",
+        "items": []
+      },
       "availableMatePatterns": {
         "status": "computed",
         "items": []
@@ -3967,6 +3987,10 @@
         "items": []
       },
       "opponentAvailableTrapped": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableDesperado": {
         "status": "computed",
         "items": []
       },
@@ -5766,6 +5790,10 @@
         "status": "computed",
         "items": []
       },
+      "availableDesperado": {
+        "status": "computed",
+        "items": []
+      },
       "availableMatePatterns": {
         "status": "computed",
         "items": []
@@ -5885,6 +5913,10 @@
             "materialGain": 320
           }
         ]
+      },
+      "opponentAvailableDesperado": {
+        "status": "computed",
+        "items": []
       },
       "opponentAvailableMatePatterns": {
         "status": "computed",
@@ -7377,7 +7409,7 @@
   },
   "provenance": {
     "engine": "cvs-bitboard-core",
-    "factsRegistryVersion": 21,
+    "factsRegistryVersion": 22,
     "validators": [
       "legal_move_generation",
       "attack_map",
@@ -7402,7 +7434,8 @@
       "discovered_defense_validation",
       "deflection_validation",
       "lure_defender_validation",
-      "win_exchange_validation"
+      "win_exchange_validation",
+      "desperado_validation"
     ]
   },
   "errors": []

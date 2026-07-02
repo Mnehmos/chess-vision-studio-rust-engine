@@ -56,6 +56,7 @@ pub struct PositionFacts {
     pub available_discovered_defense: FactCollection<DiscoveredDefenseOpportunity>,
     pub available_remove_guard: FactCollection<RemoveGuardOpportunity>,
     pub available_trapped: FactCollection<TrappedPieceOpportunity>,
+    pub available_desperado: FactCollection<DesperadoOpportunity>,
     pub available_mate_patterns: FactCollection<MatePatternFact>,
     pub available_overload: FactCollection<OverloadOpportunity>,
     pub available_attack_defender: FactCollection<AttackDefenderOpportunity>,
@@ -75,6 +76,7 @@ pub struct PositionFacts {
     pub opponent_available_discovered_defense: FactCollection<DiscoveredDefenseOpportunity>,
     pub opponent_available_remove_guard: FactCollection<RemoveGuardOpportunity>,
     pub opponent_available_trapped: FactCollection<TrappedPieceOpportunity>,
+    pub opponent_available_desperado: FactCollection<DesperadoOpportunity>,
     pub opponent_available_mate_patterns: FactCollection<MatePatternFact>,
     pub opponent_available_overload: FactCollection<OverloadOpportunity>,
     pub opponent_available_attack_defender: FactCollection<AttackDefenderOpportunity>,
@@ -450,6 +452,23 @@ pub struct TrappedPieceOpportunity {
     /// loses it), for explainability. Sorted, deduped.
     pub escape_squares_tried: Vec<String>,
     /// SEE centipawns we win — the least-bad outcome over staying + every escape.
+    pub material_gain: i32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DesperadoOpportunity {
+    /// Motif family — always "desperado".
+    pub kind: String,
+    /// Validator that proved it — "desperado_validation".
+    pub validator: String,
+    /// The doomed piece's grab-on-the-way-out (long UCI). This is a capture.
+    pub move_uci: String,
+    /// OUR doomed non-king/non-pawn piece, at its current square.
+    pub piece: PieceRef,
+    /// The enemy piece the desperado captures before dying.
+    pub captured_victim: PieceRef,
+    /// SEE centipawns recovered by the grab vs. dying for nothing (> 0). SEE_VALUE scale.
     pub material_gain: i32,
 }
 

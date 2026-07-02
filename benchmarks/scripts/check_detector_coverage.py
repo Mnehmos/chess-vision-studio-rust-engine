@@ -38,6 +38,7 @@ MOTIF_TO_VALIDATOR = {
     "deflection": "deflection_validation",
     "luring_the_defender": "lure_defender_validation",
     "win_exchange": "win_exchange_validation",
+    "desperado": "desperado_validation",
 }
 # facts::<subsystem> that are NOT the motif/mate validators but are real engine subsystems.
 SUBSYSTEM_TO_VALIDATOR = {"pawn_structure": "pawn_structure", "piece_safety": "king_safety",
