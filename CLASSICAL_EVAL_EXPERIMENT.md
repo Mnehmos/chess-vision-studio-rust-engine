@@ -192,8 +192,18 @@ baseline hash in output; refuse unknown/incomplete eval identity in promotion ru
       cutechess/JSONL result stream; tc="nodes:<N>" ties it to the #6 fixed-node control. Tests:
       benchmarks/scripts/test_sprt_runner.py (bounds, LLR sign, promote/reject/hold, malformed-
       hypothesis guard, and a closed-loop check that produced records pass the promotion linter).
+- [x] One canonical experiment command. benchmarks/scripts/match_fixed_nodes.py: cutechess-cli
+      fixed-node A/B match (tc=inf + nodes=N per engine = the match analogue of the #6 control;
+      -repeat color pairing, sequential openings, draw/resign adjudication; both sides default to
+      the frozen N0 identity so a candidate varies exactly one thing) -> candidate-POV JSONL ->
+      with --sprt chains into sprt_runner for a linter-valid record. Pure parts unit-tested
+      (test_match_fixed_nodes.py); end-to-end smoke: 4-game N0 self-match -> record passes
+      lint_promotion (mirrored paired results, LLR ~= 0, hold). This is also the P-SEARCH
+      follow-up vehicle (SPRT between node budgets via --cand-nodes/--base-nodes).
 - [ ] Complete independent verification and calibration (#7).
-- [ ] Complete P-EVAL-K, P-EVAL-C, P-GRID (#8).
+- [ ] Complete P-EVAL-K, P-EVAL-C, P-GRID (#8). (First real P-SEARCH row committed:
+      benchmarks/results/20260701-195605-p-search-n0-fixed-node.json — moveChangeRate 0.64
+      over 10k->640k on the frozen 92-position suite; compute is unsaturated under N0.)
 - [ ] Add complete self-play provenance through the pipeline (#9).
 - [ ] Wire the residual-hybrid configuration into the live evaluation adapter (#10).
 - [ ] Replace the learned-residual stub with a versioned model loader.
