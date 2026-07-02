@@ -1,6 +1,7 @@
 use crate::facts::hazards::{hazard_deltas, position_hazards};
 use crate::facts::motifs::{
-    attack_defender_opportunities, attack_defender_opportunities_for, deflection_opportunities,
+    attack_defender_opportunities, attack_defender_opportunities_for, battery_opportunities,
+    battery_opportunities_for, deflection_opportunities,
     deflection_opportunities_for, desperado_opportunities, desperado_opportunities_for,
     discovered_defense_opportunities, discovered_defense_opportunities_for, discovery_opportunities,
     discovery_opportunities_for, double_attack_opportunities, double_attack_opportunities_for,
@@ -42,6 +43,7 @@ fn facts_for(pos: &Position, include_motifs: bool) -> PositionFacts {
         facts.available_xray_attack = xray_attack_opportunities(pos);
         facts.available_xray_defense = xray_defense_opportunities(pos);
         facts.available_win_exchange = win_exchange_opportunities(pos);
+        facts.available_battery = battery_opportunities(pos);
         facts.opponent_available_motifs = motif_opportunities_for(pos, pos.stm.flip());
         facts.opponent_available_pins = pin_opportunities_for(pos, pos.stm.flip());
         facts.opponent_available_skewers = skewer_opportunities_for(pos, pos.stm.flip());
@@ -70,6 +72,7 @@ fn facts_for(pos: &Position, include_motifs: bool) -> PositionFacts {
             xray_defense_opportunities_for(pos, pos.stm.flip());
         facts.opponent_available_win_exchange =
             win_exchange_opportunities_for(pos, pos.stm.flip());
+        facts.opponent_available_battery = battery_opportunities_for(pos, pos.stm.flip());
         facts.hazards = position_hazards(pos, &facts);
     }
     facts
@@ -157,6 +160,7 @@ pub fn build_teaching_fact_bundle(
         validators.push("lure_defender_validation".to_string());
         validators.push("win_exchange_validation".to_string());
         validators.push("desperado_validation".to_string());
+        validators.push("battery_validation".to_string());
     }
 
     Ok(TeachingFactBundleV1 {

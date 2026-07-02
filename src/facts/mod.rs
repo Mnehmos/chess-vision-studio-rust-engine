@@ -41,6 +41,7 @@ pub const TEACHING_FACTS_SCHEMA_VERSION: u32 = 1;
 // v20: validated luring-the-defender (decoy) move enumeration (available_lure_defender + opponent probe).
 // v21: validated win-the-exchange move enumeration (available_win_exchange + opponent probe).
 // v22: validated desperado state enumeration (available_desperado + opponent probe).
+// v23: validated battery state enumeration (available_battery + opponent probe).
 // Schema stays additive at v1; the registry version bumps when a new validator
 // produces facts.
-pub const FACTS_REGISTRY_VERSION: u32 = 22;
+pub const FACTS_REGISTRY_VERSION: u32 = 23;

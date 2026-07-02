@@ -259,6 +259,10 @@
       "status": "computed",
       "items": []
     },
+    "availableBattery": {
+      "status": "computed",
+      "items": []
+    },
     "opponentAvailableMotifs": {
       "status": "computed",
       "items": []
@@ -328,6 +332,10 @@
       "items": []
     },
     "opponentAvailableWinExchange": {
+      "status": "computed",
+      "items": []
+    },
+    "opponentAvailableBattery": {
       "status": "computed",
       "items": []
     },
@@ -2052,6 +2060,10 @@
         "status": "computed",
         "items": []
       },
+      "availableBattery": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMotifs": {
         "status": "computed",
         "items": []
@@ -2121,6 +2133,10 @@
         "items": []
       },
       "opponentAvailableWinExchange": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableBattery": {
         "status": "computed",
         "items": []
       },
@@ -3862,6 +3878,10 @@
         "status": "computed",
         "items": []
       },
+      "availableBattery": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMotifs": {
         "status": "computed",
         "items": []
@@ -3965,6 +3985,10 @@
         "items": []
       },
       "opponentAvailableWinExchange": {
+        "status": "computed",
+        "items": []
+      },
+      "opponentAvailableBattery": {
         "status": "computed",
         "items": []
       },
@@ -5720,6 +5744,10 @@
         "status": "computed",
         "items": []
       },
+      "availableBattery": {
+        "status": "computed",
+        "items": []
+      },
       "opponentAvailableMotifs": {
         "status": "unavailable",
         "reason": "opposite_side_probe_while_in_check"
@@ -5789,6 +5817,10 @@
         "reason": "opposite_side_probe_while_in_check"
       },
       "opponentAvailableWinExchange": {
+        "status": "unavailable",
+        "reason": "opposite_side_probe_while_in_check"
+      },
+      "opponentAvailableBattery": {
         "status": "unavailable",
         "reason": "opposite_side_probe_while_in_check"
       },
@@ -7095,7 +7127,7 @@
   },
   "provenance": {
     "engine": "cvs-bitboard-core",
-    "factsRegistryVersion": 22,
+    "factsRegistryVersion": 23,
     "validators": [
       "legal_move_generation",
       "attack_map",
@@ -7121,7 +7153,8 @@
       "deflection_validation",
       "lure_defender_validation",
       "win_exchange_validation",
-      "desperado_validation"
+      "desperado_validation",
+      "battery_validation"
     ]
   },
   "errors": []

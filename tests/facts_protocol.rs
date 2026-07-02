@@ -158,6 +158,7 @@ fn registry_provenance_lists_every_active_validator() {
             "lure_defender_validation",
             "win_exchange_validation",
             "desperado_validation",
+            "battery_validation",
         ]
     );
 }

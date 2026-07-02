@@ -108,10 +108,10 @@
     { "slug": "backwards-move", "name": "Backwards Move", "category": "tactical", "family": "move-types", "definition": "A retreating move is the key, easily-missed resource.", "detectedBy": null },
     { "slug": "long-lateral-move", "name": "Long Lateral Move", "category": "tactical", "family": "move-types", "definition": "A long sideways slider move is the key, easily-missed resource.", "detectedBy": null },
 
-    { "slug": "battery", "name": "Battery", "category": "tactical", "family": "battery", "definition": "Two pieces aligned on a file/rank/diagonal to multiply force.", "detectedBy": null },
-    { "slug": "queen-bishop-battery", "name": "Queen + Bishop Battery", "category": "tactical", "family": "battery", "parent": "battery", "definition": "Queen and bishop doubled on the same diagonal.", "detectedBy": null },
-    { "slug": "two-rooks-battery", "name": "Two Rooks Battery", "category": "tactical", "family": "battery", "parent": "battery", "definition": "Two rooks doubled on a file or rank.", "detectedBy": null },
-    { "slug": "alekhines-gun", "name": "Alekhine's Gun", "category": "tactical", "family": "battery", "parent": "battery", "definition": "Doubled rooks backed by the queen on the same file.", "detectedBy": null },
+    { "slug": "battery", "name": "Battery", "category": "tactical", "family": "battery", "definition": "Two pieces aligned on a file/rank/diagonal to multiply force.", "detectedBy": "facts::motifs(battery_opportunities)" },
+    { "slug": "queen-bishop-battery", "name": "Queen + Bishop Battery", "category": "tactical", "family": "battery", "parent": "battery", "definition": "Queen and bishop doubled on the same diagonal.", "detectedBy": "facts::motifs(battery_opportunities)" },
+    { "slug": "two-rooks-battery", "name": "Two Rooks Battery", "category": "tactical", "family": "battery", "parent": "battery", "definition": "Two rooks doubled on a file or rank.", "detectedBy": "facts::motifs(battery_opportunities)" },
+    { "slug": "alekhines-gun", "name": "Alekhine's Gun", "category": "tactical", "family": "battery", "parent": "battery", "definition": "Doubled rooks backed by the queen on the same file.", "detectedBy": "facts::motifs(battery_opportunities)" },
 
     { "slug": "zugzwang", "name": "Zugzwang", "category": "tactical", "family": "zugzwang", "definition": "Any move worsens the opponent's position.", "detectedBy": null },
     { "slug": "triangulation", "name": "Triangulation", "category": "tactical", "family": "zugzwang", "definition": "Lose a tempo with the king to put the opponent in zugzwang.", "detectedBy": null },

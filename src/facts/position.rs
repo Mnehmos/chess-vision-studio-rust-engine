@@ -35,6 +35,7 @@ pub fn position_facts(pos: &Position) -> PositionFacts {
         available_xray_attack: FactCollection::uncomputed("not_requested"),
         available_xray_defense: FactCollection::uncomputed("not_requested"),
         available_win_exchange: FactCollection::uncomputed("not_requested"),
+        available_battery: FactCollection::uncomputed("not_requested"),
         opponent_available_motifs: FactCollection::uncomputed("not_requested"),
         opponent_available_pins: FactCollection::uncomputed("not_requested"),
         opponent_available_skewers: FactCollection::uncomputed("not_requested"),
@@ -53,6 +54,7 @@ pub fn position_facts(pos: &Position) -> PositionFacts {
         opponent_available_xray_attack: FactCollection::uncomputed("not_requested"),
         opponent_available_xray_defense: FactCollection::uncomputed("not_requested"),
         opponent_available_win_exchange: FactCollection::uncomputed("not_requested"),
+        opponent_available_battery: FactCollection::uncomputed("not_requested"),
         hazards: FactCollection::uncomputed("motifs_not_requested"),
         square_facts: crate::facts::square_control::square_control_facts(pos),
     }

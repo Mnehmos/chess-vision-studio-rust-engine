@@ -299,6 +299,10 @@
       "status": "uncomputed",
       "reason": "not_requested"
     },
+    "availableBattery": {
+      "status": "uncomputed",
+      "reason": "not_requested"
+    },
     "opponentAvailableMotifs": {
       "status": "uncomputed",
       "reason": "not_requested"
@@ -368,6 +372,10 @@
       "reason": "not_requested"
     },
     "opponentAvailableWinExchange": {
+      "status": "uncomputed",
+      "reason": "not_requested"
+    },
+    "opponentAvailableBattery": {
       "status": "uncomputed",
       "reason": "not_requested"
     },
@@ -2032,6 +2040,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableBattery": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "opponentAvailableMotifs": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -2101,6 +2113,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableWinExchange": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableBattery": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -4005,6 +4021,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableBattery": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "opponentAvailableMotifs": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -4074,6 +4094,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableWinExchange": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableBattery": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -5631,6 +5655,10 @@
         "status": "uncomputed",
         "reason": "not_requested"
       },
+      "availableBattery": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
       "opponentAvailableMotifs": {
         "status": "uncomputed",
         "reason": "not_requested"
@@ -5700,6 +5728,10 @@
         "reason": "not_requested"
       },
       "opponentAvailableWinExchange": {
+        "status": "uncomputed",
+        "reason": "not_requested"
+      },
+      "opponentAvailableBattery": {
         "status": "uncomputed",
         "reason": "not_requested"
       },
@@ -7307,7 +7339,7 @@
   },
   "provenance": {
     "engine": "cvs-bitboard-core",
-    "factsRegistryVersion": 22,
+    "factsRegistryVersion": 23,
     "validators": [
       "legal_move_generation",
       "attack_map",

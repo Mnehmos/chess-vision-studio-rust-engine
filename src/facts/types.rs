@@ -67,6 +67,7 @@ pub struct PositionFacts {
     pub available_xray_attack: FactCollection<XRayOpportunity>,
     pub available_xray_defense: FactCollection<XRayDefenseOpportunity>,
     pub available_win_exchange: FactCollection<WinExchangeOpportunity>,
+    pub available_battery: FactCollection<BatteryFact>,
     /// Analysis-only legal opportunities for the side that is not to move.
     /// These let the application prove a motif was newly allowed by a move.
     pub opponent_available_motifs: FactCollection<MotifOpportunity>,
@@ -87,6 +88,7 @@ pub struct PositionFacts {
     pub opponent_available_xray_attack: FactCollection<XRayOpportunity>,
     pub opponent_available_xray_defense: FactCollection<XRayDefenseOpportunity>,
     pub opponent_available_win_exchange: FactCollection<WinExchangeOpportunity>,
+    pub opponent_available_battery: FactCollection<BatteryFact>,
     pub hazards: FactCollection<HazardFact>,
     pub square_facts: FactCollection<SquareFact>,
 }
@@ -488,6 +490,34 @@ pub struct OverloadOpportunity {
     /// it excludes the deflection sacrifice cost of actually pulling the defender off, so
     /// the realized net can be lower. Mirrors the fork detector's second-best convention.
     pub material_gain: i32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BatteryFact {
+    /// Motif family — always "battery".
+    pub kind: String,
+    /// Validator that proved it — "battery_validation".
+    pub validator: String,
+    /// "battery" | "two_rooks_battery" | "queen_bishop_battery" | "alekhines_gun"
+    /// (snake_case; the app maps to kebab-case taxonomy slugs, the discovery-kind
+    /// convention). No `material_gain`: a battery is a standing formation, not a
+    /// material claim — a hardcoded 0 would read downstream as "proven zero gain"
+    /// (the MatePatternFact precedent).
+    pub subtype: String,
+    /// The rear slider (rearmost piece of the formation; the queen for Alekhine's Gun).
+    pub rear: PieceRef,
+    /// The front slider the rear projects through (the muzzle rook for the Gun).
+    pub front: PieceRef,
+    /// Gun only: the middle rook. None for two-piece batteries.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub middle: Option<PieceRef>,
+    /// squares_between(rear, front) names — empty corridor for pairs (alignment is
+    /// blocker-aware, so these are empty by construction); for the Gun it contains
+    /// the middle rook's square. Sorted along the ray by construction.
+    pub ray: Vec<String>,
+    /// "file" | "rank" | "diagonal".
+    pub line: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]

@@ -9,7 +9,7 @@ use crate::attacks::{attackers_of, bishop_attacks, queen_attacks, rook_attacks};
 use crate::facts::piece_safety::piece_ref;
 use crate::facts::position::{position_for_analysis_side, square_name};
 use crate::facts::types::{
-    AttackDefenderOpportunity, DeflectionOpportunity, DesperadoOpportunity,
+    AttackDefenderOpportunity, BatteryFact, DeflectionOpportunity, DesperadoOpportunity,
     DiscoveredDefenseOpportunity, DiscoveryOpportunity, DoubleAttackOpportunity, FactCollection,
     InterferenceOpportunity, LureDefenderOpportunity, MotifOpportunity, OverloadOpportunity,
     PieceRef, PinOpportunity, RemoveGuardOpportunity, SkewerOpportunity, TrappedPieceOpportunity,
@@ -3001,5 +3001,311 @@ fn win_exchange_worst_case(after: &Position, enemy: Color, sq: u8, banked: i32) 
         Some(worst)
     } else {
         None
+    }
+}
+
+// ── Battery (two-rooks / queen-bishop / Alekhine's Gun) ──────────────────────
+// A STATE detector (the overload/trapped shape): OUR sliders doubled on one line
+// with an empty corridor between them, the rear projecting force through the front.
+// No material claim => NO see/best_see_capture, NO legal_material_quiescence, NO
+// make()-based worst-case-over-all-enemy-replies loop — nothing is claimed that an
+// enemy reply could refute, which is why the FP surface is ~zero. Do NOT "add SEE
+// for rigor": that would import the pin/last-recapturer/collateral pitfalls for a
+// claim this fact never makes. The only occupancy edit is pure u64 math on the
+// attacks call (the pin/xray reveal probe — `xray_attack_after_move` pattern),
+// never a hand-edited Position (the overload occ-desync trap) and never make().
+// Pins are irrelevant and deliberately ignored: a pinned front or rear piece still
+// forms a real STANDING battery because nothing is claimed to move (a non-bug).
+//
+// Non-redundant with the shipped line motifs: pin/skewer/xray require an ENEMY
+// piece on the line and discovery requires the front piece to MOVE; a battery is
+// standing friendly-friendly alignment — the structural precursor those exploit.
+// A queen behind a friendly bishop on a FILE is a discovery precursor, NOT a
+// battery (the front must bear on the line-class; the pass structure encodes it).
+//
+// Guards:
+//   G1 pairing     — rear AND front drawn only from the pass's line-class set
+//                    ({R,Q} orth / {B,Q} diag); kings/pawns/knights can never
+//                    appear in a fact, by construction.
+//   G2 alignment   — front ∈ rook_attacks/bishop_attacks(rear, pos.all): blocker-
+//                    aware, so f ∈ atk ⇔ the corridor is empty. NEVER hand-rolled.
+//   G3 projection  — the causality analogue for a state claim: the doubled line
+//                    must actually project past the front (G3a: reveal non-empty,
+//                    so a muzzle at the board edge emits nothing) and must not
+//                    fire point-blank into an own pawn wall with no enemy in the
+//                    extension (G3b — the flood control for real-game closed files).
+//   G4 gun overlay — Q←R←R on one file emits ONE alekhines_gun; every pair with
+//                    BOTH endpoints inside a fired gun's 3-square set is suppressed
+//                    (including the reversed inner pair that G3b's pawn-only test
+//                    admits, since the queen is not a friendly pawn).
+//   G5 determinism — fixed type order + LSB scans construct deterministically;
+//                    canonical (rear.id, front.id) sort + ordered-pair dedupe.
+//
+// Documented deliberate false negatives: (a) doubled pieces whose muzzles sit at
+// board edges in both directions emit nothing; (b) doubling behind an own pawn you
+// intend to push is a legitimate plan G3b rejects; (c) tripled formations other
+// than the Q-R-R gun emit as component pairs, not a named triple.
+
+/// Line class of a battery pair.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum BatteryLine {
+    File,
+    Rank,
+    Diagonal,
+}
+
+impl BatteryLine {
+    fn as_str(self) -> &'static str {
+        match self {
+            BatteryLine::File => "file",
+            BatteryLine::Rank => "rank",
+            BatteryLine::Diagonal => "diagonal",
+        }
+    }
+}
+
+/// Intermediate aligned pair, kept as raw squares until emission so the gun
+/// overlay can chain and suppress on square identity.
+struct BatteryRawPair {
+    rear_pc: Piece,
+    rear_sq: u8,
+    front_pc: Piece,
+    front_sq: u8,
+    line: BatteryLine,
+}
+
+/// Validated standing battery formations for the side to move (facts about OUR
+/// pieces). NO in-check gate: purely structural, with no move or material claim —
+/// a battery exists even while its owner is in check (unlike overload, whose
+/// exploitation begins with a move); the `_for` probe still yields
+/// `Unavailable("opposite_side_probe_while_in_check")` via
+/// `position_for_analysis_side`.
+pub fn battery_opportunities(pos: &Position) -> FactCollection<BatteryFact> {
+    let us = pos.stm;
+    let enemy = us.flip();
+
+    let mut pairs: Vec<BatteryRawPair> = Vec::new();
+
+    // ORTH pass: rear ∈ {Rook, Queen}, front ∈ {Rook, Queen}, on rook lines.
+    for rear_pc in [Piece::Rook, Piece::Queen] {
+        let mut rbb = pos.pieces[us.index()][rear_pc.index()];
+        while rbb != 0 {
+            let r_sq = rbb.trailing_zeros() as u8;
+            rbb &= rbb - 1;
+            let ratk = rook_attacks(r_sq, pos.all);
+            for front_pc in [Piece::Rook, Piece::Queen] {
+                let mut fbb = pos.pieces[us.index()][front_pc.index()] & ratk;
+                while fbb != 0 {
+                    let f_sq = fbb.trailing_zeros() as u8;
+                    fbb &= fbb - 1;
+                    if f_sq == r_sq {
+                        continue; // same-type self-pair guard
+                    }
+                    // (G2) aligned by construction: rook_attacks stops at the first
+                    // blocker, so f_sq ∈ ratk ⇔ the corridor between them is empty.
+                    let line = if file_of(f_sq) == file_of(r_sq) {
+                        BatteryLine::File
+                    } else {
+                        BatteryLine::Rank
+                    };
+                    if let Some(p) =
+                        battery_pair(pos, us, enemy, rear_pc, r_sq, front_pc, f_sq, line)
+                    {
+                        pairs.push(p);
+                    }
+                }
+            }
+        }
+    }
+
+    // DIAG pass: rear ∈ {Bishop, Queen}, front ∈ {Bishop, Queen}, on bishop lines.
+    // B+B pairs are possible via promotion and emit as generic "battery".
+    for rear_pc in [Piece::Bishop, Piece::Queen] {
+        let mut rbb = pos.pieces[us.index()][rear_pc.index()];
+        while rbb != 0 {
+            let r_sq = rbb.trailing_zeros() as u8;
+            rbb &= rbb - 1;
+            let datk = bishop_attacks(r_sq, pos.all);
+            for front_pc in [Piece::Bishop, Piece::Queen] {
+                let mut fbb = pos.pieces[us.index()][front_pc.index()] & datk;
+                while fbb != 0 {
+                    let f_sq = fbb.trailing_zeros() as u8;
+                    fbb &= fbb - 1;
+                    if f_sq == r_sq {
+                        continue; // same-type self-pair guard
+                    }
+                    if let Some(p) = battery_pair(
+                        pos,
+                        us,
+                        enemy,
+                        rear_pc,
+                        r_sq,
+                        front_pc,
+                        f_sq,
+                        BatteryLine::Diagonal,
+                    ) {
+                        pairs.push(p);
+                    }
+                }
+            }
+        }
+    }
+
+    // (G4) Alekhine's Gun overlay (file-only, queen rearmost), chained on the
+    // POST-GUARD pair list: P1 = (Q at q, R at m, File) and P2 = (R at m, R at f,
+    // File) sharing the middle square m on the queen's file. Same file + shared
+    // middle + both blocker-aware-aligned ⇒ monotone q→m→f order is implied (a
+    // third piece between any two would have broken alignment).
+    let mut guns: Vec<(u8, u8, u8)> = Vec::new(); // (q_sq, m_sq, f_sq)
+    for p1 in pairs.iter().filter(|p| {
+        p.rear_pc == Piece::Queen && p.front_pc == Piece::Rook && p.line == BatteryLine::File
+    }) {
+        for p2 in pairs.iter().filter(|p| {
+            p.rear_pc == Piece::Rook
+                && p.front_pc == Piece::Rook
+                && p.line == BatteryLine::File
+                && p.rear_sq == p1.front_sq
+                && file_of(p.front_sq) == file_of(p1.rear_sq)
+        }) {
+            debug_assert_eq!(
+                (rank_of(p2.front_sq) as i8 - rank_of(p2.rear_sq) as i8).signum(),
+                (rank_of(p1.front_sq) as i8 - rank_of(p1.rear_sq) as i8).signum()
+            );
+            guns.push((p1.rear_sq, p1.front_sq, p2.front_sq));
+        }
+    }
+    // Suppress EVERY pair whose BOTH endpoints lie inside a gun's square set — not
+    // just the two chained components. The reversed inner pair (e.g. the front rook
+    // behind the middle rook pointing back at the queen) passes G3b because the
+    // queen is "not a friendly pawn"; without whole-set suppression it would leak a
+    // spurious two_rooks_battery in every gun position.
+    pairs.retain(|p| {
+        !guns.iter().any(|g| {
+            let s = [g.0, g.1, g.2];
+            s.contains(&p.rear_sq) && s.contains(&p.front_sq)
+        })
+    });
+
+    let mut out: Vec<BatteryFact> = Vec::new();
+    for p in &pairs {
+        out.push(battery_emit_pair(us, p));
+    }
+    for (q_sq, m_sq, f_sq) in guns {
+        out.push(BatteryFact {
+            kind: "battery".to_string(),
+            validator: "battery_validation".to_string(),
+            subtype: "alekhines_gun".to_string(),
+            rear: piece_ref(us, Piece::Queen, q_sq),
+            front: piece_ref(us, Piece::Rook, f_sq), // the muzzle
+            middle: Some(piece_ref(us, Piece::Rook, m_sq)),
+            ray: squares_between(q_sq, f_sq)
+                .into_iter()
+                .map(square_name)
+                .collect(), // contains m
+            line: BatteryLine::File.as_str().to_string(),
+        });
+    }
+    // (G5) determinism: canonical order + ordered-pair dedupe (belt-and-suspenders —
+    // construction visits each ordered square pair once, and a pair aligns in
+    // exactly one line class).
+    out.sort_by(|a, b| {
+        a.rear
+            .id
+            .cmp(&b.rear.id)
+            .then_with(|| a.front.id.cmp(&b.front.id))
+    });
+    out.dedup_by(|a, b| a.rear.id == b.rear.id && a.front.id == b.front.id);
+    FactCollection::computed(out)
+}
+
+/// Validated batteries from a requested side's perspective. See
+/// `motif_opportunities_for` for the counterfactual side-to-move semantics.
+pub fn battery_opportunities_for(pos: &Position, side: Color) -> FactCollection<BatteryFact> {
+    match position_for_analysis_side(pos, side) {
+        Ok(probe) => battery_opportunities(&probe),
+        Err(reason) => FactCollection::unavailable(reason),
+    }
+}
+
+/// Per-pair guard: the PROJECTION test (G3), the causality analogue for a state
+/// claim — the doubled line only teaches if the multiplied force points at
+/// something or through open space. The reveal beyond F is the proven after&!before
+/// x-ray probe: pure u64 occupancy math on the attacks call, NO Position mutation.
+/// `slider_attacks(Queen, ..)` (= queen_attacks) is safe here: removing the single
+/// blocker F only extends the one ray through F, so the diff is confined to that ray.
+#[allow(clippy::too_many_arguments)]
+fn battery_pair(
+    pos: &Position,
+    us: Color,
+    enemy: Color,
+    rear_pc: Piece,
+    r_sq: u8,
+    front_pc: Piece,
+    f_sq: u8,
+    line: BatteryLine,
+) -> Option<BatteryRawPair> {
+    let before = slider_attacks(rear_pc, r_sq, pos.all)?; // Some for R/B/Q
+    let after = slider_attacks(rear_pc, r_sq, pos.all & !(1u64 << f_sq))?;
+    let ext = after & !before; // squares strictly beyond F, up to & incl. the next blocker
+    if ext == 0 {
+        return None; // (G3a) muzzle at the board edge — the pair projects nothing
+    }
+    // First square beyond F along the ray (squares_between signum-walk style);
+    // ext != 0 guarantees it is on-board and ∈ ext (attack sets include their
+    // first blocker).
+    let df = (file_of(f_sq) as i8 - file_of(r_sq) as i8).signum();
+    let dr = (rank_of(f_sq) as i8 - rank_of(r_sq) as i8).signum();
+    let first_beyond = ((rank_of(f_sq) as i8 + dr) * 8 + (file_of(f_sq) as i8 + df)) as u8;
+    debug_assert!(ext & (1u64 << first_beyond) != 0);
+    let hits_enemy = ext & enemy_occupancy(pos, enemy) != 0; // first piece down-line is enemy
+    let own_pawn_muzzle =
+        pos.pieces[us.index()][Piece::Pawn.index()] & (1u64 << first_beyond) != 0;
+    if !hits_enemy && own_pawn_muzzle {
+        return None; // (G3b) fires point-blank into its own pawn wall
+    }
+    Some(BatteryRawPair {
+        rear_pc,
+        rear_sq: r_sq,
+        front_pc,
+        front_sq: f_sq,
+        line,
+    })
+}
+
+/// Subtype rules at emission:
+///   ORTH: R+R                -> "two_rooks_battery"   (file or rank)
+///         Q+R / R+Q / Q+Q    -> "battery"
+///   DIAG: {Q,B} either order -> "queen_bishop_battery"
+///         Q+Q / B+B          -> "battery"
+///   gun overlay              -> "alekhines_gun" (emitted directly, not here)
+fn battery_emit_pair(us: Color, p: &BatteryRawPair) -> BatteryFact {
+    let subtype = match p.line {
+        BatteryLine::File | BatteryLine::Rank => {
+            if p.rear_pc == Piece::Rook && p.front_pc == Piece::Rook {
+                "two_rooks_battery"
+            } else {
+                "battery"
+            }
+        }
+        BatteryLine::Diagonal => {
+            if p.rear_pc != p.front_pc {
+                "queen_bishop_battery"
+            } else {
+                "battery"
+            }
+        }
+    };
+    BatteryFact {
+        kind: "battery".to_string(),
+        validator: "battery_validation".to_string(),
+        subtype: subtype.to_string(),
+        rear: piece_ref(us, p.rear_pc, p.rear_sq),
+        front: piece_ref(us, p.front_pc, p.front_sq),
+        middle: None,
+        ray: squares_between(p.rear_sq, p.front_sq)
+            .into_iter()
+            .map(square_name)
+            .collect(),
+        line: p.line.as_str().to_string(),
     }
 }
