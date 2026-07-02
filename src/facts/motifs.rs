@@ -1125,6 +1125,40 @@ fn legal_capture_gain(pos: &Position, sq: u8, depth: u8) -> i32 {
     (victim - legal_capture_gain(&after, sq, depth - 1)).max(0)
 }
 
+/// Best FULL-BOARD material swing for the side to move via legal captures and promotions —
+/// an alternating capture quiescence with stand-pat, built on `generate_legal` (absolute pins
+/// respected). Unlike single-square SEE this sees off-square collateral: an in-between grab of
+/// a hanging queen, a promotion, a counter-capture elsewhere. Captures/promotions only, so it
+/// UNDER-estimates sides with quiet threats — the conservative direction when used to debit a
+/// material claim (desperado). Depth bounds the alternation; each level clones + regenerates,
+/// so keep call sites rare (gated behind cheap filters).
+fn legal_material_quiescence(pos: &Position, depth: u8) -> i32 {
+    if depth == 0 {
+        return 0;
+    }
+    let mut gen = pos.clone();
+    let mut best = 0; // stand pat
+    for m in generate_legal(&mut gen) {
+        let mut swing = match pos.piece_at(m.to) {
+            Some((_, p)) => SEE_VALUE[p.index()],
+            None => 0,
+        };
+        if let Some(promo) = m.flag.promo_piece() {
+            swing += SEE_VALUE[promo.index()] - SEE_VALUE[Piece::Pawn.index()];
+        }
+        if swing == 0 {
+            continue; // quiet non-promotion — outside the quiescence
+        }
+        let mut after = pos.clone();
+        after.make(m);
+        let score = swing - legal_material_quiescence(&after, depth - 1);
+        if score > best {
+            best = score;
+        }
+    }
+    best
+}
+
 fn discovered_defense_after_move(
     pos: &Position,
     mv: Move,
@@ -2471,10 +2505,16 @@ fn desperado_for_piece(
         }
     }
 
-    // ── STEP 2: DESPERADO GAIN. Among q's LEGAL captures (from the same generate_legal
-    //    set, so pinned q is already excluded), take the max see() of the grab. see(pos,
-    //    q_sq, m.to) scores from us (pos.stm == us) and already runs the full recapture
-    //    swap-list, so a grab the enemy simply re-wins nets <= 0 and is ignored.
+    // ── STEP 2: DESPERADO GAIN, WORST-CASE. A bare see(pos, q_sq, m.to) resolves only
+    //    the exchange on the grab square and was blind to any reply that wins bigger
+    //    material ELSEWHERE — an in-between grab of our hanging queen, a promotion, an
+    //    off-square counter-capture (fuzz: 69/640 false positives, every one engine-
+    //    confirmed). And a 1-reply-with-SEE-recovery model still overcredits (the
+    //    recovery's own collateral is invisible, one ply deeper). So the claim is fully
+    //    conservative: bank the victim, then subtract the enemy's best LEGAL capture/
+    //    promotion quiescence from the post-grab board (alternating, stand-pat, pins
+    //    respected via generate_legal). Captures-only can under-claim quiet threats —
+    //    the safe direction for a zero-false-positive material fact.
     let mut best_gain = 0i32;
     let mut best_uci: Option<String> = None;
     let mut best_victim: Option<(Piece, u8)> = None;
@@ -2488,9 +2528,12 @@ fn desperado_for_piece(
         if vc != enemy || vp == Piece::King {
             continue; // never "win" the king
         }
-        let g = see(pos, q_sq, m.to);
-        if g > best_gain {
-            best_gain = g;
+        let banked = SEE_VALUE[vp.index()];
+        let mut after = pos.clone();
+        after.make(*m); // after.stm == enemy
+        let gain = banked - legal_material_quiescence(&after, 5);
+        if gain > best_gain {
+            best_gain = gain;
             best_uci = Some(m.to_uci());
             best_victim = Some((vp, victim_sq));
         }

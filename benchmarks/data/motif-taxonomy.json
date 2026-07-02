@@ -65,7 +65,7 @@
     { "slug": "simplification", "name": "Simplification", "category": "tactical", "family": "material", "definition": "Trade pieces to reach a winning endgame.", "detectedBy": null },
 
     { "slug": "zwischenzug", "name": "Zwischenzug", "category": "tactical", "family": "tempo", "definition": "An in-between move (often a check) inserted before the expected reply.", "detectedBy": null },
-    { "slug": "desperado", "name": "Desperado", "category": "tactical", "family": "tempo", "definition": "An already-doomed piece grabs material or creates havoc before dying.", "detectedBy": null },
+    { "slug": "desperado", "name": "Desperado", "category": "tactical", "family": "tempo", "definition": "An already-doomed piece grabs material or creates havoc before dying.", "detectedBy": "facts::motifs(desperado)" },
     { "slug": "hit-and-run", "name": "Hit and Run", "category": "tactical", "family": "tempo", "definition": "Capture/threaten then retreat to safety with tempo.", "detectedBy": null },
     { "slug": "capturing-attacker", "name": "Capturing the Attacker", "category": "tactical", "family": "tempo", "definition": "Remove the attacking piece to defuse a threat with tempo.", "detectedBy": null },
     { "slug": "gain-of-tempo", "name": "Gain of Tempo", "category": "tactical", "family": "tempo", "definition": "A forcing move that gains time toward the goal.", "detectedBy": null },
