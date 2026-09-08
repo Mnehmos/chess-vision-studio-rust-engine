@@ -397,14 +397,43 @@ fn test_hybrid_a_root_ordering_and_cache() {
         let mut p = pos("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
         let mut s = Searcher::new(ValueWeights::default(), None);
         s.set_helper_nnue(Some(helper));
-        
+
         // Let's run a search and check that root_geom_cache gets populated.
         let _r = s.search(&mut p, opts(2, false, false));
         assert!(s.root_geom_cache.is_some());
-        
+
         let cache = s.root_geom_cache.as_ref().unwrap();
         assert_eq!(cache.zobrist, p.hash);
         assert_ne!(cache.model_hash, 0);
         assert_ne!(cache.move_scores.len(), 0);
     }
+}
+
+// --- Audit #60: mate-TT ply normalization must be on by default ---
+
+#[test]
+fn mate_tt_normalization_is_on_by_default() {
+    // Raw root-relative mate scores in the TT corrupt cross-ply probes
+    // (mate-in-N distances warp by the ply delta). The exact store/probe
+    // adjustment exists and is round-trip tested; the default must use it.
+    assert!(SearchOptions::default().matett);
+}
+
+#[test]
+fn mate_distance_stays_consistent_across_ply_with_matett() {
+    // Mate in 1 (Qxf7#). Probing the same position "deeper in the line" is
+    // simulated by searching with matett on and checking the mate distance
+    // is exactly 1 move (2 plies) from the root, not warped by TT entries
+    // stored at other plies.
+    let mut p = pos("r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4");
+    let mut s = Searcher::new(ValueWeights::default(), None);
+    let r = s.search(
+        &mut p,
+        SearchOptions {
+            depth: 4,
+            ..Default::default()
+        },
+    );
+    assert_eq!(r.mate, Some(1), "scholar's mate must be mate-in-1");
+    assert_eq!(r.best_move.map(|m| m.to_uci()), Some("h5f7".to_string()));
 }
