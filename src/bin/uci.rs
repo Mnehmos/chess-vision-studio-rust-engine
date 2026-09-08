@@ -73,7 +73,25 @@ fn print_result(out: &mut impl Write, r: &SearchResult, pos: &Position) {
             let _ = writeln!(out, "bestmove {}{}", m.to_uci(), hint.unwrap_or_default());
         }
         None => {
-            let _ = writeln!(out, "bestmove 0000");
+            // Aborted before any iteration completed (movetime 0, go nodes 1,
+            // immediate ponder-miss stop): `0000` is an illegal move and a
+            // tournament forfeit. Fall back to any legal move; 0000 stays
+            // correct only when the side to move truly has none (mate /
+            // stalemate adjudication).
+            let mut probe = pos.clone();
+            match generate_legal(&mut probe).iter().next().copied() {
+                Some(m) => {
+                    let _ = writeln!(
+                        out,
+                        "info string no completed iteration; legal-move fallback {}",
+                        m.to_uci()
+                    );
+                    let _ = writeln!(out, "bestmove {}", m.to_uci());
+                }
+                None => {
+                    let _ = writeln!(out, "bestmove 0000");
+                }
+            }
         }
     }
 }
@@ -182,14 +200,13 @@ fn main() {
                                     }
                                 }
                             }
-                        } else if name == "BookPath"
-                            && !value.is_empty() && value != "<empty>" {
-                                if let Ok(b) = cvs_bitboard_core::book::Book::new(&value) {
-                                    if let Some(s) = &mut searcher {
-                                        s.book = Some(Arc::new(std::sync::Mutex::new(b)));
-                                    }
+                        } else if name == "BookPath" && !value.is_empty() && value != "<empty>" {
+                            if let Ok(b) = cvs_bitboard_core::book::Book::new(&value) {
+                                if let Some(s) = &mut searcher {
+                                    s.book = Some(Arc::new(std::sync::Mutex::new(b)));
                                 }
                             }
+                        }
                     }
                 }
             }
