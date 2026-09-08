@@ -14,20 +14,23 @@ fn we(fen: &str) -> Vec<WinExchangeOpportunity> {
 
 #[test]
 fn validates_a_bishop_winning_the_exchange() {
-    // White to move: bishop a1 captures the black rook on g7 (a1-h8 diagonal, all clear),
-    // which is defended by the black pawn on h8. The full SEE swap is 500 (rook) − 330
-    // (bishop recaptured by hxg7) = 170, squarely in the rook-for-minor band. R-for-B.
-    let items = we("4k2p/6r1/8/8/8/8/8/B3K3 w - - 0 1");
+    // White to move: bishop a1 captures the black rook on f6 (a1-h8 diagonal, all clear),
+    // which is defended by the black pawn on g7. The full SEE swap is 500 (rook) − 330
+    // (bishop recaptured by gxf6) = 170, squarely in the rook-for-minor band. R-for-B.
+    // (FEN corrected in the #62 audit: the old board illegally parked the defending
+    // pawn on h8 — a promotion rank, which no black pawn can occupy — and from_fen
+    // now rejects it. Same geometry on legal squares: contest moved to f6/g7.)
+    let items = we("6k1/6p1/5r2/8/8/8/8/B3K3 w - - 0 1");
     let x = items
         .iter()
-        .find(|x| x.move_uci == "a1g7")
-        .expect("Bxg7 winning a rook for a bishop should be validated");
+        .find(|x| x.move_uci == "a1f6")
+        .expect("Bxf6 winning a rook for a bishop should be validated");
     assert_eq!(x.kind, "win_the_exchange");
     assert_eq!(x.validator, "win_exchange_validation");
     assert_eq!(x.mover.piece_type, PieceType::Bishop);
-    assert_eq!(x.mover.square, "g7");
+    assert_eq!(x.mover.square, "f6");
     assert_eq!(x.victim.piece_type, PieceType::Rook);
-    assert_eq!(x.victim.square, "g7");
+    assert_eq!(x.victim.square, "f6");
     assert!(!x.gives_check);
     assert_eq!(x.material_gain, 170);
 }
@@ -81,11 +84,11 @@ fn does_not_report_a_hanging_rook_grab() {
 
 #[test]
 fn does_not_report_an_equal_minor_trade() {
-    // Bishop a1 captures a black knight on g7 defended by the pawn on h8: SEE ≈ 0 (−10),
-    // BELOW the band and not a rook victim.
-    let items = we("4k2p/6n1/8/8/8/8/8/B3K3 w - - 0 1");
+    // Bishop a1 captures a black knight on f6 defended by the pawn on g7: SEE ≈ 0 (−10),
+    // BELOW the band and not a rook victim. (Same #62 FEN correction: pawn on g7, not h8.)
+    let items = we("6k1/6p1/5n2/8/8/8/8/B3K3 w - - 0 1");
     assert!(
-        items.iter().all(|x| x.move_uci != "a1g7"),
+        items.iter().all(|x| x.move_uci != "a1f6"),
         "an equal/near minor trade is not winning the exchange, got {items:?}"
     );
 }
@@ -149,7 +152,7 @@ fn no_win_exchange_in_the_opening_position() {
 
 #[test]
 fn enumeration_does_not_mutate_the_position() {
-    let fen = "4k2p/6r1/8/8/8/8/8/B3K3 w - - 0 1";
+    let fen = "6k1/6p1/5r2/8/8/8/8/B3K3 w - - 0 1";
     let pos = Position::from_fen(fen).unwrap();
     let _ = win_exchange_opportunities(&pos);
     assert_eq!(
@@ -164,7 +167,7 @@ fn emitted_opportunities_report_a_positive_in_band_gain() {
     // Every reported win-the-exchange carries a proven positive gain inside the
     // rook-for-minor band (~150..185).
     for fen in [
-        "4k2p/6r1/8/8/8/8/8/B3K3 w - - 0 1",
+        "6k1/6p1/5r2/8/8/8/8/B3K3 w - - 0 1",
         "4k3/8/8/2p5/3r4/8/2N5/4K3 w - - 0 1",
         "k3r3/8/5p2/4r3/8/8/1B6/4R1K1 w - - 0 1",
     ] {
@@ -173,10 +176,16 @@ fn emitted_opportunities_report_a_positive_in_band_gain() {
                 (150..=185).contains(&x.material_gain),
                 "win-the-exchange on {fen} reported out-of-band gain: {x:?}"
             );
-            assert_eq!(x.mover.piece_type == PieceType::Bishop
-                || x.mover.piece_type == PieceType::Knight, true,
-                "mover must be a minor: {x:?}");
-            assert_eq!(x.victim.piece_type, PieceType::Rook, "victim must be a rook: {x:?}");
+            assert_eq!(
+                x.mover.piece_type == PieceType::Bishop || x.mover.piece_type == PieceType::Knight,
+                true,
+                "mover must be a minor: {x:?}"
+            );
+            assert_eq!(
+                x.victim.piece_type,
+                PieceType::Rook,
+                "victim must be a rook: {x:?}"
+            );
         }
     }
 }
