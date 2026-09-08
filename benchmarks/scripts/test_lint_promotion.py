@@ -5,6 +5,11 @@ Runs with pytest, or standalone: `python test_lint_promotion.py` (no pytest need
 Pins the two acceptance criteria from #5:
   * a report with PROMOTE and no crossed bound fails
   * a fixed-N +50-ish point estimate that did not cross the bound resolves to HOLD
+and the INV-2 performance-only tier:
+  * a parity-proven, repeatable speedup is accepted without an Elo proof
+  * one noisy repeat does not veto a gain that is consistent across repeats
+  * any behavioral difference, test failure, small/inconsistent speedup, resource cost,
+    or Elo claim blocks accept_performance
 """
 from __future__ import annotations
 
@@ -109,6 +114,124 @@ def test_missing_field_flagged():
     rec = load("sprt-promote-valid.json")
     del rec["provenance"]
     assert any("missing required field: provenance" in x for x in lp.lint_record(rec))
+
+
+# --------------------------------------------------------------------------------------
+# INV-2: performance-only tier
+# --------------------------------------------------------------------------------------
+
+def test_perf_accept_valid_passes():
+    # Full parity + repeatable speedup + green tests: accepted with no Elo evidence at all.
+    assert lp.lint_record(load("perf-accept-valid.json")) == []
+
+
+def test_perf_accept_requires_full_parity():
+    viol = lp.lint_record(load("perf-accept-invalid-parity.json"))
+    assert any("FULL behavioral parity" in x for x in viol), viol
+
+
+def test_perf_accept_rejects_failing_tests():
+    rec = load("perf-accept-valid.json")
+    rec["tests"]["failed"] = 1
+    assert any("zero failing tests" in x for x in lp.lint_record(rec))
+
+
+def test_perf_accept_rejects_small_speedup():
+    rec = load("perf-accept-valid.json")
+    rec["speed"]["medianSpeedupPct"] = 0.4
+    rec["speed"]["minSpeedupPct"] = 0.1
+    assert any("medianSpeedupPct" in x for x in lp.lint_record(rec))
+
+
+def test_perf_accept_tolerates_one_noisy_repeat():
+    # 8/9 repeats faster, one -1% dip: desktop wall-clock noise, not a regression.
+    rec = load("perf-accept-valid.json")
+    rec["speed"].update({"repeats": 9, "repeatsTotal": 9, "repeatsPositive": 8,
+                         "signTestP": lp.sign_test_p(8, 9), "minSpeedupPct": -1.01})
+    assert lp.lint_record(rec) == []
+
+
+def test_perf_accept_rejects_deep_repeat_regression():
+    rec = load("perf-accept-valid.json")
+    rec["speed"]["minSpeedupPct"] = -9.0
+    assert any("no repeat worse than" in x for x in lp.lint_record(rec))
+
+
+def test_perf_accept_rejects_inconsistent_repeats():
+    # 5/9 faster: a coin flip. Median can still look good; the sign test says nothing proven.
+    rec = load("perf-accept-valid.json")
+    rec["speed"].update({"repeats": 9, "repeatsTotal": 9, "repeatsPositive": 5,
+                         "signTestP": lp.sign_test_p(5, 9)})
+    assert any("sign test" in x for x in lp.lint_record(rec))
+
+
+def test_perf_accept_rejects_too_few_repeats():
+    rec = load("perf-accept-valid.json")
+    rec["speed"].update({"repeats": 3, "repeatsTotal": 3, "repeatsPositive": 3,
+                         "signTestP": lp.sign_test_p(3, 3)})
+    assert any("timed repeats" in x for x in lp.lint_record(rec))
+
+
+def test_perf_sign_test_p_must_match_counts():
+    rec = load("perf-accept-valid.json")
+    rec["speed"]["signTestP"] = 0.001
+    assert any("one-sided sign test" in x for x in lp.lint_record(rec))
+
+
+def test_sign_test_p_values():
+    assert lp.sign_test_p(5, 5) == 1 / 32
+    assert abs(lp.sign_test_p(8, 9) - 10 / 512) < 1e-12
+    assert lp.sign_test_p(0, 9) == 1.0
+
+
+def test_perf_accept_rejects_resource_purchase():
+    rec = load("perf-accept-valid.json")
+    rec["resources"]["peakRssDeltaPct"] = 40.0
+    assert any("bought with resources" in x for x in lp.lint_record(rec))
+
+
+def test_perf_record_may_not_claim_elo():
+    rec = load("perf-accept-valid.json")
+    rec["strengthClaim"] = True
+    assert any("never claims Elo" in x for x in lp.lint_record(rec))
+
+
+def test_perf_accept_requires_enough_parity_searches():
+    rec = load("perf-accept-valid.json")
+    rec["parity"]["searches"] = 12
+    rec["parity"]["identicalSearches"] = 12
+    assert any("paired parity" in x for x in lp.lint_record(rec))
+
+
+def test_perf_speedup_arithmetic_must_be_consistent():
+    rec = load("perf-accept-valid.json")
+    rec["speed"]["aggregateSpeedupPct"] = 25.0  # baselineMs/candidateMs says ~5.24%
+    assert any("inconsistent timing record" in x for x in lp.lint_record(rec))
+
+
+def test_perf_hold_does_not_need_the_gate():
+    # A short/failed measurement may still be recorded honestly -- as a hold, not an accept.
+    rec = load("perf-accept-invalid-parity.json")
+    rec["decision"] = "hold_for_more_data"
+    assert lp.lint_record(rec) == []
+
+
+def test_perf_unknown_field_rejected():
+    rec = load("perf-accept-valid.json")
+    rec["eloGain"] = 20
+    assert any("unknown top-level field" in x for x in lp.lint_record(rec))
+
+
+def test_perf_screen_is_informational_only():
+    # A 40-game screen that did not cross a bound must not block an accepted speedup.
+    rec = load("perf-accept-valid.json")
+    rec["screen"] = {"games": 40, "wins": 18, "losses": 14, "draws": 8, "sprtRecord": None}
+    assert lp.lint_record(rec) == []
+
+
+def test_sprt_record_still_linted_as_sprt():
+    # A record without changeClass keeps going through the INV-1 path.
+    assert lp.is_perf_record(load("sprt-promote-valid.json")) is False
 
 
 if __name__ == "__main__":

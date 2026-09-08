@@ -1,0 +1,14 @@
+{
+  "nodesPerPosition": 320000,
+  "positions": 6,
+  "peakWorkingSetBytes": {
+    "baseline": 40173568,
+    "candidate": 40226816
+  },
+  "peakRssDeltaPct": 0.1325,
+  "binaryBytes": {
+    "baseline": 1350144,
+    "candidate": 1352704
+  },
+  "binaryBytesDeltaPct": 0.1896
+}

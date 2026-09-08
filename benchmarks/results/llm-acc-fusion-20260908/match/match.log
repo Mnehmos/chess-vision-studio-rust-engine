@@ -1,0 +1,153 @@
+Started game 1 of 40 (candidate vs baseline)
+Started game 2 of 40 (baseline vs candidate)
+Finished game 1 (candidate vs baseline): 0-1 {Black mates}
+Score of candidate vs baseline: 0 - 1 - 0  [0.000] 1
+Started game 3 of 40 (candidate vs baseline)
+Finished game 2 (baseline vs candidate): 1-0 {White wins by adjudication}
+Score of candidate vs baseline: 0 - 2 - 0  [0.000] 2
+Started game 4 of 40 (baseline vs candidate)
+Finished game 3 (candidate vs baseline): 1-0 {White wins by adjudication}
+Score of candidate vs baseline: 1 - 2 - 0  [0.333] 3
+Started game 5 of 40 (candidate vs baseline)
+Finished game 4 (baseline vs candidate): 1-0 {White mates}
+Score of candidate vs baseline: 1 - 3 - 0  [0.250] 4
+Started game 6 of 40 (baseline vs candidate)
+Finished game 5 (candidate vs baseline): 0-1 {Black wins by adjudication}
+Score of candidate vs baseline: 1 - 4 - 0  [0.200] 5
+Started game 7 of 40 (candidate vs baseline)
+Finished game 6 (baseline vs candidate): 1-0 {White mates}
+Score of candidate vs baseline: 1 - 5 - 0  [0.167] 6
+Started game 8 of 40 (baseline vs candidate)
+Finished game 7 (candidate vs baseline): 1-0 {White wins by adjudication}
+Score of candidate vs baseline: 2 - 5 - 0  [0.286] 7
+Started game 9 of 40 (candidate vs baseline)
+Finished game 8 (baseline vs candidate): 1-0 {White wins by adjudication}
+Score of candidate vs baseline: 2 - 6 - 0  [0.250] 8
+Started game 10 of 40 (baseline vs candidate)
+Finished game 9 (candidate vs baseline): 1-0 {White wins by adjudication}
+Score of candidate vs baseline: 3 - 6 - 0  [0.333] 9
+Started game 11 of 40 (candidate vs baseline)
+Finished game 10 (baseline vs candidate): 1/2-1/2 {Draw by adjudication}
+Score of candidate vs baseline: 3 - 6 - 1  [0.350] 10
+Started game 12 of 40 (baseline vs candidate)
+Finished game 11 (candidate vs baseline): 0-1 {Black mates}
+Score of candidate vs baseline: 3 - 7 - 1  [0.318] 11
+Started game 13 of 40 (candidate vs baseline)
+Finished game 12 (baseline vs candidate): 1/2-1/2 {Draw by fifty moves rule}
+Score of candidate vs baseline: 3 - 7 - 2  [0.333] 12
+Started game 14 of 40 (baseline vs candidate)
+Finished game 13 (candidate vs baseline): 0-1 {Black wins by adjudication}
+Score of candidate vs baseline: 3 - 8 - 2  [0.308] 13
+Started game 15 of 40 (candidate vs baseline)
+Finished game 14 (baseline vs candidate): 0-1 {Black mates}
+Score of candidate vs baseline: 4 - 8 - 2  [0.357] 14
+Started game 16 of 40 (baseline vs candidate)
+Finished game 15 (candidate vs baseline): 0-1 {Black mates}
+Score of candidate vs baseline: 4 - 9 - 2  [0.333] 15
+Started game 17 of 40 (candidate vs baseline)
+Finished game 17 (candidate vs baseline): 1-0 {White wins by adjudication}
+Score of candidate vs baseline: 5 - 9 - 2  [0.375] 16
+Started game 18 of 40 (baseline vs candidate)
+Finished game 16 (baseline vs candidate): 0-1 {Black wins by adjudication}
+Score of candidate vs baseline: 6 - 9 - 2  [0.412] 17
+Started game 19 of 40 (candidate vs baseline)
+Finished game 18 (baseline vs candidate): 1/2-1/2 {Draw by 3-fold repetition}
+Score of candidate vs baseline: 6 - 9 - 3  [0.417] 18
+Started game 20 of 40 (baseline vs candidate)
+Finished game 19 (candidate vs baseline): 0-1 {Black wins by adjudication}
+Score of candidate vs baseline: 6 - 10 - 3  [0.395] 19
+Started game 21 of 40 (candidate vs baseline)
+Finished game 20 (baseline vs candidate): 0-1 {Black mates}
+Score of candidate vs baseline: 7 - 10 - 3  [0.425] 20
+Started game 22 of 40 (baseline vs candidate)
+Finished game 21 (candidate vs baseline): 1-0 {White mates}
+Score of candidate vs baseline: 8 - 10 - 3  [0.452] 21
+Started game 23 of 40 (candidate vs baseline)
+Finished game 22 (baseline vs candidate): 0-1 {Black mates}
+Score of candidate vs baseline: 9 - 10 - 3  [0.477] 22
+Started game 24 of 40 (baseline vs candidate)
+Finished game 23 (candidate vs baseline): 1-0 {White mates}
+Score of candidate vs baseline: 10 - 10 - 3  [0.500] 23
+Started game 25 of 40 (candidate vs baseline)
+Finished game 24 (baseline vs candidate): 1/2-1/2 {Draw by fifty moves rule}
+Score of candidate vs baseline: 10 - 10 - 4  [0.500] 24
+Started game 26 of 40 (baseline vs candidate)
+Finished game 25 (candidate vs baseline): 0-1 {Black wins by adjudication}
+Score of candidate vs baseline: 10 - 11 - 4  [0.480] 25
+Started game 27 of 40 (candidate vs baseline)
+Finished game 26 (baseline vs candidate): 1/2-1/2 {Draw by 3-fold repetition}
+Score of candidate vs baseline: 10 - 11 - 5  [0.481] 26
+Started game 28 of 40 (baseline vs candidate)
+Finished game 27 (candidate vs baseline): 1/2-1/2 {Draw by insufficient mating material}
+Score of candidate vs baseline: 10 - 11 - 6  [0.481] 27
+Started game 29 of 40 (candidate vs baseline)
+Finished game 28 (baseline vs candidate): 0-1 {Black mates}
+Score of candidate vs baseline: 11 - 11 - 6  [0.500] 28
+Started game 30 of 40 (baseline vs candidate)
+Finished game 29 (candidate vs baseline): 1-0 {White wins by adjudication}
+Score of candidate vs baseline: 12 - 11 - 6  [0.517] 29
+Started game 31 of 40 (candidate vs baseline)
+Finished game 30 (baseline vs candidate): 0-1 {Black wins by adjudication}
+Score of candidate vs baseline: 13 - 11 - 6  [0.533] 30
+Started game 32 of 40 (baseline vs candidate)
+Finished game 31 (candidate vs baseline): 1-0 {White wins by adjudication}
+Score of candidate vs baseline: 14 - 11 - 6  [0.548] 31
+Started game 33 of 40 (candidate vs baseline)
+Finished game 32 (baseline vs candidate): 1-0 {White mates}
+Score of candidate vs baseline: 14 - 12 - 6  [0.531] 32
+Started game 34 of 40 (baseline vs candidate)
+Finished game 34 (baseline vs candidate): 1/2-1/2 {Draw by 3-fold repetition}
+Score of candidate vs baseline: 14 - 12 - 7  [0.530] 33
+Started game 35 of 40 (candidate vs baseline)
+Finished game 33 (candidate vs baseline): 0-1 {Black wins by adjudication}
+Score of candidate vs baseline: 14 - 13 - 7  [0.515] 34
+Started game 36 of 40 (baseline vs candidate)
+Finished game 35 (candidate vs baseline): 1-0 {White wins by adjudication}
+Score of candidate vs baseline: 15 - 13 - 7  [0.529] 35
+Started game 37 of 40 (candidate vs baseline)
+Finished game 36 (baseline vs candidate): 1-0 {White wins by adjudication}
+Score of candidate vs baseline: 15 - 14 - 7  [0.514] 36
+Started game 38 of 40 (baseline vs candidate)
+Finished game 37 (candidate vs baseline): 1-0 {White wins by adjudication}
+Score of candidate vs baseline: 16 - 14 - 7  [0.527] 37
+Started game 39 of 40 (candidate vs baseline)
+Finished game 38 (baseline vs candidate): 0-1 {Black wins by adjudication}
+Score of candidate vs baseline: 17 - 14 - 7  [0.539] 38
+Started game 40 of 40 (baseline vs candidate)
+Finished game 39 (candidate vs baseline): 1/2-1/2 {Draw by insufficient mating material}
+Score of candidate vs baseline: 17 - 14 - 8  [0.538] 39
+Finished game 40 (baseline vs candidate): 0-1 {Black wins by adjudication}
+Score of candidate vs baseline: 18 - 14 - 8  [0.550] 40
+...      candidate playing White: 10 - 8 - 2  [0.550] 20
+...      candidate playing Black: 8 - 6 - 6  [0.550] 20
+...      White vs Black: 16 - 16 - 8  [0.500] 40
+Elo difference: 34.9 +/- 99.2, LOS: 76.0 %, DrawRatio: 20.0 %
+SPRT: llr 0 (0.0%), lbound -inf, ubound inf
+
+Player: candidate
+   "Draw by 3-fold repetition": 3
+   "Draw by adjudication": 1
+   "Draw by fifty moves rule": 2
+   "Draw by insufficient mating material": 2
+   "Loss: Black mates": 3
+   "Loss: Black wins by adjudication": 5
+   "Loss: White mates": 3
+   "Loss: White wins by adjudication": 3
+   "Win: Black mates": 4
+   "Win: Black wins by adjudication": 4
+   "Win: White mates": 2
+   "Win: White wins by adjudication": 8
+Player: baseline
+   "Draw by 3-fold repetition": 3
+   "Draw by adjudication": 1
+   "Draw by fifty moves rule": 2
+   "Draw by insufficient mating material": 2
+   "Loss: Black mates": 4
+   "Loss: Black wins by adjudication": 4
+   "Loss: White mates": 2
+   "Loss: White wins by adjudication": 8
+   "Win: Black mates": 3
+   "Win: Black wins by adjudication": 5
+   "Win: White mates": 3
+   "Win: White wins by adjudication": 3
+Finished match

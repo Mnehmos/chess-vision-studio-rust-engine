@@ -8,3 +8,7 @@ fixtures/** text eol=lf
 # Rust + Python sources are LF too (keeps diffs clean cross-platform).
 *.rs text eol=lf
 *.py text eol=lf
+
+# Frozen experiment artifacts carry byte hashes; preserve their original bytes.
+benchmarks/results/llm-acc-fusion-20260908/** -text
+benchmarks/results/perf-acc-fusion-accept-20260908/** -text

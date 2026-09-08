@@ -1,8 +1,9 @@
 name: promotion-gate
 
-# Enforces INV-1 (issue #5): PROMOTE requires a crossed SPRT upper boundary. Runs the
-# promotion-policy linter's unit tests and lints every SPRT result record under
-# benchmarks/results/ on any change to benchmarks/.
+# Enforces INV-1 (issue #5): PROMOTE requires a crossed SPRT upper boundary, and INV-2:
+# accept_performance requires measured behavioral parity, a repeatable speedup, green
+# tests and no resource regression. Runs the promotion-policy linter's unit tests and
+# lints every SPRT/perf record under benchmarks/results/ on any change to benchmarks/.
 on:
   push:
     paths: ["benchmarks/**"]
@@ -19,5 +20,5 @@ jobs:
           python-version: "3.12"
       - name: Promotion-linter unit tests
         run: python benchmarks/scripts/test_lint_promotion.py
-      - name: Lint SPRT result records (INV-1)
+      - name: Lint SPRT and performance records (INV-1 / INV-2)
         run: python benchmarks/scripts/lint_promotion.py benchmarks/results
