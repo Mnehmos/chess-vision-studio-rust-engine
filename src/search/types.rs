@@ -144,7 +144,11 @@ impl Default for SearchOptions {
             rfp: true,
             futility: true,
             lmp: false,
-            matett: false,
+            // Mate-TT ply normalization ON by default (audit #60): raw
+            // root-relative mate scores in the TT corrupt cross-ply probes.
+            // The adjustment is exact (node-intrinsic distance), not a
+            // strength heuristic; --no-matett remains available for A/B.
+            matett: true,
             loglmr: false,
             see_prune: false,
             see_verify: false,
