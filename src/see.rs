@@ -33,7 +33,7 @@ pub fn see(pos: &Position, from: u8, to: u8) -> i32 {
     let mut occ = pos.all;
     let mut gain = [0i32; 32];
 
-    // Value captured on `to` (0 if empty — quiet move or en-passant target square).
+    // Value captured on `to` (0 if empty — quiet move).
     gain[0] = match pos.piece_at(to) {
         Some((c, p)) => {
             pieces[c.index()][p.index()] &= !(1u64 << to);
@@ -41,6 +41,23 @@ pub fn see(pos: &Position, from: u8, to: u8) -> i32 {
         }
         None => 0,
     };
+
+    // An en-passant capture lands on an empty square: the victim is the pawn on
+    // the passed square (`to ^ 8`), which must leave the board — and the
+    // occupancy — before the swap loop, or it would shadow sliders through its
+    // square and deflate the score.
+    if moving == Piece::Pawn
+        && pos.piece_at(to).is_none()
+        && crate::file_of(from) != crate::file_of(to)
+    {
+        let them = us.flip();
+        let victim_sq = to ^ 8;
+        if pos.piece_at(victim_sq) == Some((them, Piece::Pawn)) {
+            gain[0] = SEE_VALUE[Piece::Pawn.index()];
+            pieces[them.index()][Piece::Pawn.index()] &= !(1u64 << victim_sq);
+            occ &= !(1u64 << victim_sq);
+        }
+    }
 
     // The mover leaves `from` and now stands on `to`.
     pieces[us.index()][moving.index()] &= !(1u64 << from);
