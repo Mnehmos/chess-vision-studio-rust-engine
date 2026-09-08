@@ -28,12 +28,15 @@ use std::sync::Arc;
 const START_FEN: &str = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 const DEPTH_CAP: u32 = 30;
 
-/// In-flight ponder search: worker owns the Searcher and hands it back.
+/// In-flight background search (go ponder / go infinite): the worker owns the
+/// Searcher and hands it back.
 struct Ponder {
     handle: std::thread::JoinHandle<(SearchResult, Searcher)>,
     stop: Arc<AtomicBool>,
     /// Clock budget (ms) to grant after ponderhit, from the go-ponder clocks.
     budget: u64,
+    /// `go infinite` reuses the worker plumbing; ponderhit must not arm it.
+    infinite: bool,
 }
 
 fn print_result(out: &mut impl Write, r: &SearchResult, pos: &Position) {
@@ -245,6 +248,9 @@ fn main() {
                 pos = p;
             }
             Some("go") => {
+                // A new go supersedes any in-flight background search (non-
+                // conforming GUI sequence; also keeps the searcher taken below).
+                abort_ponder!();
                 let mut movetime: Option<u64> = None;
                 let mut depth: Option<u32> = None;
                 let mut nodes: Option<u64> = None;
@@ -253,6 +259,7 @@ fn main() {
                 let mut winc: u64 = 0;
                 let mut binc: u64 = 0;
                 let mut pondering = false;
+                let mut infinite = false;
                 let rest: Vec<&str> = tok.collect();
                 let mut i = 0;
                 while i < rest.len() {
@@ -267,6 +274,11 @@ fn main() {
                         "binc" => binc = val(i).unwrap_or(0),
                         "ponder" => {
                             pondering = true;
+                            i += 1;
+                            continue;
+                        }
+                        "infinite" => {
+                            infinite = true;
                             i += 1;
                             continue;
                         }
@@ -304,12 +316,14 @@ fn main() {
                     depth: depth.unwrap_or(DEPTH_CAP),
                     // Clamp to >=1: a 0-node search would emit a null `bestmove 0000`.
                     max_nodes: nodes.map(|n| n.max(1)),
-                    max_time_ms: if fixed_nodes || depth.is_some() || pondering {
+                    // go infinite ignores clock tokens (UCI spec): search runs
+                    // until stop or the depth cap.
+                    max_time_ms: if fixed_nodes || depth.is_some() || pondering || infinite {
                         None
                     } else {
                         hard
                     },
-                    soft_time_ms: if fixed_nodes || depth.is_some() || pondering {
+                    soft_time_ms: if fixed_nodes || depth.is_some() || pondering || infinite {
                         None
                     } else {
                         soft
@@ -318,10 +332,12 @@ fn main() {
                     ..Default::default()
                 }
                 .with_cli_flags(&args);
-                if pondering {
-                    // Opponent-clock search: free depth, no bestmove until
-                    // ponderhit (clock arms) or stop (miss; result discarded
-                    // by the GUI, TT keeps the work).
+                if pondering || infinite {
+                    // Opponent-clock / unbounded analysis search: the worker
+                    // runs free while the main loop keeps reading stdin.
+                    // ponder: ponderhit arms `budget` from that moment, stop
+                    // (miss) aborts; infinite: stop joins and prints, and the
+                    // depth cap ends it naturally.
                     let stop = Arc::new(AtomicBool::new(false));
                     let mut s = searcher.take().expect("searcher");
                     let mut p = pos.clone();
@@ -336,6 +352,7 @@ fn main() {
                         handle,
                         stop,
                         budget: budget.unwrap_or(1_000),
+                        infinite,
                     });
                 } else {
                     let s = searcher.as_mut().expect("searcher");
@@ -344,17 +361,21 @@ fn main() {
                 }
             }
             Some("ponderhit") => {
-                if let Some(p) = ponder.take() {
-                    // Prediction confirmed: grant the normal budget from now.
-                    let stop = Arc::clone(&p.stop);
-                    let ms = p.budget;
-                    std::thread::spawn(move || {
-                        std::thread::sleep(std::time::Duration::from_millis(ms));
-                        stop.store(true, Ordering::Relaxed);
-                    });
-                    if let Ok((r, s)) = p.handle.join() {
-                        searcher = Some(s);
-                        print_result(&mut out, &r, &pos);
+                // Only pairs with go ponder; ignore it against go infinite.
+                let arms_clock = ponder.as_ref().map(|p| !p.infinite).unwrap_or(false);
+                if arms_clock {
+                    if let Some(p) = ponder.take() {
+                        // Prediction confirmed: grant the normal budget from now.
+                        let stop = Arc::clone(&p.stop);
+                        let ms = p.budget;
+                        std::thread::spawn(move || {
+                            std::thread::sleep(std::time::Duration::from_millis(ms));
+                            stop.store(true, Ordering::Relaxed);
+                        });
+                        if let Ok((r, s)) = p.handle.join() {
+                            searcher = Some(s);
+                            print_result(&mut out, &r, &pos);
+                        }
                     }
                 }
             }
@@ -363,11 +384,12 @@ fn main() {
                     p.stop.store(true, Ordering::Relaxed);
                     if let Ok((r, s)) = p.handle.join() {
                         searcher = Some(s);
-                        // Protocol requires a bestmove even on ponder miss.
+                        // Protocol requires a bestmove on stop, ponder miss or
+                        // go infinite alike.
                         print_result(&mut out, &r, &pos);
                     }
                 }
-                // Non-ponder searches are synchronous and bounded; nothing to stop.
+                // Plain go searches are synchronous and bounded; nothing to stop.
             }
             Some("quit") => {
                 abort_ponder!();
