@@ -437,3 +437,19 @@ fn mate_distance_stays_consistent_across_ply_with_matett() {
     assert_eq!(r.mate, Some(1), "scholar's mate must be mate-in-1");
     assert_eq!(r.best_move.map(|m| m.to_uci()), Some("h5f7".to_string()));
 }
+
+#[test]
+fn mate_distance_is_reported_in_full_moves() {
+    // 1.Rd8+ Rxd8 2.Rxd8# — forced mate in TWO moves (3 plies). UCI `mate N`
+    // is full moves; the old code reported plies (mate 3).
+    let mut p = pos("r5k1/5ppp/8/8/8/8/3R4/3R1K1 w - - 0 1");
+    let mut s = Searcher::new(ValueWeights::default(), None);
+    let r = s.search(
+        &mut p,
+        SearchOptions {
+            depth: 6,
+            ..Default::default()
+        },
+    );
+    assert_eq!(r.mate, Some(2), "score_cp: {}", r.score_cp);
+}
