@@ -178,6 +178,40 @@ impl Position {
                 pos.stm
             ));
         }
+        // A pawn on rank 1/8 shifts out of the board in movegen's push
+        // arithmetic (`from ± 8` wraps; `1 << sq` masks to a wrong square) and
+        // silently corrupts bitboards in a release build.
+        const BACK_RANKS: u64 = 0xFF00000000000000 | 0x00000000000000FF;
+        for color in [Color::White, Color::Black] {
+            if pos.pieces[color.index()][Piece::Pawn.index()] & BACK_RANKS != 0 {
+                return Err(format!("illegal FEN: {color:?} pawn on rank 1/8"));
+            }
+        }
+        // Every castling right implies its home king and rook on the start
+        // squares. Without this check gen_castling trusts the right and
+        // make()'s rook hop fabricates a rook on an empty board (set_piece
+        // on a square with no captured piece), permanently corrupting state.
+        let home = |sq: u8, c: Color, p: Piece| pos.piece_at(sq) == Some((c, p));
+        if pos.castling & castle::WK != 0
+            && !(home(4, Color::White, Piece::King) && home(7, Color::White, Piece::Rook))
+        {
+            return Err("illegal FEN: 'K' right without White K e1 + R h1".into());
+        }
+        if pos.castling & castle::WQ != 0
+            && !(home(4, Color::White, Piece::King) && home(0, Color::White, Piece::Rook))
+        {
+            return Err("illegal FEN: 'Q' right without White K e1 + R a1".into());
+        }
+        if pos.castling & castle::BK != 0
+            && !(home(60, Color::Black, Piece::King) && home(63, Color::Black, Piece::Rook))
+        {
+            return Err("illegal FEN: 'k' right without Black k e8 + r h8".into());
+        }
+        if pos.castling & castle::BQ != 0
+            && !(home(60, Color::Black, Piece::King) && home(56, Color::Black, Piece::Rook))
+        {
+            return Err("illegal FEN: 'q' right without Black k e8 + r a8".into());
+        }
         Ok(pos)
     }
 
@@ -291,7 +325,9 @@ impl Position {
     #[inline]
     fn piece_at_color(&self, color: Color, sq: u8) -> Option<Piece> {
         let b = 1u64 << sq;
-        Piece::ALL.into_iter().find(|&p| self.pieces[color.index()][p.index()] & b != 0)
+        Piece::ALL
+            .into_iter()
+            .find(|&p| self.pieces[color.index()][p.index()] & b != 0)
     }
 
     /// The (color, piece) on `sq`, or None if empty.

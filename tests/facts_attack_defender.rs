@@ -22,7 +22,10 @@ fn ad(fen: &str) -> Vec<AttackDefenderOpportunity> {
     }
 }
 
-fn by_move<'a>(it: &'a [AttackDefenderOpportunity], uci: &str) -> Option<&'a AttackDefenderOpportunity> {
+fn by_move<'a>(
+    it: &'a [AttackDefenderOpportunity],
+    uci: &str,
+) -> Option<&'a AttackDefenderOpportunity> {
     it.iter().find(|o| o.move_uci == uci)
 }
 
@@ -116,7 +119,10 @@ fn rejects_when_the_defender_is_not_winnable_in_place() {
 #[test]
 fn rejects_when_the_only_sole_defended_piece_is_a_pawn() {
     // AN8: the sole-defended piece is a pawn → filtered (pawns excluded as charges).
-    assert!(ad("3p2k1/8/4n3/8/8/8/8/3R1BK1 w - - 0 1").is_empty());
+    // (FEN corrected in the #62 audit: the old board illegally parked the pawn on
+    // d8 — a promotion rank — which from_fen now rejects. Same geometry, legal
+    // squares: Rd1 attacks the d7 pawn, Nf6 is its sole defender.)
+    assert!(ad("6k1/3p4/5n2/8/8/8/8/3R1BK1 w - - 0 1").is_empty());
 }
 
 #[test]
@@ -137,5 +143,9 @@ fn enumeration_does_not_mutate_the_position() {
     let fen = "8/2q1k3/8/8/8/1N6/3B2K1/8 b - - 0 1";
     let pos = Position::from_fen(fen).unwrap();
     let _ = attack_defender_opportunities(&pos);
-    assert_eq!(pos.to_fen(), fen, "attack-defender enumeration must not mutate the board");
+    assert_eq!(
+        pos.to_fen(),
+        fen,
+        "attack-defender enumeration must not mutate the board"
+    );
 }
