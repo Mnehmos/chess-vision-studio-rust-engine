@@ -311,6 +311,8 @@ pub struct Telemetry {
 pub struct SearchResult {
     pub best_move: Option<Move>,
     pub score_cp: i32,
+    /// Mate distance in FULL MOVES (UCI convention), signed by the side to move.
+    /// `Some(1)` = the side to move mates in one move / is mated in one; `Some(0)` = already mated.
     pub mate: Option<i32>,
     pub pv: Vec<Move>,
     pub depth: u32,

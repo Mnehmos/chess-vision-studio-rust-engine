@@ -449,8 +449,13 @@ impl Searcher {
             }
             prev_score = Some(score);
             let mate = if score.abs() > MATE_THRESHOLD {
+                // UCI `mate N` is FULL MOVES, not plies (mate in 1 = one ply
+                // from the mating side; the old plies value overstated the
+                // distance and cutechess/GUIs misread it). mate 0 = already
+                // mated at the root.
                 let plies = MATE_SCORE - score.abs();
-                Some(if score > 0 { plies } else { -plies })
+                let moves = (plies + 1) / 2;
+                Some(if score > 0 { moves } else { -moves })
             } else {
                 None
             };
@@ -524,7 +529,11 @@ impl Searcher {
 
     fn store(&mut self, key: u64, depth: i32, score: i32, flag: Flag, mv: Option<Move>, ply: i32) {
         let (gen, lane) = (self.tt_generation, self.opts.lane.id());
-        let score = if self.opts.matett { mate_store_adjust(score, ply) } else { score };
+        let score = if self.opts.matett {
+            mate_store_adjust(score, ply)
+        } else {
+            score
+        };
         if self.opts.tt2 {
             self.tt.store2(key, depth, score, flag, mv, gen, lane);
         } else {
@@ -694,7 +703,12 @@ mod mate_tt_tests {
 
     #[test]
     fn store_probe_roundtrip_same_ply() {
-        for &s in &[MATE_SCORE - 8, -(MATE_SCORE - 8), MATE_SCORE - 1, -(MATE_SCORE - 1)] {
+        for &s in &[
+            MATE_SCORE - 8,
+            -(MATE_SCORE - 8),
+            MATE_SCORE - 1,
+            -(MATE_SCORE - 1),
+        ] {
             for &ply in &[0, 3, 12, 40] {
                 assert_eq!(mate_probe_adjust(mate_store_adjust(s, ply), ply), s);
             }
@@ -707,7 +721,11 @@ mod mate_tt_tests {
         let (node_distance, store_ply) = (3, 5);
         let root_rel_at_store = MATE_SCORE - (store_ply + node_distance);
         let stored = mate_store_adjust(root_rel_at_store, store_ply);
-        assert_eq!(stored, MATE_SCORE - node_distance, "node-intrinsic = mate in 3");
+        assert_eq!(
+            stored,
+            MATE_SCORE - node_distance,
+            "node-intrinsic = mate in 3"
+        );
         // Probe the SAME entry at a different ply (2): root-relative re-derives correctly.
         let probe_ply = 2;
         let root_rel_at_probe = mate_probe_adjust(stored, probe_ply);
