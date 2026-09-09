@@ -1,0 +1,1 @@
+{"gate": "singular", "what": "singular extensions", "kind": "flag", "games": 3000, "wins": 1375, "losses": 1375, "draws": 250, "llr": -1.3367, "boundary": "none", "decision": "hold_for_more_data", "elapsedSec": 3768.4, "cappedAt": 3000, "record": "benchmarks/results/singular-regate-20260909/singular/sprt.json"}

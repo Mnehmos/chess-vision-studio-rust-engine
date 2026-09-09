@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "experimentId": "singular-regate-20260909/singular",
+  "baselineId": "master",
+  "candidateId": "master+singular",
+  "elo0": 0.0,
+  "elo1": 10.0,
+  "alpha": 0.05,
+  "beta": 0.05,
+  "games": 3000,
+  "wins": 1375,
+  "losses": 1375,
+  "draws": 250,
+  "llr": -1.3367,
+  "lowerBound": -2.9444,
+  "upperBound": 2.9444,
+  "boundary": "none",
+  "decision": "hold_for_more_data",
+  "pgnSha256": null,
+  "provenance": {
+    "engineSha": "e6226348722f2e4c",
+    "netSha": "b23c75b8e25d7480",
+    "candArgs": [
+      "--futility",
+      "--rfp",
+      "--tt-prune-store",
+      "--qtt",
+      "--histmalus",
+      "--histlmr",
+      "--lmp",
+      "--singular",
+      "nodes=40000",
+      "exe=chess-vision-studio-rust-engine-sing"
+    ],
+    "baseArgs": [
+      "--futility",
+      "--rfp",
+      "--tt-prune-store",
+      "--qtt",
+      "--histmalus",
+      "--histlmr",
+      "--lmp",
+      "nodes=40000",
+      "exe=chess-vision-studio-rust-engine-sing"
+    ],
+    "tc": "nodes:40000",
+    "nodes": 40000,
+    "threads": 1,
+    "openingsSha": "9fb74795c5c93174"
+  }
+}
