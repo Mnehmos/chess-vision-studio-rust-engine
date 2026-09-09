@@ -27,6 +27,16 @@ impl Searcher {
         }
 
         if checked {
+            // Structural recursion bound for the evasion path: beyond the
+            // quiescence horizon return the static eval instead of generating
+            // full evasions forever. (Termination in practice: after the
+            // quiet-check window closes, checking moves are captures and
+            // strictly decrease material — the cap makes the bound structural
+            // rather than incidental.) The non-checked path keeps its existing
+            // stand-pat cap below.
+            if ply >= MAX_QUIESCENCE_PLY {
+                return self.leaf_eval(pos, false, true);
+            }
             let legal = generate_legal_list(pos);
             if legal.is_empty() {
                 return -MATE_SCORE + ply as i32;
