@@ -11,3 +11,14 @@ training/gen8/runs/
 .env.*
 !.env.example
 *.token
+
+# workspace-local tooling and editor state (machine-specific)
+/.mcp.json
+/.repowise/
+/.video_agent/
+/.vscode/
+/.pytest_cache/
+/.approval_tests_temp/
+
+# local screenshots
+Codex Image*.gif
