@@ -149,7 +149,10 @@ impl Default for SearchOptions {
             // The adjustment is exact (node-intrinsic distance), not a
             // strength heuristic; --no-matett remains available for A/B.
             matett: true,
-            loglmr: false,
+            // INV-1 promotion 2026-09-09 (first gate on the fixed harness): loglmr
+            // crossed the upper SPRT bound at 1030 games (497-392-141, LLR +2.965)
+            // over 540 distinct book positions — benchmarks/results/loglmr-gate-20260909b/.
+            loglmr: true,
             // Promoted 2026-09-09 on records that are now SUPERSEDED: the ladder
             // replayed one 12-position book, so its SPRT counted dependent repeats
             // (benchmarks/INV1_GATE_INTEGRITY_2026-09-09.md). The combined set was

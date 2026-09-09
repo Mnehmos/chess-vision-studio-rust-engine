@@ -26,6 +26,10 @@ fn champion_defaults_keep_rejected_experiments_off() {
     assert!(options.improving);
     assert!(options.tt2);
 
+    // INV-1 promotion 2026-09-09 on the fixed harness (independent positions, no
+    // repeats): loglmr crossed upper at 1030 games, LLR +2.965 — first valid crossing.
+    assert!(options.loglmr);
+
     // Rejected at the lower bound or held at cap — default-off until a gate says otherwise.
     assert!(!options.lmp);
     assert!(!options.delta_prune);
