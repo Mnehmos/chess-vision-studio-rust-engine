@@ -71,6 +71,8 @@ LADDER: dict[str, dict] = {
                     "what": "delta pruning in quiescence"},
     "improving":   {"kind": "flag", "add": ["--improving"],
                     "what": "improving flag in LMR / pruning margins"},
+    "loglmr":      {"kind": "flag", "add": ["--loglmr"],
+                    "what": "log-based LMR (r = 0.75 + ln d * ln i / 2.25) vs the flat 1-ply tier"},
     "singular":    {"kind": "flag", "add": ["--singular"],
                     "what": "singular extensions"},
     "iid":         {"kind": "flag", "add": ["--iid"],

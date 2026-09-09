@@ -1,0 +1,101 @@
+{
+  "gate": "loglmr",
+  "what": "log-based LMR (r = 0.75 + ln d * ln i / 2.25) vs the flat 1-ply tier",
+  "kind": "flag",
+  "games": 1030,
+  "wins": 497,
+  "losses": 392,
+  "draws": 141,
+  "llr": 2.9645,
+  "boundary": "upper",
+  "decision": "promote",
+  "elapsedSec": 981.6,
+  "cappedAt": null,
+  "bookExhausted": false,
+  "positionsUsed": 540,
+  "book": "openings-inv1-20260909b.epd",
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 54,
+      "losses": 47,
+      "draws": 19,
+      "llr": 0.1774,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 110,
+      "losses": 98,
+      "draws": 32,
+      "llr": 0.2809,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 161,
+      "losses": 150,
+      "draws": 49,
+      "llr": 0.1935,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 480,
+      "wins": 217,
+      "losses": 196,
+      "draws": 67,
+      "llr": 0.4668,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 600,
+      "wins": 275,
+      "losses": 247,
+      "draws": 78,
+      "llr": 0.6348,
+      "boundary": "none"
+    },
+    {
+      "batch": 6,
+      "games": 720,
+      "wins": 336,
+      "losses": 289,
+      "draws": 95,
+      "llr": 1.2004,
+      "boundary": "none"
+    },
+    {
+      "batch": 7,
+      "games": 840,
+      "wins": 399,
+      "losses": 323,
+      "draws": 118,
+      "llr": 2.1084,
+      "boundary": "none"
+    },
+    {
+      "batch": 8,
+      "games": 960,
+      "wins": 461,
+      "losses": 367,
+      "draws": 132,
+      "llr": 2.6376,
+      "boundary": "none"
+    },
+    {
+      "batch": 9,
+      "games": 1030,
+      "wins": 497,
+      "losses": 392,
+      "draws": 141,
+      "llr": 2.9645,
+      "boundary": "upper"
+    }
+  ],
+  "record": "benchmarks/results/loglmr-gate-20260909b/loglmr/sprt.json"
+}
