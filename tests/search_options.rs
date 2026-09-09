@@ -17,16 +17,20 @@ fn champion_defaults_keep_rejected_experiments_off() {
     assert!(options.hist_malus);
     assert!(options.hist_lmr);
 
+    // INV-1 ladder promotions (2026-09-09, benchmarks/results/inv1-ladder-20260909/):
+    // each crossed the upper SPRT bound with a lint-clean record (#78).
+    assert!(options.see_prune); // 246g, LLR +2.947
+    assert!(options.caphist); // 293g, LLR +2.949
+    assert!(options.improving); // 396g, LLR +2.966
+    assert!(options.tt2); // 430g, LLR +2.954
+
+    // Rejected at the lower bound or held at cap — default-off until a gate says otherwise.
     assert!(!options.lmp);
-    assert!(!options.see_prune);
     assert!(!options.delta_prune);
     assert!(!options.countermove);
     assert!(!options.conthist);
     assert!(!options.rule50_scale);
     assert!(!options.king_activity);
-    assert!(!options.caphist);
-    assert!(!options.tt2);
-    assert!(!options.improving);
     assert!(!options.singular);
 }
 
