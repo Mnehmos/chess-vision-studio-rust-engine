@@ -1,0 +1,173 @@
+{
+  "gate": "seeprune-regate",
+  "what": "re-gate seeprune: champion vs champion with seeprune disabled",
+  "kind": "flag",
+  "games": 2000,
+  "wins": 874,
+  "losses": 837,
+  "draws": 289,
+  "llr": 0.2906,
+  "boundary": "none",
+  "decision": "hold_for_more_data",
+  "elapsedSec": 1773.3,
+  "cappedAt": 2000,
+  "bookExhausted": false,
+  "positionsUsed": 1000,
+  "book": "openings-inv1-20260909b.epd",
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 55,
+      "losses": 51,
+      "draws": 14,
+      "llr": 0.0738,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 102,
+      "losses": 106,
+      "draws": 32,
+      "llr": -0.2411,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 153,
+      "losses": 159,
+      "draws": 48,
+      "llr": -0.3617,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 480,
+      "wins": 207,
+      "losses": 209,
+      "draws": 64,
+      "llr": -0.2865,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 600,
+      "wins": 262,
+      "losses": 253,
+      "draws": 85,
+      "llr": 0.0177,
+      "boundary": "none"
+    },
+    {
+      "batch": 6,
+      "games": 720,
+      "wins": 317,
+      "losses": 307,
+      "draws": 96,
+      "llr": -0.0057,
+      "boundary": "none"
+    },
+    {
+      "batch": 7,
+      "games": 840,
+      "wins": 367,
+      "losses": 359,
+      "draws": 114,
+      "llr": -0.1263,
+      "boundary": "none"
+    },
+    {
+      "batch": 8,
+      "games": 960,
+      "wins": 416,
+      "losses": 410,
+      "draws": 134,
+      "llr": -0.2475,
+      "boundary": "none"
+    },
+    {
+      "batch": 9,
+      "games": 1080,
+      "wins": 472,
+      "losses": 457,
+      "draws": 151,
+      "llr": -0.0078,
+      "boundary": "none"
+    },
+    {
+      "batch": 10,
+      "games": 1200,
+      "wins": 536,
+      "losses": 503,
+      "draws": 161,
+      "llr": 0.5238,
+      "boundary": "none"
+    },
+    {
+      "batch": 11,
+      "games": 1320,
+      "wins": 588,
+      "losses": 547,
+      "draws": 185,
+      "llr": 0.7345,
+      "boundary": "none"
+    },
+    {
+      "batch": 12,
+      "games": 1440,
+      "wins": 636,
+      "losses": 599,
+      "draws": 205,
+      "llr": 0.5492,
+      "boundary": "none"
+    },
+    {
+      "batch": 13,
+      "games": 1560,
+      "wins": 689,
+      "losses": 652,
+      "draws": 219,
+      "llr": 0.4922,
+      "boundary": "none"
+    },
+    {
+      "batch": 14,
+      "games": 1680,
+      "wins": 732,
+      "losses": 706,
+      "draws": 242,
+      "llr": 0.0766,
+      "boundary": "none"
+    },
+    {
+      "batch": 15,
+      "games": 1800,
+      "wins": 792,
+      "losses": 744,
+      "draws": 264,
+      "llr": 0.7479,
+      "boundary": "none"
+    },
+    {
+      "batch": 16,
+      "games": 1920,
+      "wins": 838,
+      "losses": 801,
+      "draws": 281,
+      "llr": 0.3288,
+      "boundary": "none"
+    },
+    {
+      "batch": 17,
+      "games": 2000,
+      "wins": 874,
+      "losses": 837,
+      "draws": 289,
+      "llr": 0.2906,
+      "boundary": "none"
+    }
+  ],
+  "record": "benchmarks/results/seeprune-regate-gate-20260909/seeprune-regate/sprt.json"
+}
