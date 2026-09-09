@@ -5,6 +5,12 @@
 > [`N0-identity.json`](N0-identity.json) (see `CLASSICAL_EVAL_EXPERIMENT.md`).
 > The gen7 snapshot below remains the historical gate-ladder baseline these
 > gate definitions were written against.
+>
+> **Gate integrity (2026-09-09):** the first INV-1 ladder replayed one 12-position book in
+> every batch, so its SPRTs counted dependent repeats and the 2026-09-09 promotion records
+> are superseded. `gate_ladder.py` now requires `--book` and plays a disjoint slice per
+> batch (fail closed on repeats). See
+> [`INV1_GATE_INTEGRITY_2026-09-09.md`](INV1_GATE_INTEGRITY_2026-09-09.md).
 
 ## Standard Entry Point
 

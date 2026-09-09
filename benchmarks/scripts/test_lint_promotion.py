@@ -86,6 +86,14 @@ def test_unknown_provenance_field_rejected():
     assert any("unknown provenance field" in x for x in lp.lint_record(rec))
 
 
+def test_book_provenance_fields_accepted():
+    """The fixed-node gate records its opening book (2026-09-09 integrity fix)."""
+    rec = load("sprt-promote-valid.json")
+    rec["provenance"].update({"book": "openings-inv1-20260909.epd",
+                              "bookPositions": 2019, "positionsUsed": 1000})
+    assert lp.lint_record(rec) == []
+
+
 def test_elo1_must_exceed_elo0():
     rec = load("sprt-promote-valid.json")
     rec["elo1"] = rec["elo0"]

@@ -17,12 +17,14 @@ fn champion_defaults_keep_rejected_experiments_off() {
     assert!(options.hist_malus);
     assert!(options.hist_lmr);
 
-    // INV-1 ladder promotions (2026-09-09, benchmarks/results/inv1-ladder-20260909/):
-    // each crossed the upper SPRT bound with a lint-clean record (#78).
-    assert!(options.see_prune); // 246g, LLR +2.947
-    assert!(options.caphist); // 293g, LLR +2.949
-    assert!(options.improving); // 396g, LLR +2.966
-    assert!(options.tt2); // 430g, LLR +2.954
+    // 2026-09-09 promotion batch (see_prune, caphist, improving, tt2, king_activity):
+    // retained, but their ladder/kingact records are SUPERSEDED — the ladder replayed
+    // one 12-position book and counted dependent repeats. Re-measured on 1000 distinct
+    // positions the combined set held at LLR +0.269 (benchmarks/INV1_GATE_INTEGRITY_2026-09-09.md).
+    assert!(options.see_prune);
+    assert!(options.caphist);
+    assert!(options.improving);
+    assert!(options.tt2);
 
     // Rejected at the lower bound or held at cap — default-off until a gate says otherwise.
     assert!(!options.lmp);
@@ -31,9 +33,6 @@ fn champion_defaults_keep_rejected_experiments_off() {
     assert!(!options.conthist);
     assert!(!options.rule50_scale);
     assert!(!options.singular);
-
-    // kingact re-gate 2026-09-09 (6000-game cap): crossed upper at 3569g, LLR +2.961 —
-    // benchmarks/results/kingact-regate-20260909/.
     assert!(options.king_activity);
 }
 
