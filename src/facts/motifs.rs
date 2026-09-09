@@ -9,11 +9,12 @@ use crate::attacks::{attackers_of, bishop_attacks, queen_attacks, rook_attacks};
 use crate::facts::piece_safety::piece_ref;
 use crate::facts::position::{position_for_analysis_side, square_name};
 use crate::facts::types::{
-    AttackDefenderOpportunity, DeflectionOpportunity, DesperadoOpportunity,
-    DiscoveredDefenseOpportunity, DiscoveryOpportunity, DoubleAttackOpportunity, FactCollection,
-    InterferenceOpportunity, LureDefenderOpportunity, MotifOpportunity, OverloadOpportunity,
-    PieceRef, PinOpportunity, RemoveGuardOpportunity, SkewerOpportunity, TrappedPieceOpportunity,
-    WinExchangeOpportunity, XRayDefenseOpportunity, XRayOpportunity,
+    AttackDefenderOpportunity, CaptureAttackerOpportunity, DeflectionOpportunity,
+    DesperadoOpportunity, DiscoveredDefenseOpportunity, DiscoveryOpportunity,
+    DoubleAttackOpportunity, FactCollection, InterferenceOpportunity, LureDefenderOpportunity,
+    MotifOpportunity, OverloadOpportunity, PieceRef, PinOpportunity, RemoveGuardOpportunity,
+    SkewerOpportunity, TrappedPieceOpportunity, WinExchangeOpportunity, XRayDefenseOpportunity,
+    XRayOpportunity,
 };
 use crate::movegen::{generate_legal, gives_check};
 use crate::see::{see, SEE_VALUE};
@@ -3002,4 +3003,162 @@ fn win_exchange_worst_case(after: &Position, enemy: Color, sq: u8, banked: i32) 
     } else {
         None
     }
+}
+
+// ── Capturing the Attacker (defensive removal of the threatening piece) ──────
+// Defensive mirror of remove_guard: our capture removes the enemy piece A that is
+// legally winning our piece G, defusing the threat. Disjoint from remove_guard
+// (captures the DEFENDER of an ENEMY target, offensive), from discovered_defense
+// (QUIET unveil re-guard), and from desperado (OUR doomed piece grabs). Co-emission
+// with those on the same move is legal (different narratives), never a duplicate of
+// the same fact. All probes are ENEMY-to-move — no us-probe is ever needed, so
+// (unlike remove_guard) gives-check captures are fully supported, matching the
+// taxonomy's "defuse a threat with tempo".
+
+/// Validated capturing-the-attacker moves for the side to move, sorted by move
+/// then captured attacker id.
+pub fn capture_attacker_opportunities(
+    pos: &Position,
+) -> FactCollection<CaptureAttackerOpportunity> {
+    let us = pos.stm;
+    let mut probe = pos.clone();
+    let legal = generate_legal(&mut probe);
+    let mut out = Vec::new();
+    for mv in legal {
+        if let Some(op) = capture_attacker_after_move(pos, mv, us) {
+            out.push(op);
+        }
+    }
+    out.sort_by(|a, b| {
+        a.move_uci
+            .cmp(&b.move_uci)
+            .then_with(|| a.captured_attacker.id.cmp(&b.captured_attacker.id))
+    });
+    FactCollection::computed(out)
+}
+
+/// Validated capturing-the-attacker for a requested side. See `motif_opportunities_for`
+/// for the counterfactual side-to-move semantics.
+pub fn capture_attacker_opportunities_for(
+    pos: &Position,
+    side: Color,
+) -> FactCollection<CaptureAttackerOpportunity> {
+    match position_for_analysis_side(pos, side) {
+        Ok(probe) => capture_attacker_opportunities(&probe),
+        Err(reason) => FactCollection::unavailable(reason),
+    }
+}
+
+fn capture_attacker_after_move(
+    pos: &Position,
+    mv: Move,
+    us: Color,
+) -> Option<CaptureAttackerOpportunity> {
+    // (G2) Capturing moves only; A sits on mv.to. En passant: piece_at(mv.to) is None
+    // (victim pawn behind mv.to) so `?` skips EP — documented false-negative.
+    if !mv.flag.is_capture() {
+        return None;
+    }
+    let (a_color, a_piece) = pos.piece_at(mv.to)?;
+    let enemy = us.flip();
+    if a_color != enemy || a_piece == Piece::King {
+        return None; // belt-and-braces king guard, remove_guard convention
+    }
+    let (_, moving_piece) = pos.piece_at(mv.from)?;
+    let mover_piece = mv.flag.promo_piece().unwrap_or(moving_piece);
+
+    // (G1) IN-CHECK GATE + enemy-to-move view of the ORIGINAL board. Err iff OUR king
+    // is in check — bail (.ok()?), same as discovered_defense / desperado. So "capture
+    // the checker" is NOT this fact (check evasion belongs to hazards/king safety) —
+    // documented false-negative.
+    let enemy_pre = position_for_analysis_side(pos, enemy).ok()?;
+    // (G5 probe) A deleted, stm still enemy, our capturer still HOME on mv.from —
+    // the sanctioned triple-clear (pieces/occ/all + ep=None), never a hand desync.
+    // Note (conservative direction verified): deleting A can open an ENEMY slider line
+    // through mv.to. Onto OUR king → the recursion's replies become evasion-only →
+    // the enemy's gain over-counts → G5 more likely to REJECT (FN, safe). Onto the
+    // ENEMY king → the enemy's captures under-count → G5 can pass on arrival-credit
+    // narratives; every material claim (G4/G6/G7) is still proven on real boards, so
+    // this is narrative-precision only. In reality our capturer re-blocks mv.to.
+    let pre_without_a = without_bit(&enemy_pre, mv.to)?;
+
+    let mut check_probe = pos.clone();
+    let gives_check_flag = gives_check(&mut check_probe, mv);
+
+    let mut after = pos.clone();
+    after.make(mv); // after.stm == enemy (SEE-stm rule)
+    // (G6 probe) after.stm is ALREADY enemy → routed identity path of
+    // position_for_analysis_side (no ep wipe, no in-check gate) — sound even when mv
+    // gives check: generate_legal on it yields only evasions, exactly right.
+    let enemy_after = position_for_analysis_side(&after, enemy).ok()?;
+
+    let a_bit = 1u64 << mv.to;
+    let mut protected: Vec<PieceRef> = Vec::new();
+    let mut best_saved = 0i32;
+    for g_piece in Piece::ALL {
+        // fixed order → determinism
+        if g_piece == Piece::King {
+            continue; // (G3) a "lost" king is check, a different fact (hazards)
+        }
+        let mut bb = pos.pieces[us.index()][g_piece.index()];
+        while bb != 0 {
+            let g_sq = bb.trailing_zeros() as u8;
+            bb &= bb - 1;
+            if g_sq == mv.to || g_sq == mv.from {
+                // (G3) not the landing square; self-rescue-by-capturing is escape
+                // (desperado territory), not protection.
+                continue;
+            }
+            // (G3) A must be a DIRECT (blocker-aware) attacker of G on the pre-board.
+            if attackers_of(&pos.pieces, g_sq, enemy, pos.all) & a_bit == 0 {
+                continue;
+            }
+            // (G4) TRIGGER — G legally lost pre-move (discovered_defense dual gate):
+            // best_see_capture is the reported estimate; legal_capture_gain kills
+            // pin-faked hangs / forced-recapturer inflation.
+            let loss_before = best_see_capture(&enemy_pre, g_sq);
+            if loss_before <= 0 {
+                continue;
+            }
+            if legal_capture_gain(&enemy_pre, g_sq, 8) <= 0 {
+                continue;
+            }
+            // (G5) CAUSALITY — deleting A ALONE (capturer home) kills the legal threat:
+            // credits the REMOVAL, not our capturer's arrival; kills two-attacker FPs.
+            if legal_capture_gain(&pre_without_a, g_sq, 8) > 0 {
+                continue;
+            }
+            // (G6) PROOF-1 — on the real post-capture board G is no longer legally
+            // winnable.
+            if legal_capture_gain(&enemy_after, g_sq, 8) > 0 {
+                continue;
+            }
+            protected.push(piece_ref(us, g_piece, g_sq));
+            best_saved = best_saved.max(loss_before);
+        }
+    }
+    if protected.is_empty() {
+        return None;
+    }
+    // (G7) PROOF-2 — conservative FULL-BOARD debit (the desperado STEP-2 convention):
+    // bank A, subtract the enemy's best legal capture/promotion quiescence. Pays for
+    // the recapture of our capturer AND all off-square collateral / promotions;
+    // SUBSUMES mover-not-hung (no forker_capturable_for_gain needed). >= 0, not > 0:
+    // an even trade that defuses (RxR) IS the motif.
+    let banked = SEE_VALUE[a_piece.index()];
+    if banked - legal_material_quiescence(&after, 5) < 0 {
+        return None;
+    }
+    protected.sort_by(|a, b| a.id.cmp(&b.id));
+    Some(CaptureAttackerOpportunity {
+        kind: "capture_the_attacker".to_string(),
+        validator: "capture_attacker_validation".to_string(),
+        move_uci: mv.to_uci(),
+        mover: piece_ref(us, mover_piece, mv.to),
+        captured_attacker: piece_ref(enemy, a_piece, mv.to),
+        protected,
+        gives_check: gives_check_flag,
+        // max loss_before — saved value, SEE scale (discovered_defense convention)
+        material_gain: best_saved,
+    })
 }

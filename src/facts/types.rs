@@ -67,6 +67,7 @@ pub struct PositionFacts {
     pub available_xray_attack: FactCollection<XRayOpportunity>,
     pub available_xray_defense: FactCollection<XRayDefenseOpportunity>,
     pub available_win_exchange: FactCollection<WinExchangeOpportunity>,
+    pub available_capture_attacker: FactCollection<CaptureAttackerOpportunity>,
     /// Analysis-only legal opportunities for the side that is not to move.
     /// These let the application prove a motif was newly allowed by a move.
     pub opponent_available_motifs: FactCollection<MotifOpportunity>,
@@ -87,6 +88,7 @@ pub struct PositionFacts {
     pub opponent_available_xray_attack: FactCollection<XRayOpportunity>,
     pub opponent_available_xray_defense: FactCollection<XRayDefenseOpportunity>,
     pub opponent_available_win_exchange: FactCollection<WinExchangeOpportunity>,
+    pub opponent_available_capture_attacker: FactCollection<CaptureAttackerOpportunity>,
     pub hazards: FactCollection<HazardFact>,
     pub square_facts: FactCollection<SquareFact>,
 }
@@ -434,6 +436,29 @@ pub struct RemoveGuardOpportunity {
     /// Whether the capturing move gives check.
     pub gives_check: bool,
     /// SEE centipawns won on the target once the defender is removed.
+    pub material_gain: i32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CaptureAttackerOpportunity {
+    /// Motif family — always "capture_the_attacker".
+    pub kind: String,
+    /// Validator that proved it — "capture_attacker_validation".
+    pub validator: String,
+    /// The single capturing move that removes the attacker (long UCI).
+    pub move_uci: String,
+    /// Our capturing piece, at its post-move square (promoted type if it promotes).
+    pub mover: PieceRef,
+    /// The enemy attacker that was captured, at its (pre-move) square (== mv.to).
+    pub captured_attacker: PieceRef,
+    /// Our piece(s) that were legally lost to that attacker and are safe after the
+    /// capture (non-king; sorted by id).
+    pub protected: Vec<PieceRef>,
+    /// Whether the capture gives check (the capture-with-tempo variant).
+    pub gives_check: bool,
+    /// Centipawns SAVED — the enemy's best pre-move winning SEE over the protected
+    /// pieces (max loss_before; SEE_VALUE scale), the discovered_defense convention.
     pub material_gain: i32,
 }
 
