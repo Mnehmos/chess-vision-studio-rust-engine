@@ -66,7 +66,7 @@ Rust source of truth:
 | `CaptureOpportunity` | `src/facts/types.rs` | Legal capture candidate with SEE and safety flags. |
 | `MotifOpportunity` | `src/facts/types.rs` | Validated fork opportunity. |
 | `PinOpportunity` | `src/facts/types.rs` | Validated absolute/relative pin opportunity. |
-| `*Opportunity` (skewer, discovery, discovered-defense, remove-guard, trapped, desperado, overload, attack-defender, deflection, lure-defender, interference, double-attack, x-ray attack/defense, win-exchange) + `MatePatternFact` | `src/facts/types.rs` | One struct per validated motif detector — registry v22 inventory in `docs/TEACHING_FACTS_PROTOCOL.md`; soundness rules in `docs/DETECTOR_SOUNDNESS.md`. |
+| `*Opportunity` (skewer, discovery, discovered-defense, remove-guard, trapped, desperado, overload, attack-defender, deflection, lure-defender, interference, double-attack, x-ray attack/defense, win-exchange) + `MatePatternFact` | `src/facts/types.rs` | One struct per validated motif detector — registry v23 inventory in `docs/TEACHING_FACTS_PROTOCOL.md`; soundness rules in `docs/DETECTOR_SOUNDNESS.md`. |
 | `HazardFact` | `src/facts/types.rs` | Stable summarized hazard: material, fork, pin, king pressure, or mate threat. |
 | `FactsProvenance` | `src/facts/types.rs` | Engine identity, optional commit, facts registry version, and validators. |
 
@@ -134,7 +134,7 @@ Protocol constants:
 | `src/facts/position.rs` | Builds `PositionFacts`, opposite-side probes, side conversion, and square naming. |
 | `src/facts/piece_safety.rs` | Piece refs/facts, attackers/defenders, only-defender relationships, SEE-losing facts, capture opportunities, and king safety. |
 | `src/facts/pawn_structure.rs` | Doubled/isolated/passed/island/open/semi-open/shield/chain facts and structure deltas. |
-| `src/facts/motifs.rs` | All validated motif detectors (18 at registry v22: fork, pin, skewer, discovery family, discovered defense, remove-guard/attack/deflect/lure-the-defender, overload, interference, trapped, desperado, double attack, x-ray attack/defense, win-exchange) plus the shared soundness helpers (`capture_legal_wrt_pin`, `legal_capture_gain`, `legal_material_quiescence`, `attack_defender_worst_case`). See `docs/DETECTOR_SOUNDNESS.md`. |
+| `src/facts/motifs.rs` | All validated motif detectors (18 at registry v23: fork, pin, skewer, discovery family, discovered defense, remove-guard/attack/deflect/lure-the-defender, overload, interference, trapped, desperado, double attack, x-ray attack/defense, win-exchange) plus the shared soundness helpers (`capture_legal_wrt_pin`, `legal_capture_gain`, `legal_material_quiescence`, `attack_defender_worst_case`). See `docs/DETECTOR_SOUNDNESS.md`. |
 | `src/facts/mate_patterns.rs` | Named post-mate pattern classification (back-rank, smothered, epaulette, Damiano, Boden). |
 | `src/facts/square_control.rs` | Deterministic 64-square control and legal-mover facts. |
 | `src/facts/hazards.rs` | Derived hazards and hazard deltas from lower-level validated facts. |

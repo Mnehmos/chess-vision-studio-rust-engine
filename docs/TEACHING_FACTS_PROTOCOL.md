@@ -47,7 +47,7 @@ interface TeachingFactBundleV1 {
   provenance: {
     engine: 'cvs-bitboard-core';
     engineCommit?: string;
-    factsRegistryVersion: 5;
+    factsRegistryVersion: 23;
     validators: string[];
   };
   errors: FactError[];
@@ -172,7 +172,7 @@ interface PinOpportunity {
 }
 ```
 
-### Detector inventory (registry v22)
+### Detector inventory (registry v23)
 
 | Detector | `kind` value(s) | Validator | Claim |
 |---|---|---|---|
@@ -265,7 +265,7 @@ A scalar fact uses the equivalent `FactValue<T>` union. A boolean inside a
 
 ## Proof and Validators
 
-Registry v22 provenance lists, in order (the exact list is asserted by
+Registry v23 provenance lists, in order (the exact list is asserted by
 `tests/facts_protocol.rs::registry_provenance_lists_every_active_validator`):
 
 - `legal_move_generation`, `attack_map`, `see`, `capture_opportunities`,
@@ -340,3 +340,4 @@ Mirrors the comment block above `FACTS_REGISTRY_VERSION` in `src/facts/mod.rs`:
 | 20 | luring-the-defender (decoy) |
 | 21 | win-the-exchange |
 | 22 | desperado |
+| 23 | fork `materialGain` = proven worst case (defended targets net value − forker) |

@@ -7409,7 +7409,7 @@
   },
   "provenance": {
     "engine": "cvs-bitboard-core",
-    "factsRegistryVersion": 22,
+    "factsRegistryVersion": 23,
     "validators": [
       "legal_move_generation",
       "attack_map",
