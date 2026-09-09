@@ -150,8 +150,12 @@ impl Default for SearchOptions {
             // strength heuristic; --no-matett remains available for A/B.
             matett: true,
             loglmr: false,
-            // INV-1 promotion 2026-09-09: seeprune crossed the upper SPRT bound
-            // (246g, LLR +2.95) — benchmarks/results/inv1-ladder-20260909/seeprune/.
+            // Promoted 2026-09-09 on records that are now SUPERSEDED: the ladder
+            // replayed one 12-position book, so its SPRT counted dependent repeats
+            // (benchmarks/INV1_GATE_INTEGRITY_2026-09-09.md). The combined set was
+            // re-measured on 1000 distinct positions: LLR +0.269, HOLD (+6 Elo point
+            // estimate). Flags are retained (no evidence of harm) pending individual
+            // re-gates; they are NOT established promotions.
             see_prune: true,
             see_verify: false,
             delta_prune: false,
@@ -159,16 +163,12 @@ impl Default for SearchOptions {
             conthist: false,
             tt_prune_store: true,
             rule50_scale: false,
-            // INV-1 promotion 2026-09-09 (re-gate with 6000-game cap): kingact
-            // crossed the upper SPRT bound (3569g, LLR +2.961) — an endgame king
-            // activity term aimed at the measured endgame weakness.
             king_activity: true,
             qsearch_tt: true,
             hist_malus: true,
             hist_lmr: true,
-            // INV-1 promotions 2026-09-09 (benchmarks/results/inv1-ladder-20260909/):
-            // caphist crossed upper (293g, LLR +2.95), tt2 crossed upper (430g,
-            // LLR +2.95), improving crossed upper (396g, LLR +2.97).
+            // Same superseded 2026-09-09 promotion batch as see_prune/king_activity
+            // above (caphist, tt2, improving); retained pending individual re-gates.
             caphist: true,
             tt2: true,
             improving: true,

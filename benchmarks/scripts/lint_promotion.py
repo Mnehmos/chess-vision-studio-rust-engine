@@ -42,7 +42,9 @@ import sys
 from pathlib import Path
 
 OPTIONAL_TOP = {"pgnSha256"}
-OPTIONAL_PROV = {"nodes", "openingsSha"}
+# book/bookPositions/positionsUsed record the gate book a fixed-node SPRT played from
+# (2026-09-09 integrity fix); the schema's provenance allows additional fields.
+OPTIONAL_PROV = {"nodes", "openingsSha", "book", "bookPositions", "positionsUsed"}
 BOUND_TOL = 0.01  # tolerance for bounds vs the alpha/beta-derived SPRT thresholds
 
 # INV-2 thresholds for performance-only acceptance.

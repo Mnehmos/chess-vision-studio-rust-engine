@@ -1,0 +1,173 @@
+{
+  "gate": "bundle-inv1",
+  "what": "confirmation: current champion vs champion with the promoted INV-1 set disabled",
+  "kind": "flag",
+  "games": 2000,
+  "wins": 852,
+  "losses": 816,
+  "draws": 332,
+  "llr": 0.269,
+  "boundary": "none",
+  "decision": "hold_for_more_data",
+  "elapsedSec": 1487.8,
+  "cappedAt": 2000,
+  "bookExhausted": false,
+  "positionsUsed": 1000,
+  "book": "openings-inv1-20260909.epd",
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 53,
+      "losses": 50,
+      "draws": 17,
+      "llr": 0.043,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 105,
+      "losses": 98,
+      "draws": 37,
+      "llr": 0.1206,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 161,
+      "losses": 143,
+      "draws": 56,
+      "llr": 0.4308,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 480,
+      "wins": 213,
+      "losses": 193,
+      "draws": 74,
+      "llr": 0.4406,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 600,
+      "wins": 248,
+      "losses": 248,
+      "draws": 104,
+      "llr": -0.2828,
+      "boundary": "none"
+    },
+    {
+      "batch": 6,
+      "games": 720,
+      "wins": 294,
+      "losses": 295,
+      "draws": 131,
+      "llr": -0.3748,
+      "boundary": "none"
+    },
+    {
+      "batch": 7,
+      "games": 840,
+      "wins": 359,
+      "losses": 335,
+      "draws": 146,
+      "llr": 0.4149,
+      "boundary": "none"
+    },
+    {
+      "batch": 8,
+      "games": 960,
+      "wins": 409,
+      "losses": 382,
+      "draws": 169,
+      "llr": 0.4609,
+      "boundary": "none"
+    },
+    {
+      "batch": 9,
+      "games": 1080,
+      "wins": 465,
+      "losses": 425,
+      "draws": 190,
+      "llr": 0.8444,
+      "boundary": "none"
+    },
+    {
+      "batch": 10,
+      "games": 1200,
+      "wins": 520,
+      "losses": 464,
+      "draws": 216,
+      "llr": 1.3351,
+      "boundary": "none"
+    },
+    {
+      "batch": 11,
+      "games": 1320,
+      "wins": 571,
+      "losses": 517,
+      "draws": 232,
+      "llr": 1.205,
+      "boundary": "none"
+    },
+    {
+      "batch": 12,
+      "games": 1440,
+      "wins": 628,
+      "losses": 565,
+      "draws": 247,
+      "llr": 1.4468,
+      "boundary": "none"
+    },
+    {
+      "batch": 13,
+      "games": 1560,
+      "wins": 684,
+      "losses": 619,
+      "draws": 257,
+      "llr": 1.4475,
+      "boundary": "none"
+    },
+    {
+      "batch": 14,
+      "games": 1680,
+      "wins": 726,
+      "losses": 673,
+      "draws": 281,
+      "llr": 0.9914,
+      "boundary": "none"
+    },
+    {
+      "batch": 15,
+      "games": 1800,
+      "wins": 776,
+      "losses": 721,
+      "draws": 303,
+      "llr": 1.0034,
+      "boundary": "none"
+    },
+    {
+      "batch": 16,
+      "games": 1920,
+      "wins": 821,
+      "losses": 779,
+      "draws": 320,
+      "llr": 0.5085,
+      "boundary": "none"
+    },
+    {
+      "batch": 17,
+      "games": 2000,
+      "wins": 852,
+      "losses": 816,
+      "draws": 332,
+      "llr": 0.269,
+      "boundary": "none"
+    }
+  ],
+  "record": "benchmarks/results/bundle-regate-20260909/bundle-inv1/sprt.json"
+}
