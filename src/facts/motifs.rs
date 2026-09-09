@@ -9,11 +9,12 @@ use crate::attacks::{attackers_of, bishop_attacks, queen_attacks, rook_attacks};
 use crate::facts::piece_safety::piece_ref;
 use crate::facts::position::{position_for_analysis_side, square_name};
 use crate::facts::types::{
-    AttackDefenderOpportunity, DeflectionOpportunity, DesperadoOpportunity,
-    DiscoveredDefenseOpportunity, DiscoveryOpportunity, DoubleAttackOpportunity, FactCollection,
-    InterferenceOpportunity, LureDefenderOpportunity, MotifOpportunity, OverloadOpportunity,
-    PieceRef, PinOpportunity, RemoveGuardOpportunity, SkewerOpportunity, TrappedPieceOpportunity,
-    WinExchangeOpportunity, XRayDefenseOpportunity, XRayOpportunity,
+    AttackDefenderOpportunity, DefensiveInterpositionOpportunity, DeflectionOpportunity,
+    DesperadoOpportunity, DiscoveredDefenseOpportunity, DiscoveryOpportunity,
+    DoubleAttackOpportunity, FactCollection, InterferenceOpportunity, LureDefenderOpportunity,
+    MotifOpportunity, OverloadOpportunity, PieceRef, PinOpportunity, RemoveGuardOpportunity,
+    SkewerOpportunity, TrappedPieceOpportunity, WinExchangeOpportunity, XRayDefenseOpportunity,
+    XRayOpportunity,
 };
 use crate::movegen::{generate_legal, gives_check};
 use crate::see::{see, SEE_VALUE};
@@ -1995,6 +1996,213 @@ fn interference_worst_case(
     } else {
         None
     }
+}
+
+// ── Defensive interposition ───────────────────────────────────────────────────
+// MOVE detector, the defensive mirror of interference: a move places a piece on a square S
+// strictly between an enemy SLIDER A (bishop/rook/queen) and OUR piece G (non-king), severing
+// the attack that was legally winning G. TRIGGER/PROOF mirror discovered_defense: G was losing
+// on the pre-move board (enemy-to-move probe, SEE magnitude + legal_capture_gain legality) and
+// is no longer legally winnable after the block. CAUSALITY deletes A (without_bit) and requires
+// the threat to die with it — rejects second-attacker FPs where blocking one line saves nothing
+// (documented FN: a same-ray enemy battery is also rejected, since deleting the front slider
+// unmasks the rear one; conservative). The load-bearing FP guard is legal_material_quiescence
+// on the post-move board: an underdefended interposer is captured for profit (reject), the
+// AxS-recapture-reopens-line pitfall resolves inside the alternating quiescence (any recapture
+// of the interposer lands ON S, re-blocking; if A itself takes on S it re-attacks G from S and
+// the swap prices that), and posts abandoned by mv.from (off-square collateral) are debited.
+// The ONE reply that does not land on S is an EN-PASSANT capture of a double-push interposer —
+// legal_material_quiescence also skips EP (swing 0) — so a double push the enemy can take EP
+// is rejected outright (conservative). Every board execution goes through make(); the only
+// bit-clear is the sanctioned without_bit causality probe (never hand-edit pieces/occ/all).
+// No us-to-move probe is ever built, so — unlike remove_guard/xray/deflection — a check-giving
+// interposition is fully supported, not a documented FN.
+// Disjoint from interference (that cuts an enemy slider's DEFENSE of its OWN piece; here the
+// far endpoint is OURS) and from capturing-the-attacker (S is strictly between, so mv.to
+// never equals a_sq — A is never captured). Distinct from discovered_defense (that VACATES a
+// ray to add a defender; this OCCUPIES a ray square to remove an attacker) — legitimate co-fire.
+
+/// Validated defensive interpositions for the side to move, sorted by move then protected id.
+pub fn defensive_interposition_opportunities(
+    pos: &Position,
+) -> FactCollection<DefensiveInterpositionOpportunity> {
+    let us = pos.stm;
+    let mut probe = pos.clone();
+    let legal = generate_legal(&mut probe);
+    let mut out = Vec::new();
+    for mv in legal {
+        if let Some(op) = defensive_interposition_after_move(pos, mv, us) {
+            out.push(op);
+        }
+    }
+    out.sort_by(|a, b| {
+        a.move_uci
+            .cmp(&b.move_uci)
+            .then_with(|| a.protected.id.cmp(&b.protected.id))
+    });
+    FactCollection::computed(out)
+}
+
+/// Requested-side wrapper; same counterfactual semantics as `motif_opportunities_for`.
+pub fn defensive_interposition_opportunities_for(
+    pos: &Position,
+    side: Color,
+) -> FactCollection<DefensiveInterpositionOpportunity> {
+    match position_for_analysis_side(pos, side) {
+        Ok(probe) => defensive_interposition_opportunities(&probe),
+        Err(reason) => FactCollection::unavailable(reason),
+    }
+}
+
+fn defensive_interposition_after_move(
+    pos: &Position,
+    mv: Move,
+    us: Color,
+) -> Option<DefensiveInterpositionOpportunity> {
+    let (_, moving_piece) = pos.piece_at(mv.from)?;
+    let interposer_piece = mv.flag.promo_piece().unwrap_or(moving_piece);
+    let enemy = us.flip();
+    let s = mv.to;
+    // No explicit king-interposer gate needed: S lies on A's OPEN ray to G, so S is attacked
+    // by A and generate_legal never lands our king there (structural).
+
+    // IN-CHECK GATE + trigger probe: enemy-to-move view of the ORIGINAL board. Err (bail)
+    // exactly when WE are in check — identical to discovered_defense's enemy_pre. This also
+    // cleanly excludes check-blocking, which is forced evasion, not this teach.
+    let enemy_pre = position_for_analysis_side(pos, enemy).ok()?;
+
+    let mut check_probe = pos.clone();
+    let gives_check_flag = gives_check(&mut check_probe, mv);
+
+    let mut after = pos.clone();
+    after.make(mv); // after.stm == enemy
+
+    // EP-reopen guard: `after.ep` is Some exactly when mv was OUR double push, so the only
+    // EP-capturable pawn is the interposer itself. That reply removes it WITHOUT landing on S
+    // (the capturer lands on the ep square), re-opening the ray — and legal_material_quiescence
+    // skips EP replies entirely (piece_at(m.to) is None → swing 0). Reject outright.
+    if after.ep.is_some() {
+        let mut ep_probe = after.clone();
+        if generate_legal(&mut ep_probe)
+            .into_iter()
+            .any(|m| m.flag == MoveFlag::EnPassant)
+        {
+            return None;
+        }
+    }
+
+    // (G4) Cheap early-out, template symmetry with interference (A): the interposer must not
+    // simply hang on S. Subsumed for-precision by the quiescence below (can only cost recall).
+    if forker_capturable_for_gain(&mut after.clone(), s) {
+        return None;
+    }
+    // Enemy-to-move view of the AFTER board — after.stm is ALREADY enemy, so this is the
+    // routed identity no-op (see discovered_defense), never an Err.
+    let enemy_after = position_for_analysis_side(&after, enemy).ok()?;
+
+    // Full-board quiescence is move-global; memoize so it runs at most once per move,
+    // and only after a pair has passed every cheaper gate.
+    let mut quiesced: Option<i32> = None;
+
+    let mut best: Option<DefensiveInterpositionOpportunity> = None;
+    for a_piece in [Piece::Bishop, Piece::Rook, Piece::Queen] {
+        let mut abb = pos.pieces[enemy.index()][a_piece.index()];
+        while abb != 0 {
+            let a_sq = abb.trailing_zeros() as u8;
+            abb &= abb - 1;
+            let Some(a_ray_pre) = slider_attacks(a_piece, a_sq, pos.all) else {
+                continue;
+            };
+            // G: our non-king pieces A attacks on the PRE-move board. Membership in the
+            // blocker-aware ray IS the open-line fact (slider_attacks stops at the first
+            // occupant), iterated the way interference iterates its D-P pairs.
+            for g_piece in [
+                Piece::Pawn,
+                Piece::Knight,
+                Piece::Bishop,
+                Piece::Rook,
+                Piece::Queen,
+            ] {
+                let mut gbb = pos.pieces[us.index()][g_piece.index()] & a_ray_pre;
+                while gbb != 0 {
+                    let g_sq = gbb.trailing_zeros() as u8;
+                    gbb &= gbb - 1;
+                    // G is a bystander: not the mover (flight down the ray is not a block),
+                    // not the landing square (vacuous pre-move — S is empty — but cheap).
+                    if g_sq == mv.from || g_sq == mv.to {
+                        continue;
+                    }
+                    // S strictly between A and G. Non-empty between forces chebyshev >= 2;
+                    // the between-squares were empty pre-move (the ray was open), so mv is
+                    // quiet / a push / a promo-push, never a capture on S.
+                    if !squares_between(a_sq, g_sq).contains(&s) {
+                        continue;
+                    }
+                    // TRIGGER (discovered_defense template): G must be LOSING now.
+                    // best_see_capture gives the reported magnitude; the pin-blind
+                    // over-report is filtered by the legal replay.
+                    let loss_before = best_see_capture(&enemy_pre, g_sq);
+                    if loss_before <= 0 {
+                        continue;
+                    }
+                    if legal_capture_gain(&enemy_pre, g_sq, 8) <= 0 {
+                        continue;
+                    }
+                    // CAUSALITY: A's line is THE threat — delete A (sanctioned triple-clear)
+                    // and the legal win on G must die. Rejects second-attacker FPs; also
+                    // rejects same-ray batteries (documented conservative FN).
+                    let Some(without_a) = without_bit(&enemy_pre, a_sq) else {
+                        continue;
+                    };
+                    if legal_capture_gain(&without_a, g_sq, 8) > 0 {
+                        continue;
+                    }
+                    // SEVERANCE is geometric — the interposer occupies S, so the blocker-aware
+                    // recomputation drops A for free. Assert-only, never a filter.
+                    debug_assert_eq!(
+                        attackers_of(&after.pieces, g_sq, enemy, after.all) & (1u64 << a_sq),
+                        0
+                    );
+                    // PROOF 1: G no longer LEGALLY winnable on its square (catches the
+                    // self-defeating block where the mover WAS G's defender).
+                    if legal_capture_gain(&enemy_after, g_sq, 8) > 0 {
+                        continue;
+                    }
+                    // PROOF 2 (LOAD-BEARING): full-board legal capture/promotion quiescence,
+                    // enemy to move. > 0 refutes the WHOLE move (move-global), not just this
+                    // pair: underdefended interposer, AxS reopen, abandoned mv.from post,
+                    // promotion replies, in-between grabs — all debited here.
+                    let q = *quiesced.get_or_insert_with(|| legal_material_quiescence(&after, 5));
+                    if q > 0 {
+                        return None;
+                    }
+
+                    let ray: Vec<String> = squares_between(a_sq, g_sq)
+                        .into_iter()
+                        .map(square_name)
+                        .collect();
+                    let cand = DefensiveInterpositionOpportunity {
+                        kind: "defensive_interposition".to_string(),
+                        validator: "defensive_interposition_validation".to_string(),
+                        move_uci: mv.to_uci(),
+                        interposer: piece_ref(us, interposer_piece, s),
+                        cut_attacker: piece_ref(enemy, a_piece, a_sq),
+                        protected: piece_ref(us, g_piece, g_sq),
+                        ray,
+                        gives_check: gives_check_flag,
+                        material_gain: loss_before,
+                    };
+                    // Best-per-move (highest save); ties -> first seen. Deterministic via the
+                    // ordered [B,R,Q] x trailing_zeros x [P,N,B,R,Q] scan — the shipped idiom.
+                    match &best {
+                        Some(b) if b.material_gain >= cand.material_gain => {}
+                        _ => best = Some(cand),
+                    }
+                }
+            }
+        }
+    }
+    best
 }
 
 // ── Deflection / Distraction (non-capturing removal of the guard) ──────────────

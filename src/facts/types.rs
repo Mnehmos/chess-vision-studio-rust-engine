@@ -67,6 +67,7 @@ pub struct PositionFacts {
     pub available_xray_attack: FactCollection<XRayOpportunity>,
     pub available_xray_defense: FactCollection<XRayDefenseOpportunity>,
     pub available_win_exchange: FactCollection<WinExchangeOpportunity>,
+    pub available_defensive_interposition: FactCollection<DefensiveInterpositionOpportunity>,
     /// Analysis-only legal opportunities for the side that is not to move.
     /// These let the application prove a motif was newly allowed by a move.
     pub opponent_available_motifs: FactCollection<MotifOpportunity>,
@@ -87,6 +88,8 @@ pub struct PositionFacts {
     pub opponent_available_xray_attack: FactCollection<XRayOpportunity>,
     pub opponent_available_xray_defense: FactCollection<XRayDefenseOpportunity>,
     pub opponent_available_win_exchange: FactCollection<WinExchangeOpportunity>,
+    pub opponent_available_defensive_interposition:
+        FactCollection<DefensiveInterpositionOpportunity>,
     pub hazards: FactCollection<HazardFact>,
     pub square_facts: FactCollection<SquareFact>,
 }
@@ -584,6 +587,32 @@ pub struct InterferenceOpportunity {
     pub gives_check: bool,
     /// SEE centipawns we win on the target against the enemy's best reply (least-bad over
     /// every reply; a recapture that re-opens the line and re-defends the target refutes it).
+    pub material_gain: i32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DefensiveInterpositionOpportunity {
+    /// Motif family — always "defensive_interposition".
+    pub kind: String,
+    /// Validator that proved it — "defensive_interposition_validation".
+    pub validator: String,
+    /// The interposing move (long UCI). S was empty pre-move (open ray), so this is
+    /// always quiet / a pawn push / a promotion push — never a capture on S.
+    pub move_uci: String,
+    /// Our interposing piece, at its post-move square S (promoted type if a promotion).
+    pub interposer: PieceRef,
+    /// The enemy slider whose attack line on our piece is severed, at its (unchanged) square.
+    pub cut_attacker: PieceRef,
+    /// Our piece (non-king) that was legally losing before the move and is saved by the block.
+    pub protected: PieceRef,
+    /// Squares strictly between the attacker and the protected piece, walk order from the
+    /// attacker (includes S). Mirror of the pin/skewer ray convention.
+    pub ray: Vec<String>,
+    /// Whether the interposing move gives check.
+    pub gives_check: bool,
+    /// Centipawns saved — the enemy's pre-move winning SEE on the protected square
+    /// (SEE_VALUE scale: 100/320/330/500/900), exactly discovered_defense's convention.
     pub material_gain: i32,
 }
 

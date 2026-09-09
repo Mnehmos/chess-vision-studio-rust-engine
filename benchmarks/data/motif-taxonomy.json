@@ -96,7 +96,7 @@
     { "slug": "windmill-knight-fork", "name": "Windmill - Knight Fork", "category": "tactical", "family": "king-attack", "parent": "windmill", "definition": "Windmill driven by repeated knight-fork checks.", "detectedBy": null },
 
     { "slug": "defensive-move", "name": "Defensive Move", "category": "tactical", "family": "defense", "definition": "A serious threat must be met in the one correct way.", "detectedBy": null },
-    { "slug": "defensive-interposition", "name": "Defensive Interposition", "category": "tactical", "family": "defense", "definition": "Block the line between an enemy attacker and your own piece/square.", "detectedBy": null },
+    { "slug": "defensive-interposition", "name": "Defensive Interposition", "category": "tactical", "family": "defense", "definition": "Block the line between an enemy attacker and your own piece/square.", "detectedBy": "facts::motifs(defensive_interposition)" },
     { "slug": "recapture", "name": "Recapture", "category": "tactical", "family": "defense", "definition": "Recapture correctly (the choice of recapturing piece is critical).", "detectedBy": null },
     { "slug": "avoiding-mate", "name": "Avoiding Mate", "category": "tactical", "family": "defense", "definition": "Meet a mate threat with the only saving move.", "detectedBy": null },
     { "slug": "avoiding-perpetual", "name": "Avoiding Perpetual", "category": "tactical", "family": "defense", "definition": "Play to prevent the opponent's perpetual check.", "detectedBy": null },
