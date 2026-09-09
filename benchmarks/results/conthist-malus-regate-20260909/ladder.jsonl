@@ -1,0 +1,1 @@
+{"gate": "conthist", "what": "continuation history in quiet move ordering", "kind": "flag", "games": 214, "wins": 53, "losses": 143, "draws": 18, "llr": -2.9506, "boundary": "lower", "decision": "reject", "elapsedSec": 396.0, "cappedAt": null, "record": "benchmarks/results/conthist-malus-regate-20260909/conthist/sprt.json"}

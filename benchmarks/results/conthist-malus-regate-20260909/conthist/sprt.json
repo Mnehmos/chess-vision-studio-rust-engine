@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "experimentId": "conthist-malus-regate-20260909/conthist",
+  "baselineId": "master",
+  "candidateId": "master+conthist",
+  "elo0": 0.0,
+  "elo1": 10.0,
+  "alpha": 0.05,
+  "beta": 0.05,
+  "games": 214,
+  "wins": 53,
+  "losses": 143,
+  "draws": 18,
+  "llr": -2.9506,
+  "lowerBound": -2.9444,
+  "upperBound": 2.9444,
+  "boundary": "lower",
+  "decision": "reject",
+  "pgnSha256": null,
+  "provenance": {
+    "engineSha": "295d5de87d5e3922",
+    "netSha": "b23c75b8e25d7480",
+    "candArgs": [
+      "--futility",
+      "--rfp",
+      "--tt-prune-store",
+      "--qtt",
+      "--histmalus",
+      "--histlmr",
+      "--lmp",
+      "--conthist",
+      "nodes=40000",
+      "exe=chess-vision-studio-rust-engine-chm"
+    ],
+    "baseArgs": [
+      "--futility",
+      "--rfp",
+      "--tt-prune-store",
+      "--qtt",
+      "--histmalus",
+      "--histlmr",
+      "--lmp",
+      "nodes=40000",
+      "exe=chess-vision-studio-rust-engine-chm"
+    ],
+    "tc": "nodes:40000",
+    "nodes": 40000,
+    "threads": 1,
+    "openingsSha": "9fb74795c5c93174"
+  }
+}
