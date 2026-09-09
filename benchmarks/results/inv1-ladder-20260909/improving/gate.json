@@ -1,0 +1,53 @@
+{
+  "gate": "improving",
+  "what": "improving flag in LMR / pruning margins",
+  "kind": "flag",
+  "games": 396,
+  "wins": 231,
+  "losses": 131,
+  "draws": 34,
+  "llr": 2.9657,
+  "boundary": "upper",
+  "decision": "promote",
+  "elapsedSec": 383.6,
+  "cappedAt": null,
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 70,
+      "losses": 40,
+      "draws": 10,
+      "llr": 0.8868,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 140,
+      "losses": 80,
+      "draws": 20,
+      "llr": 1.7737,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 210,
+      "losses": 120,
+      "draws": 30,
+      "llr": 2.6605,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 396,
+      "wins": 231,
+      "losses": 131,
+      "draws": 34,
+      "llr": 2.9657,
+      "boundary": "upper"
+    }
+  ],
+  "record": "benchmarks/results/inv1-ladder-20260909/improving/sprt.json"
+}

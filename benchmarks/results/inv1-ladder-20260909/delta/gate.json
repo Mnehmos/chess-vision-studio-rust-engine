@@ -1,0 +1,62 @@
+{
+  "gate": "delta",
+  "what": "delta pruning in quiescence",
+  "kind": "flag",
+  "games": 575,
+  "wins": 168,
+  "losses": 240,
+  "draws": 167,
+  "llr": -2.965,
+  "boundary": "lower",
+  "decision": "reject",
+  "elapsedSec": 541.3,
+  "cappedAt": null,
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 35,
+      "losses": 50,
+      "draws": 35,
+      "llr": -0.6184,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 70,
+      "losses": 100,
+      "draws": 70,
+      "llr": -1.2367,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 105,
+      "losses": 150,
+      "draws": 105,
+      "llr": -1.8551,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 480,
+      "wins": 140,
+      "losses": 200,
+      "draws": 140,
+      "llr": -2.4734,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 575,
+      "wins": 168,
+      "losses": 240,
+      "draws": 167,
+      "llr": -2.965,
+      "boundary": "lower"
+    }
+  ],
+  "record": "benchmarks/results/inv1-ladder-20260909/delta/sprt.json"
+}

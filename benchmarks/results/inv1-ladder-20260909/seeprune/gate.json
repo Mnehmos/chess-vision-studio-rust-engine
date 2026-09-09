@@ -1,0 +1,44 @@
+{
+  "gate": "seeprune",
+  "what": "SEE pruning of losing captures in the main search",
+  "kind": "flag",
+  "games": 246,
+  "wins": 134,
+  "losses": 51,
+  "draws": 61,
+  "llr": 2.9468,
+  "boundary": "upper",
+  "decision": "promote",
+  "elapsedSec": 314.9,
+  "cappedAt": null,
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 65,
+      "losses": 25,
+      "draws": 30,
+      "llr": 1.421,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 130,
+      "losses": 50,
+      "draws": 60,
+      "llr": 2.842,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 246,
+      "wins": 134,
+      "losses": 51,
+      "draws": 61,
+      "llr": 2.9468,
+      "boundary": "upper"
+    }
+  ],
+  "record": "benchmarks/results/inv1-ladder-20260909/seeprune/sprt.json"
+}
