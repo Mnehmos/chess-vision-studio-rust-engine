@@ -150,7 +150,9 @@ impl Default for SearchOptions {
             // strength heuristic; --no-matett remains available for A/B.
             matett: true,
             loglmr: false,
-            see_prune: false,
+            // INV-1 promotion 2026-09-09: seeprune crossed the upper SPRT bound
+            // (246g, LLR +2.95) — benchmarks/results/inv1-ladder-20260909/seeprune/.
+            see_prune: true,
             see_verify: false,
             delta_prune: false,
             countermove: false,
@@ -161,9 +163,12 @@ impl Default for SearchOptions {
             qsearch_tt: true,
             hist_malus: true,
             hist_lmr: true,
-            caphist: false,
-            tt2: false,
-            improving: false,
+            // INV-1 promotions 2026-09-09 (benchmarks/results/inv1-ladder-20260909/):
+            // caphist crossed upper (293g, LLR +2.95), tt2 crossed upper (430g,
+            // LLR +2.95), improving crossed upper (396g, LLR +2.97).
+            caphist: true,
+            tt2: true,
+            improving: true,
             threads: 1,
             cvs_trace: false,
             cvs_core_trace: false,

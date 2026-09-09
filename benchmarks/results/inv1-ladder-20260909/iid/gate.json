@@ -1,0 +1,242 @@
+{
+  "gate": "iid",
+  "what": "internal iterative deepening",
+  "kind": "flag",
+  "games": 3000,
+  "wins": 1250,
+  "losses": 1250,
+  "draws": 500,
+  "llr": -1.4093,
+  "boundary": "none",
+  "decision": "hold_for_more_data",
+  "elapsedSec": 2539.1,
+  "cappedAt": 3000,
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 50,
+      "losses": 50,
+      "draws": 20,
+      "llr": -0.0564,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 100,
+      "losses": 100,
+      "draws": 40,
+      "llr": -0.1127,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 150,
+      "losses": 150,
+      "draws": 60,
+      "llr": -0.1691,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 480,
+      "wins": 200,
+      "losses": 200,
+      "draws": 80,
+      "llr": -0.2255,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 600,
+      "wins": 250,
+      "losses": 250,
+      "draws": 100,
+      "llr": -0.2819,
+      "boundary": "none"
+    },
+    {
+      "batch": 6,
+      "games": 720,
+      "wins": 300,
+      "losses": 300,
+      "draws": 120,
+      "llr": -0.3382,
+      "boundary": "none"
+    },
+    {
+      "batch": 7,
+      "games": 840,
+      "wins": 350,
+      "losses": 350,
+      "draws": 140,
+      "llr": -0.3946,
+      "boundary": "none"
+    },
+    {
+      "batch": 8,
+      "games": 960,
+      "wins": 400,
+      "losses": 400,
+      "draws": 160,
+      "llr": -0.451,
+      "boundary": "none"
+    },
+    {
+      "batch": 9,
+      "games": 1080,
+      "wins": 450,
+      "losses": 450,
+      "draws": 180,
+      "llr": -0.5073,
+      "boundary": "none"
+    },
+    {
+      "batch": 10,
+      "games": 1200,
+      "wins": 500,
+      "losses": 500,
+      "draws": 200,
+      "llr": -0.5637,
+      "boundary": "none"
+    },
+    {
+      "batch": 11,
+      "games": 1320,
+      "wins": 550,
+      "losses": 550,
+      "draws": 220,
+      "llr": -0.6201,
+      "boundary": "none"
+    },
+    {
+      "batch": 12,
+      "games": 1440,
+      "wins": 600,
+      "losses": 600,
+      "draws": 240,
+      "llr": -0.6765,
+      "boundary": "none"
+    },
+    {
+      "batch": 13,
+      "games": 1560,
+      "wins": 650,
+      "losses": 650,
+      "draws": 260,
+      "llr": -0.7328,
+      "boundary": "none"
+    },
+    {
+      "batch": 14,
+      "games": 1680,
+      "wins": 700,
+      "losses": 700,
+      "draws": 280,
+      "llr": -0.7892,
+      "boundary": "none"
+    },
+    {
+      "batch": 15,
+      "games": 1800,
+      "wins": 750,
+      "losses": 750,
+      "draws": 300,
+      "llr": -0.8456,
+      "boundary": "none"
+    },
+    {
+      "batch": 16,
+      "games": 1920,
+      "wins": 800,
+      "losses": 800,
+      "draws": 320,
+      "llr": -0.9019,
+      "boundary": "none"
+    },
+    {
+      "batch": 17,
+      "games": 2040,
+      "wins": 850,
+      "losses": 850,
+      "draws": 340,
+      "llr": -0.9583,
+      "boundary": "none"
+    },
+    {
+      "batch": 18,
+      "games": 2160,
+      "wins": 900,
+      "losses": 900,
+      "draws": 360,
+      "llr": -1.0147,
+      "boundary": "none"
+    },
+    {
+      "batch": 19,
+      "games": 2280,
+      "wins": 950,
+      "losses": 950,
+      "draws": 380,
+      "llr": -1.0711,
+      "boundary": "none"
+    },
+    {
+      "batch": 20,
+      "games": 2400,
+      "wins": 1000,
+      "losses": 1000,
+      "draws": 400,
+      "llr": -1.1274,
+      "boundary": "none"
+    },
+    {
+      "batch": 21,
+      "games": 2520,
+      "wins": 1050,
+      "losses": 1050,
+      "draws": 420,
+      "llr": -1.1838,
+      "boundary": "none"
+    },
+    {
+      "batch": 22,
+      "games": 2640,
+      "wins": 1100,
+      "losses": 1100,
+      "draws": 440,
+      "llr": -1.2402,
+      "boundary": "none"
+    },
+    {
+      "batch": 23,
+      "games": 2760,
+      "wins": 1150,
+      "losses": 1150,
+      "draws": 460,
+      "llr": -1.2965,
+      "boundary": "none"
+    },
+    {
+      "batch": 24,
+      "games": 2880,
+      "wins": 1200,
+      "losses": 1200,
+      "draws": 480,
+      "llr": -1.3529,
+      "boundary": "none"
+    },
+    {
+      "batch": 25,
+      "games": 3000,
+      "wins": 1250,
+      "losses": 1250,
+      "draws": 500,
+      "llr": -1.4093,
+      "boundary": "none"
+    }
+  ],
+  "record": "benchmarks/results/inv1-ladder-20260909/iid/sprt.json"
+}

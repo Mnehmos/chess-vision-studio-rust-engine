@@ -1,0 +1,116 @@
+{
+  "gate": "conthist",
+  "what": "continuation history in quiet move ordering",
+  "kind": "flag",
+  "games": 1389,
+  "wins": 405,
+  "losses": 463,
+  "draws": 521,
+  "llr": -2.976,
+  "boundary": "lower",
+  "decision": "reject",
+  "elapsedSec": 1442.1,
+  "cappedAt": null,
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 240,
+      "wins": 70,
+      "losses": 80,
+      "draws": 90,
+      "llr": -0.5133,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 360,
+      "wins": 105,
+      "losses": 120,
+      "draws": 135,
+      "llr": -0.77,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 480,
+      "wins": 140,
+      "losses": 160,
+      "draws": 180,
+      "llr": -1.0267,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 600,
+      "wins": 175,
+      "losses": 200,
+      "draws": 225,
+      "llr": -1.2833,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 720,
+      "wins": 210,
+      "losses": 240,
+      "draws": 270,
+      "llr": -1.54,
+      "boundary": "none"
+    },
+    {
+      "batch": 6,
+      "games": 840,
+      "wins": 245,
+      "losses": 280,
+      "draws": 315,
+      "llr": -1.7967,
+      "boundary": "none"
+    },
+    {
+      "batch": 7,
+      "games": 960,
+      "wins": 280,
+      "losses": 320,
+      "draws": 360,
+      "llr": -2.0533,
+      "boundary": "none"
+    },
+    {
+      "batch": 8,
+      "games": 1080,
+      "wins": 315,
+      "losses": 360,
+      "draws": 405,
+      "llr": -2.31,
+      "boundary": "none"
+    },
+    {
+      "batch": 9,
+      "games": 1200,
+      "wins": 350,
+      "losses": 400,
+      "draws": 450,
+      "llr": -2.5667,
+      "boundary": "none"
+    },
+    {
+      "batch": 10,
+      "games": 1320,
+      "wins": 385,
+      "losses": 440,
+      "draws": 495,
+      "llr": -2.8233,
+      "boundary": "none"
+    },
+    {
+      "batch": 11,
+      "games": 1389,
+      "wins": 405,
+      "losses": 463,
+      "draws": 521,
+      "llr": -2.976,
+      "boundary": "lower"
+    }
+  ],
+  "record": "benchmarks/results/inv1-ladder-20260909/conthist/sprt.json"
+}

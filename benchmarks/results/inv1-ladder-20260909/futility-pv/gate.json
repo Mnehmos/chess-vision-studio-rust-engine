@@ -1,0 +1,242 @@
+{
+  "gate": "futility-pv",
+  "what": "futility pruning skipped at PV nodes (#75)",
+  "kind": "exe",
+  "games": 3000,
+  "wins": 1375,
+  "losses": 1375,
+  "draws": 250,
+  "llr": -1.3367,
+  "boundary": "none",
+  "decision": "hold_for_more_data",
+  "elapsedSec": 2661.0,
+  "cappedAt": 3000,
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 55,
+      "losses": 55,
+      "draws": 10,
+      "llr": -0.0535,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 110,
+      "losses": 110,
+      "draws": 20,
+      "llr": -0.1069,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 165,
+      "losses": 165,
+      "draws": 30,
+      "llr": -0.1604,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 480,
+      "wins": 220,
+      "losses": 220,
+      "draws": 40,
+      "llr": -0.2139,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 600,
+      "wins": 275,
+      "losses": 275,
+      "draws": 50,
+      "llr": -0.2673,
+      "boundary": "none"
+    },
+    {
+      "batch": 6,
+      "games": 720,
+      "wins": 330,
+      "losses": 330,
+      "draws": 60,
+      "llr": -0.3208,
+      "boundary": "none"
+    },
+    {
+      "batch": 7,
+      "games": 840,
+      "wins": 385,
+      "losses": 385,
+      "draws": 70,
+      "llr": -0.3743,
+      "boundary": "none"
+    },
+    {
+      "batch": 8,
+      "games": 960,
+      "wins": 440,
+      "losses": 440,
+      "draws": 80,
+      "llr": -0.4277,
+      "boundary": "none"
+    },
+    {
+      "batch": 9,
+      "games": 1080,
+      "wins": 495,
+      "losses": 495,
+      "draws": 90,
+      "llr": -0.4812,
+      "boundary": "none"
+    },
+    {
+      "batch": 10,
+      "games": 1200,
+      "wins": 550,
+      "losses": 550,
+      "draws": 100,
+      "llr": -0.5347,
+      "boundary": "none"
+    },
+    {
+      "batch": 11,
+      "games": 1320,
+      "wins": 605,
+      "losses": 605,
+      "draws": 110,
+      "llr": -0.5881,
+      "boundary": "none"
+    },
+    {
+      "batch": 12,
+      "games": 1440,
+      "wins": 660,
+      "losses": 660,
+      "draws": 120,
+      "llr": -0.6416,
+      "boundary": "none"
+    },
+    {
+      "batch": 13,
+      "games": 1560,
+      "wins": 715,
+      "losses": 715,
+      "draws": 130,
+      "llr": -0.6951,
+      "boundary": "none"
+    },
+    {
+      "batch": 14,
+      "games": 1680,
+      "wins": 770,
+      "losses": 770,
+      "draws": 140,
+      "llr": -0.7485,
+      "boundary": "none"
+    },
+    {
+      "batch": 15,
+      "games": 1800,
+      "wins": 825,
+      "losses": 825,
+      "draws": 150,
+      "llr": -0.802,
+      "boundary": "none"
+    },
+    {
+      "batch": 16,
+      "games": 1920,
+      "wins": 880,
+      "losses": 880,
+      "draws": 160,
+      "llr": -0.8555,
+      "boundary": "none"
+    },
+    {
+      "batch": 17,
+      "games": 2040,
+      "wins": 935,
+      "losses": 935,
+      "draws": 170,
+      "llr": -0.9089,
+      "boundary": "none"
+    },
+    {
+      "batch": 18,
+      "games": 2160,
+      "wins": 990,
+      "losses": 990,
+      "draws": 180,
+      "llr": -0.9624,
+      "boundary": "none"
+    },
+    {
+      "batch": 19,
+      "games": 2280,
+      "wins": 1045,
+      "losses": 1045,
+      "draws": 190,
+      "llr": -1.0159,
+      "boundary": "none"
+    },
+    {
+      "batch": 20,
+      "games": 2400,
+      "wins": 1100,
+      "losses": 1100,
+      "draws": 200,
+      "llr": -1.0693,
+      "boundary": "none"
+    },
+    {
+      "batch": 21,
+      "games": 2520,
+      "wins": 1155,
+      "losses": 1155,
+      "draws": 210,
+      "llr": -1.1228,
+      "boundary": "none"
+    },
+    {
+      "batch": 22,
+      "games": 2640,
+      "wins": 1210,
+      "losses": 1210,
+      "draws": 220,
+      "llr": -1.1763,
+      "boundary": "none"
+    },
+    {
+      "batch": 23,
+      "games": 2760,
+      "wins": 1265,
+      "losses": 1265,
+      "draws": 230,
+      "llr": -1.2297,
+      "boundary": "none"
+    },
+    {
+      "batch": 24,
+      "games": 2880,
+      "wins": 1320,
+      "losses": 1320,
+      "draws": 240,
+      "llr": -1.2832,
+      "boundary": "none"
+    },
+    {
+      "batch": 25,
+      "games": 3000,
+      "wins": 1375,
+      "losses": 1375,
+      "draws": 250,
+      "llr": -1.3367,
+      "boundary": "none"
+    }
+  ],
+  "record": "benchmarks/results/inv1-ladder-20260909/futility-pv/sprt.json"
+}
