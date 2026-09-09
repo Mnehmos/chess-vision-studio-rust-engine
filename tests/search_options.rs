@@ -30,8 +30,11 @@ fn champion_defaults_keep_rejected_experiments_off() {
     assert!(!options.countermove);
     assert!(!options.conthist);
     assert!(!options.rule50_scale);
-    assert!(!options.king_activity);
     assert!(!options.singular);
+
+    // kingact re-gate 2026-09-09 (6000-game cap): crossed upper at 3569g, LLR +2.961 —
+    // benchmarks/results/kingact-regate-20260909/.
+    assert!(options.king_activity);
 }
 
 #[test]
