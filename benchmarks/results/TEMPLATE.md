@@ -34,6 +34,13 @@
 
 Decision: PROMOTE | REJECT | HOLD_FOR_MORE_DATA | ANALYSIS_MODE_ONLY | LIVE_DEV_ONLY
 
-<!-- PROMOTE requires a linked SPRT record (schemas/sprt-result.schema.json) with
-     boundary == "upper". Run scripts/lint_promotion.py before claiming PROMOTE. -->
+<!-- Declare the change class first (README "Change classes", INV-1 / INV-2).
+
+     Strength change (INV-1, default): PROMOTE requires a linked SPRT record
+     (schemas/sprt-result.schema.json) with boundary == "upper".
+
+     Performance-only change (INV-2): use PERF-TEMPLATE.md instead. It is accepted on
+     measured behavioral parity + a repeatable speedup, and never claims Elo.
+
+     Run scripts/lint_promotion.py before claiming any acceptance. -->
 

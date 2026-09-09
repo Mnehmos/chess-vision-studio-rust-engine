@@ -50,6 +50,25 @@ pub struct Nnue {
     pub ranker_max_bonus: i32,
 }
 
+// Keep each neuron's operations in the original order while allowing LLVM to
+// vectorize across neurons. No SIMD-specific ISA or relaxed floating point.
+#[inline]
+fn copy_move_delta(dst: &mut [f32], src: &[f32], removed: &[f32], added: &[f32], captured: Option<&[f32]>) {
+    assert_eq!(dst.len(), src.len());
+    assert_eq!(dst.len(), removed.len());
+    assert_eq!(dst.len(), added.len());
+    if let Some(captured) = captured {
+        assert_eq!(dst.len(), captured.len());
+        for ((((out, value), from), victim), to) in dst.iter_mut().zip(src).zip(removed).zip(captured).zip(added) {
+            *out = ((*value - *from) - *victim) + *to;
+        }
+    } else {
+        for (((out, value), from), to) in dst.iter_mut().zip(src).zip(removed).zip(added) {
+            *out = (*value - *from) + *to;
+        }
+    }
+}
+
 impl Nnue {
     pub fn load(path: &str, allow_unverified: bool) -> Result<Nnue, String> {
         let text = std::fs::read_to_string(path).map_err(|e| format!("read {path}: {e}"))?;
@@ -371,6 +390,45 @@ impl Nnue {
                 let placed = mv.flag.promo_piece().unwrap_or(moving);
                 self.feat(acc, ui, placed, to, 1.0);
             }
+        }
+    }
+
+    /// Copy a parent accumulator and apply a move in one pass per perspective.
+    /// The subtraction/addition order matches `acc_apply` exactly; do not
+    /// reassociate the deltas (floating-point rounding is search-visible).
+    /// Call with the position BEFORE making the move and equally sized buffers.
+    pub fn acc_apply_from(
+        &self, child: &mut Accumulator, parent: &Accumulator, pos: &Position, mv: Move,
+    ) {
+        if matches!(mv.flag, MoveFlag::KingCastle | MoveFlag::QueenCastle) {
+            child.white.copy_from_slice(&parent.white);
+            child.black.copy_from_slice(&parent.black);
+            self.acc_apply(child, pos, mv);
+            return;
+        }
+        let us = pos.stm.index();
+        let moving = pos.piece_at(mv.from).expect("acc_apply_from: empty from-square").1;
+        let placed = mv.flag.promo_piece().unwrap_or(moving);
+        let captured = if mv.flag == MoveFlag::EnPassant {
+            Some((Piece::Pawn, mv.to ^ 8))
+        } else if mv.flag.is_capture() {
+            Some((pos.piece_at(mv.to).expect("acc_apply_from: empty capture-square").1, mv.to))
+        } else {
+            None
+        };
+        let row = |color: usize, piece: Piece, square: u8, flip: bool| {
+            let (color, square) = if flip { (1 - color, square ^ 56) } else { (color, square) };
+            let offset = ((color * 6 + piece.index()) * 64 + square as usize) * self.hidden;
+            &self.w1[offset..offset + self.hidden]
+        };
+        for (dst, src, flip) in [
+            (&mut child.white, &parent.white, false),
+            (&mut child.black, &parent.black, true),
+        ] {
+            copy_move_delta(
+                dst, src, row(us, moving, mv.from, flip), row(us, placed, mv.to, flip),
+                captured.map(|(piece, square)| row(1 - us, piece, square, flip)),
+            );
         }
     }
 

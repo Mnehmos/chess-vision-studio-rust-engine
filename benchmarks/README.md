@@ -165,6 +165,43 @@ Changed, danger explanations.
   that resolved a suspicious 45% 20-game start as sampling noise (PGNs clean,
   build parity 0-diff). Live on the bot via CVS_RUST_RFP=1.
 
+## Change classes: strength vs performance (INV-1 / INV-2)
+
+Not every change is a strength claim. A change belongs to exactly one class, and the
+class decides which gate it faces.
+
+**Strength changes (INV-1, the default).** Anything that changes *what the engine
+decides*: search, evaluation, pruning, extensions, move ordering, time management, net
+weights, move selection. These are gated hard. PROMOTE requires a linked
+`schemas/sprt-result.schema.json` record whose `boundary` is `upper`. A point estimate,
+a fixed-N result, a LOS number, or a 55% screen is never enough. One variable per gate.
+
+**Performance-only changes (INV-2).** A change that makes the engine compute the *same*
+result faster or cheaper: accumulator/bitboard/memory-layout work, allocation removal,
+redundant recomputation, I/O and copying. These do not have to prove Elo — proving Elo on
+a 5% speedup would take tens of thousands of games — but they must prove they changed
+nothing else. Recorded in `schemas/perf-result.schema.json`; `decision:
+"accept_performance"` requires all of:
+
+| requirement | threshold |
+|---|---|
+| behavioral parity | every paired cold fixed-node search identical after excluding `timeMs`/`nps`, ≥ 100 searches |
+| tests | zero failures, non-empty run |
+| speedup | median ≥ 2%, consistent across repeats (one-sided sign test p ≤ 0.05 over ≥ 5 timed repeats), worst repeat ≥ −2% |
+| resources | peak RSS and binary size within +5% |
+| strength claim | `strengthClaim: false` — a perf record never states an Elo gain |
+
+An equal-clock screen may be attached (`screen`) but is informational: it cannot promote
+a perf change and cannot block one. A screen result that looks like a *loss beyond noise*
+is evidence of a bug — investigate it as a parity failure, not as a slowdown.
+
+> If the parity gate fails, the change is not performance-only. Reclassify it as a
+> strength change and send it to INV-1. A perf record is a promise that behavior is
+> unchanged; the parity numbers are what makes that promise checkable.
+
+`scripts/lint_promotion.py` enforces both invariants in CI over every record under
+`results/`.
+
 ## Candidate change report
 
 Copy `results/TEMPLATE.md`. Every report ends with exactly one of:
@@ -173,3 +210,12 @@ PROMOTE is valid only with a linked `schemas/sprt-result.schema.json` record who
 `boundary` is `upper`; `scripts/lint_promotion.py` enforces this in CI (INV-1, issue #5).
 `ACCEPTED WITH NOTE` survives only in the historical records above — it is **not** a valid
 decision for new reports.
+
+A performance-only report instead ends with exactly one of:
+`Decision: ACCEPT_PERFORMANCE | REJECT_PERFORMANCE | HOLD_FOR_MORE_DATA`, and links a
+`schemas/perf-result.schema.json` record (INV-2). It states a throughput number, never an
+Elo number.
+
+First record under this tier: `results/perf-acc-fusion-accept-20260908/` — fused NNUE
+accumulator copy+delta updates, accepted on parity and throughput
+(`docs/LLM_ACC_FUSION_EXPERIMENT_2026-09-08.md`).

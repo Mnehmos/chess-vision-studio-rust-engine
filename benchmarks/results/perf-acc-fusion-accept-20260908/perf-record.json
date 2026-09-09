@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "changeClass": "performance-only",
+  "experimentId": "perf-acc-fusion-accept-20260908",
+  "baselineId": "master 145eab9 (#70)",
+  "candidateId": "perf/accept-acc-fusion (acc_apply_from fusion)",
+  "parity": {
+    "searches": 110,
+    "identicalSearches": 110,
+    "nodeCeiling": 80000,
+    "excludedFields": [
+      "timeMs",
+      "nps"
+    ],
+    "artifact": "benchmarks/results/perf-acc-fusion-accept-20260908/parity.json"
+  },
+  "speed": {
+    "positions": 12,
+    "repeats": 9,
+    "nodeCeiling": 320000,
+    "baselineMs": 42730,
+    "candidateMs": 40934,
+    "aggregateSpeedupPct": 4.3876,
+    "medianSpeedupPct": 4.7699,
+    "minSpeedupPct": 1.9478,
+    "maxSpeedupPct": 7.3821,
+    "repeatsPositive": 9,
+    "repeatsTotal": 9,
+    "signTestP": 0.001953125,
+    "artifact": "benchmarks/results/perf-acc-fusion-accept-20260908/speed-r9.json"
+  },
+  "tests": {
+    "passed": 345,
+    "failed": 0,
+    "command": "cargo test --release --offline"
+  },
+  "resources": {
+    "peakRssDeltaPct": 0.1325,
+    "binaryBytesDeltaPct": 0.1896
+  },
+  "strengthClaim": false,
+  "decision": "accept_performance",
+  "provenance": {
+    "engineSha": "70c226e16cc037265b36e46b5d4541ee696e15b695864d12211e2c163c4ac6b2",
+    "netSha": "b23c75b8e25d7480038f270255b3625556ecbdb1d53964cd60719871ff47c4e1",
+    "candArgs": "--futility --rfp --tt-prune-store --qtt --histmalus --histlmr --no-lmp --no-seeprune --no-delta --no-countermove --no-conthist --no-rule50 --no-caphist --no-tt2 --no-improving --no-king-activity --no-singular --no-syzygy --no-book --cvs-helpers 0",
+    "baseArgs": "--futility --rfp --tt-prune-store --qtt --histmalus --histlmr --no-lmp --no-seeprune --no-delta --no-countermove --no-conthist --no-rule50 --no-caphist --no-tt2 --no-improving --no-king-activity --no-singular --no-syzygy --no-book --cvs-helpers 0",
+    "threads": 1,
+    "host": "Windows-10-10.0.19045-SP0",
+    "toolchain": "cargo release --locked"
+  },
+  "screen": {
+    "games": 40,
+    "wins": 18,
+    "losses": 14,
+    "draws": 8,
+    "sprtRecord": "benchmarks/results/llm-acc-fusion-20260908/match/match-sprt.json"
+  }
+}
