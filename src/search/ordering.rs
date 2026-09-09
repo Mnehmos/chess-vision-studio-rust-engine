@@ -54,15 +54,39 @@ impl Searcher {
     /// measured 35% first-move-cutoff plateau).
     pub(super) fn punish_tried_quiets(
         &mut self,
+        pos: &Position,
         side: usize,
         tried: &[Move],
         cutter: Move,
         depth: i32,
+        ply: u32,
     ) {
         let malus = (300 * depth).min(2200);
+        // Continuation-history negative evidence: without it the table only ever
+        // accumulates cutoff bonuses — a stale, positive-only shadow of the
+        // butterfly history (the ladder's conthist gate rejected exactly that).
+        // Same gravity bounds as the cutoff bonus, same key as at ordering time.
+        let ch_key = if self.opts.conthist {
+            self.prev_moves
+                .get(ply as usize)
+                .copied()
+                .flatten()
+                .and_then(|prev| pos.piece_at(prev.to).map(|(_, pp)| (pp, prev.to)))
+        } else {
+            None
+        };
+        let ch_malus = (150 * depth).min(1500);
         for &q in tried {
             if q != cutter {
                 self.hist_gravity(side, q, -malus);
+                if let Some((pp, pt)) = ch_key {
+                    if let Some((_, cp)) = pos.piece_at(q.from) {
+                        let ci = Self::conthist_idx(pp, pt, cp, q.to);
+                        const D: i32 = 8192;
+                        let e = &mut self.conthist[ci];
+                        *e += -ch_malus - *e * ch_malus / D;
+                    }
+                }
             }
         }
     }

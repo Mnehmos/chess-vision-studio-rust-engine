@@ -582,7 +582,7 @@ impl Searcher {
                         let tried: Vec<Move> = (0..tried_quiets.len())
                             .map(|i| tried_quiets.get(i))
                             .collect();
-                        self.punish_tried_quiets(side, &tried, mv, depth);
+                        self.punish_tried_quiets(pos, side, &tried, mv, depth, ply);
                     }
                 } else if self.opts.caphist && mv.flag.is_capture() {
                     // Capture cutoff: reward the cutter, penalize captures tried
