@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "experimentId": "promo-bundle-confirm-20260909",
+  "baselineId": "master",
+  "candidateId": "master+inv1-winners",
+  "elo0": 0.0,
+  "elo1": 10.0,
+  "alpha": 0.05,
+  "beta": 0.05,
+  "games": 801,
+  "wins": 402,
+  "losses": 299,
+  "draws": 100,
+  "llr": 2.9738,
+  "lowerBound": -2.9444,
+  "upperBound": 2.9444,
+  "boundary": "upper",
+  "decision": "promote",
+  "pgnSha256": null,
+  "provenance": {
+    "nodes": 40000
+  }
+}
