@@ -1,0 +1,30 @@
+{
+  "experimentId": "llm-acc-fusion-20260908",
+  "baselineSource": "73df5bda9db5adbf7b3612cd7a3575659c59c98c",
+  "baselineScope": "Clean committed source at experiment start; excludes main-worktree uncommitted changes and does not claim identity with live bot",
+  "candidateChanges": {
+    "src/eval/nnue.rs": "95f2c5fb481ed2ed6108ff52354ae4d6d680100148854542365e395bd703ac30",
+    "src/search/eval_adapter.rs": "a1fcd4c8ee7f4f7ab81ab688380d6256c5e4243af0dda2d7e02f6f7f64f666a9",
+    "tests/nnue_fused_accumulator.rs": "71bbadc5c0eb273ee738562ddfb3dbbff3304db29d5b2ad5e7f4794cfb4023f7",
+    "benchmarks/scripts/bench_acc_fusion.py": "30b4af98bded4d681e9a65b88dd62bc30d44511283cc065a1c3ef2a9319be1b3",
+    "benchmarks/scripts/bench_acc_fusion_match.py": "922bb52c0a7f481c8d033a05464cf269cab4845c3ad2a7b2440322b845baf4ad"
+  },
+  "cargoLockSha256": "7c99ca1eb038a31ee1ab5c562e9093c6dbf57cc0864f646f81014943eb4c1900",
+  "compiler": "rustc 1.96.1 (31fca3adb 2026-06-26)",
+  "buildCommand": "cargo build --release --locked --offline --bin analyze --bin uci --target-dir target/llm-{baseline,candidate}",
+  "tests": {
+    "command": "cargo test --release --locked --offline --target-dir target/llm-candidate --test nnue_fused_accumulator --test nnue_accumulator --test fixed_node_determinism --test search --test search_options --test perft",
+    "passed": 37,
+    "failed": 0
+  },
+  "binaries": {
+    "baseline": {
+      "analyze": "8e0697617eb4a7d0c901ab60f0aeca4acf06748bc3d69a6ef040e89edca1b6ba",
+      "uci": "42dc6f9f5f06ae62014988fc93744f24996d7f57c279f136e920776e1f25fe41"
+    },
+    "candidate": {
+      "analyze": "b5f04911c312817f2e1ca3d5fb8e6629768c86b31506d331e3354ff2ec2576be",
+      "uci": "aced3d8f29246a427211a984d455fb01599d422fac46f58c8937c515f6ed0057"
+    }
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "changeClass": "performance-only",
+  "experimentId": "fixture-perf-valid",
+  "baselineId": "fixture-baseline",
+  "candidateId": "fixture-candidate",
+  "parity": {
+    "searches": 110,
+    "identicalSearches": 110,
+    "nodeCeiling": 80000,
+    "excludedFields": [
+      "timeMs",
+      "nps"
+    ]
+  },
+  "speed": {
+    "positions": 12,
+    "repeats": 5,
+    "nodeCeiling": 320000,
+    "baselineMs": 21879.0,
+    "candidateMs": 20790.0,
+    "aggregateSpeedupPct": 5.24,
+    "medianSpeedupPct": 4.96,
+    "minSpeedupPct": 3.99,
+    "maxSpeedupPct": 6.35,
+    "repeatsPositive": 5,
+    "repeatsTotal": 5,
+    "signTestP": 0.03125
+  },
+  "tests": {
+    "passed": 37,
+    "failed": 0,
+    "command": "cargo test --release"
+  },
+  "resources": {
+    "peakRssDeltaPct": 0.0,
+    "binaryBytesDeltaPct": 0.1
+  },
+  "strengthClaim": false,
+  "decision": "accept_performance",
+  "provenance": {
+    "engineSha": "deadbeef",
+    "netSha": "cafebabe",
+    "candArgs": "--futility --rfp",
+    "baseArgs": "--futility --rfp",
+    "threads": 1,
+    "host": "fixture"
+  }
+}

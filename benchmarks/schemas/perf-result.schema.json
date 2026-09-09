@@ -1,0 +1,111 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://chess-vision-studio/benchmarks/perf-result.schema.json",
+  "title": "Performance-only result (v1)",
+  "description": "Machine-readable record of a PERFORMANCE-ONLY change: a candidate that computes the same search result faster (or with fewer resources) and makes no tactical, strategic, evaluation, pruning, ordering or move-selection change. Per INV-2, such a change is accepted on measured behavioral identity + a repeatable speedup, and must NOT claim Elo. Any change that alters what the engine decides is NOT performance-only and needs an SPRT record (INV-1, sprt-result.schema.json).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "changeClass", "experimentId", "baselineId", "candidateId",
+    "parity", "speed", "tests", "resources", "strengthClaim", "decision", "provenance"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "changeClass": {
+      "const": "performance-only",
+      "description": "Self-declared class. Only performance-only changes may use this record."
+    },
+    "experimentId": { "type": "string", "minLength": 1 },
+    "baselineId": { "type": "string", "minLength": 1, "description": "Frozen baseline identity (commit/tag)." },
+    "candidateId": { "type": "string", "minLength": 1 },
+    "parity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["searches", "identicalSearches", "nodeCeiling", "excludedFields"],
+      "description": "Paired cold fixed-node searches. Non-timing output must be identical, else the change is not performance-only.",
+      "properties": {
+        "searches": { "type": "integer", "minimum": 0 },
+        "identicalSearches": { "type": "integer", "minimum": 0 },
+        "nodeCeiling": { "type": "integer", "minimum": 1 },
+        "excludedFields": { "type": "array", "items": { "type": "string" } },
+        "artifact": { "type": ["string", "null"] }
+      }
+    },
+    "speed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["positions", "repeats", "nodeCeiling", "baselineMs", "candidateMs",
+                   "aggregateSpeedupPct", "medianSpeedupPct", "minSpeedupPct", "maxSpeedupPct",
+                   "repeatsPositive", "repeatsTotal", "signTestP"],
+      "properties": {
+        "positions": { "type": "integer", "minimum": 1 },
+        "repeats": { "type": "integer", "minimum": 1 },
+        "nodeCeiling": { "type": "integer", "minimum": 1 },
+        "baselineMs": { "type": "number", "exclusiveMinimum": 0 },
+        "candidateMs": { "type": "number", "exclusiveMinimum": 0 },
+        "aggregateSpeedupPct": { "type": "number" },
+        "medianSpeedupPct": { "type": "number" },
+        "minSpeedupPct": { "type": "number", "description": "Worst measured repeat: must stay above -2% (a deeper dip is a real regression, not noise)." },
+        "maxSpeedupPct": { "type": "number" },
+        "repeatsPositive": { "type": "integer", "minimum": 0, "description": "Repeats where the candidate was faster." },
+        "repeatsTotal": { "type": "integer", "minimum": 1, "description": "Timed repeats; must equal `repeats`. At least 5 to accept." },
+        "signTestP": { "type": "number", "description": "One-sided sign test P(X >= repeatsPositive), X ~ Binomial(repeatsTotal, 0.5). Must be <= 0.05 to accept." },
+        "artifact": { "type": ["string", "null"] }
+      }
+    },
+    "tests": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["passed", "failed", "command"],
+      "properties": {
+        "passed": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "command": { "type": "string", "minLength": 1 }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["peakRssDeltaPct", "binaryBytesDeltaPct"],
+      "description": "Material resource cost of the speedup. A gain bought with memory is not free.",
+      "properties": {
+        "peakRssDeltaPct": { "type": "number" },
+        "binaryBytesDeltaPct": { "type": "number" }
+      }
+    },
+    "strengthClaim": {
+      "const": false,
+      "description": "A performance-only record never claims an Elo gain. Strength evidence goes in an SPRT record."
+    },
+    "screen": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "description": "Optional equal-clock sanity screen. Informational only: it can neither promote nor block a performance-only change unless it shows a loss beyond noise (that is a bug, not a slowdown).",
+      "properties": {
+        "games": { "type": "integer", "minimum": 0 },
+        "wins": { "type": "integer", "minimum": 0 },
+        "losses": { "type": "integer", "minimum": 0 },
+        "draws": { "type": "integer", "minimum": 0 },
+        "sprtRecord": { "type": ["string", "null"] }
+      }
+    },
+    "decision": {
+      "enum": ["accept_performance", "reject_performance", "hold_for_more_data"],
+      "description": "accept_performance REQUIRES: full parity, zero failing tests, medianSpeedupPct >= 2.0, a consistent speedup (sign test p <= 0.05 over >= 5 repeats), no repeat below -2%, resource deltas <= 5%, strengthClaim false."
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["engineSha", "netSha", "candArgs", "baseArgs", "threads", "host"],
+      "properties": {
+        "engineSha": { "type": "string", "minLength": 1 },
+        "netSha": { "type": "string", "minLength": 1 },
+        "candArgs": { "type": "string" },
+        "baseArgs": { "type": "string" },
+        "threads": { "type": "integer", "minimum": 1 },
+        "host": { "type": "string", "minLength": 1 },
+        "toolchain": { "type": "string" }
+      }
+    }
+  }
+}

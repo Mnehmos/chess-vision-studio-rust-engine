@@ -2,8 +2,8 @@ use super::*;
 
 impl Searcher {
     /// Push the child accumulator for `mv` (call with the PRE-make position).
-    /// Slot-reuse: the stack never shrinks, so steady-state pushes are two
-    /// memcpys + the feature deltas — no per-node allocation.
+    /// Slot-reuse: the stack never shrinks. Steady-state pushes fuse the parent
+    /// copy with feature deltas, without per-node allocation.
     #[inline]
     pub(super) fn acc_make(&mut self, pos: &Position, mv: Move) {
         if let Some(n) = &self.nnue {
@@ -14,12 +14,11 @@ impl Searcher {
             if self.acc_stack.len() <= top + 1 {
                 let clone = self.acc_stack[top].clone();
                 self.acc_stack.push(clone);
+                n.acc_apply(&mut self.acc_stack[top + 1], pos, mv);
             } else {
                 let (head, tail) = self.acc_stack.split_at_mut(top + 1);
-                tail[0].white.copy_from_slice(&head[top].white);
-                tail[0].black.copy_from_slice(&head[top].black);
+                n.acc_apply_from(&mut tail[0], &head[top], pos, mv);
             }
-            n.acc_apply(&mut self.acc_stack[top + 1], pos, mv);
             self.acc_top = top + 1;
         }
     }
