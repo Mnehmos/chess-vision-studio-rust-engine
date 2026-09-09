@@ -121,7 +121,10 @@ fn main() {
             .expect("parse rung2")
     });
 
-    let allow_unverified = args.iter().any(|a| a == "--allow-unverified-net");
+    let allow_unverified = args.iter().any(|a| a == "--allow-unverified-net")
+        || std::env::var("CVS_RUST_ALLOW_UNVERIFIED")
+            .map(|v| v.trim() == "1")
+            .unwrap_or(false);
     let nnue: Option<Nnue> =
         get("--nnue").map(|p| Nnue::load(&p, allow_unverified).expect("load nnue"));
     let helper_nnue: Option<Nnue> =

@@ -624,8 +624,10 @@ mod tests {
 
     #[test]
     fn registry_hash_is_stable() {
-        // Pin the v1 hash so an accidental registry edit is caught by CI.
-        assert_eq!(registry_hash(), registry_hash());
-        assert_ne!(registry_hash(), 0);
+        // Pin the literal hashes so an accidental registry edit is caught by
+        // CI (an assert_eq!(x, x) can never fail). These must match the pins
+        // embedded in the trained nets (train-cvs-ranker.py REGISTRY_HASH).
+        assert_eq!(format!("{:016x}", registry_hash()), "25c15688f9f4ebba");
+        assert_eq!(format!("{:016x}", core_registry_hash()), "58cb4e1e461a607d");
     }
 }
