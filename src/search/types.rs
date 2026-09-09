@@ -159,7 +159,10 @@ impl Default for SearchOptions {
             conthist: false,
             tt_prune_store: true,
             rule50_scale: false,
-            king_activity: false,
+            // INV-1 promotion 2026-09-09 (re-gate with 6000-game cap): kingact
+            // crossed the upper SPRT bound (3569g, LLR +2.961) — an endgame king
+            // activity term aimed at the measured endgame weakness.
+            king_activity: true,
             qsearch_tt: true,
             hist_malus: true,
             hist_lmr: true,
