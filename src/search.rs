@@ -528,6 +528,9 @@ impl Searcher {
     }
 
     fn store(&mut self, key: u64, depth: i32, score: i32, flag: Flag, mv: Option<Move>, ply: i32) {
+        // A singular-exclusion search runs on the same position key with the TT
+        // move excluded; its score belongs to no full-position entry. Standard
+        // engines guard every store this way.
         let (gen, lane) = (self.tt_generation, self.opts.lane.id());
         let score = if self.opts.matett {
             mate_store_adjust(score, ply)
