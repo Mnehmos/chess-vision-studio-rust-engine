@@ -64,3 +64,18 @@ fn targets_are_sorted_by_id_for_stable_output() {
         assert_eq!(m.targets, sorted);
     }
 }
+
+#[test]
+fn defended_target_reports_worst_case_net_gain() {
+    // Audit #64: material_gain must be the proven WORST case, never the gross
+    // count. Nf3+ forks Kg1 and the rook on e1, but the rook is now DEFENDED
+    // by the c2 knight: the recapture nets rook − knight = 500 − 300 = 200 on
+    // the facts VALUE scale (motifs VALUE[Knight] = 300).
+    let items = forks("6k1/8/8/6n1/4P3/8/2N5/4R1K1 b - - 0 1");
+    let fork = items
+        .iter()
+        .find(|m| m.move_uci == "g5f3")
+        .expect("Nf3+ king fork should still validate");
+    assert!(fork.king_target);
+    assert_eq!(fork.material_gain, 200, "defended target nets value − forker");
+}

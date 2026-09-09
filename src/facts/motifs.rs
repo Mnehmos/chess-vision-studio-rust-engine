@@ -123,16 +123,29 @@ fn fork_after_move(pos: &Position, mv: Move, forker_color: Color) -> Option<Moti
         return None;
     }
 
+    // Proven worst-case realization of collecting a winnable target: an
+    // undefended piece falls for its full value; a defended one (winnable only
+    // because it is dearer than the forker) nets value minus the forker after
+    // the recapture. The soundness contract promises the worst case, never an
+    // optimistic gross count.
+    let worst_case = |p: &Piece, sq: &u8| -> i32 {
+        if is_undefended(&after, *sq, enemy) {
+            VALUE[p.index()]
+        } else {
+            VALUE[p.index()] - forker_value
+        }
+    };
     let material_gain = if king_target {
-        // The king must step aside; the best winnable piece falls.
+        // The king must step aside; the best winnable piece falls (worst case).
         winnable_non_king
             .iter()
-            .map(|(p, _)| VALUE[p.index()])
+            .map(|(p, sq)| worst_case(p, sq))
             .max()
             .unwrap_or(0)
     } else {
-        // The opponent saves the dearer piece; you collect the next-best.
-        let mut vals: Vec<i32> = winnable.iter().map(|(p, _)| VALUE[p.index()]).collect();
+        // The opponent saves the piece that minimizes our worst-case gain; you
+        // collect the next-best realization.
+        let mut vals: Vec<i32> = winnable.iter().map(|(p, sq)| worst_case(p, sq)).collect();
         vals.sort_unstable_by(|a, b| b.cmp(a));
         vals.get(1).copied().unwrap_or(0)
     };
@@ -448,15 +461,17 @@ fn skewer_after_move(pos: &Position, mv: Move, skewerer_color: Color) -> Option<
         // defenders with F removed (F is forced to leave): undefended → win it
         // outright; otherwise it must be worth more than the skewerer to profit
         // through the recapture.
-        let back_defenders = attackers_of(&after.pieces, b_sq, enemy, after.all)
-            & !(1u64 << b_sq)
-            & !(1u64 << f_sq);
+        let back_defenders =
+            attackers_of(&after.pieces, b_sq, enemy, after.all) & !(1u64 << b_sq) & !(1u64 << f_sq);
         let back_undefended = back_defenders == 0;
         if !back_undefended && VALUE[b_piece.index()] <= skewerer_value {
             continue;
         }
 
-        let ray: Vec<String> = squares_between(s, b_sq).into_iter().map(square_name).collect();
+        let ray: Vec<String> = squares_between(s, b_sq)
+            .into_iter()
+            .map(square_name)
+            .collect();
         let material_gain = if back_undefended {
             VALUE[b_piece.index()]
         } else {
@@ -626,7 +641,10 @@ fn xray_attack_after_move(pos: &Position, mv: Move, us: Color) -> Option<XRayOpp
             continue;
         }
 
-        let ray: Vec<String> = squares_between(s, b_sq).into_iter().map(square_name).collect();
+        let ray: Vec<String> = squares_between(s, b_sq)
+            .into_iter()
+            .map(square_name)
+            .collect();
         let cand = XRayOpportunity {
             kind: "xray_attack".to_string(),
             validator: "xray_attack_validation".to_string(),
@@ -705,11 +723,7 @@ fn without_bit(pos: &Position, sq: u8) -> Option<Position> {
     Some(probe)
 }
 
-fn xray_defense_after_move(
-    pos: &Position,
-    mv: Move,
-    us: Color,
-) -> Option<XRayDefenseOpportunity> {
+fn xray_defense_after_move(pos: &Position, mv: Move, us: Color) -> Option<XRayDefenseOpportunity> {
     let (_, moving_piece) = pos.piece_at(mv.from)?;
     let xrayer_piece = mv.flag.promo_piece().unwrap_or(moving_piece);
     // (G0) Only sliders x-ray.
@@ -824,7 +838,10 @@ fn xray_defense_after_move(
 
         // material_gain = value of G saved = what the enemy would have won without the
         // xray. `without` is exactly that SEE delta; report it (>0 by construction).
-        let ray: Vec<String> = squares_between(s, g_sq).into_iter().map(square_name).collect();
+        let ray: Vec<String> = squares_between(s, g_sq)
+            .into_iter()
+            .map(square_name)
+            .collect();
         let cand = XRayDefenseOpportunity {
             kind: "xray_defense".to_string(),
             validator: "xray_defense_validation".to_string(),
@@ -967,9 +984,8 @@ fn discovery_after_move(
             // (it could not pre-move — legal positions never leave the side-not-to-move
             // in check). The moved piece double-checks iff it also attacks the king.
             let discovered_check = after_atk & king_bit != 0;
-            let moved_gives_check = attackers_of(&after.pieces, enemy_king, discoverer_color, after.all)
-                & to_bit
-                != 0;
+            let moved_gives_check =
+                attackers_of(&after.pieces, enemy_king, discoverer_color, after.all) & to_bit != 0;
             let double_check = discovered_check && moved_gives_check;
 
             // The moved piece must not be simply hung. For a discovered check the enemy
@@ -1012,7 +1028,10 @@ fn discovery_after_move(
                 }
             };
 
-            let ray: Vec<String> = squares_between(s_sq, t_sq).into_iter().map(square_name).collect();
+            let ray: Vec<String> = squares_between(s_sq, t_sq)
+                .into_iter()
+                .map(square_name)
+                .collect();
             let subtype = if double_check {
                 "double_check"
             } else if discovered_check {
@@ -1115,7 +1134,11 @@ fn legal_capture_gain(pos: &Position, sq: u8, depth: u8) -> i32 {
     let cheapest = generate_legal(&mut gen)
         .into_iter()
         .filter(|m| m.to == sq)
-        .min_by_key(|m| pos.piece_at(m.from).map(|(_, p)| VALUE[p.index()]).unwrap_or(0));
+        .min_by_key(|m| {
+            pos.piece_at(m.from)
+                .map(|(_, p)| VALUE[p.index()])
+                .unwrap_or(0)
+        });
     let Some(cap) = cheapest else {
         return 0;
     };
@@ -1656,7 +1679,11 @@ pub fn attack_defender_opportunities_for(
     }
 }
 
-fn attack_defender_after_move(pos: &Position, mv: Move, us: Color) -> Option<AttackDefenderOpportunity> {
+fn attack_defender_after_move(
+    pos: &Position,
+    mv: Move,
+    us: Color,
+) -> Option<AttackDefenderOpportunity> {
     let (_, moving_piece) = pos.piece_at(mv.from)?;
     let mover_piece = mv.flag.promo_piece().unwrap_or(moving_piece);
     let enemy = us.flip();
@@ -2446,7 +2473,12 @@ pub fn desperado_opportunities(pos: &Position) -> FactCollection<DesperadoOpport
         }
     }
     // Determinism: piece id (== our-side-<type>-<square>, unique per q) then move.
-    out.sort_by(|a, b| a.piece.id.cmp(&b.piece.id).then_with(|| a.move_uci.cmp(&b.move_uci)));
+    out.sort_by(|a, b| {
+        a.piece
+            .id
+            .cmp(&b.piece.id)
+            .then_with(|| a.move_uci.cmp(&b.move_uci))
+    });
     FactCollection::computed(out)
 }
 
@@ -2518,7 +2550,10 @@ fn desperado_for_piece(
     let mut best_gain = 0i32;
     let mut best_uci: Option<String> = None;
     let mut best_victim: Option<(Piece, u8)> = None;
-    for m in our_legal.iter().filter(|m| m.from == q_sq && m.flag.is_capture()) {
+    for m in our_legal
+        .iter()
+        .filter(|m| m.from == q_sq && m.flag.is_capture())
+    {
         // Emit only standard captures with a clean victim PieceRef; skip en-passant
         // (pawn victim behind m.to — q is never a pawn, so this only drops EP).
         let victim_sq = m.to;
@@ -2985,7 +3020,7 @@ fn win_exchange_worst_case(after: &Position, enemy: Color, sq: u8, banked: i32) 
         }
         let mut esc = enemy_probe.clone();
         esc.make(*m); // stm flips back to us
-        // Our best LEGAL recovery on the contested square (0 if we cannot recapture there).
+                      // Our best LEGAL recovery on the contested square (0 if we cannot recapture there).
         let our_recovery = if esc.occ[enemy.index()] & (1u64 << sq) != 0 {
             best_see_capture(&esc, sq).max(0)
         } else {
