@@ -174,10 +174,16 @@ impl Searcher {
                 // suspect (graph-history interaction) — keep the move hint,
                 // refuse the cutoff. Mirrors SF's rule50_count() >= 96 guard.
                 let r50_block = self.opts.rule50_scale && pos.halfmove >= 96;
+                // Singular-extension exclusion search (audit M4): the verification
+                // re-search runs on THIS position with the TT move masked out, so a
+                // stored score for the full position must never cut it — the probe
+                // contributes the move hint only. (Without this the verification
+                // short-circuited on its own entry and the extension never fired.)
+                let excluded = self.excluded_move.is_some();
                 // Channel-A specialist isolation: foreign lanes can seed move
                 // ordering through `tt_move`, but their eval-profiled scores and
                 // bounds must not prune a different lane's tree.
-                if same_lane && e.depth >= depth && !r50_block {
+                if same_lane && !excluded && e.depth >= depth && !r50_block {
                     self.tel.tt_hits += 1;
                     match e.flag {
                         Flag::Exact => {
