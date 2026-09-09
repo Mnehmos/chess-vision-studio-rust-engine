@@ -18,6 +18,37 @@
   "decision": "promote",
   "pgnSha256": null,
   "provenance": {
-    "nodes": 40000
+    "engineSha": "cb67595d29980753",
+    "netSha": "b23c75b8e25d7480",
+    "candArgs": [
+      "--futility",
+      "--rfp",
+      "--tt-prune-store",
+      "--qtt",
+      "--histmalus",
+      "--histlmr",
+      "--lmp",
+      "nodes=40000",
+      "exe=chess-vision-studio-rust-engine-promo"
+    ],
+    "baseArgs": [
+      "--futility",
+      "--rfp",
+      "--tt-prune-store",
+      "--qtt",
+      "--histmalus",
+      "--histlmr",
+      "--lmp",
+      "--no-caphist",
+      "--no-seeprune",
+      "--no-improving",
+      "--no-tt2",
+      "nodes=40000",
+      "exe=chess-vision-studio-rust-engine-promo"
+    ],
+    "tc": "nodes:40000",
+    "nodes": 40000,
+    "threads": 1,
+    "openingsSha": "9fb74795c5c93174"
   }
 }
