@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "experimentId": "inv1-ladder-20260909/futility-pv",
+  "baselineId": "master",
+  "candidateId": "master+futility-pv",
+  "elo0": 0.0,
+  "elo1": 10.0,
+  "alpha": 0.05,
+  "beta": 0.05,
+  "games": 3000,
+  "wins": 1375,
+  "losses": 1375,
+  "draws": 250,
+  "llr": -1.3367,
+  "lowerBound": -2.9444,
+  "upperBound": 2.9444,
+  "boundary": "none",
+  "decision": "hold_for_more_data",
+  "pgnSha256": null,
+  "provenance": {
+    "engineSha": "3da768727eea530f",
+    "netSha": "b23c75b8e25d7480",
+    "candArgs": [
+      "--futility",
+      "--rfp",
+      "--tt-prune-store",
+      "--qtt",
+      "--histmalus",
+      "--histlmr",
+      "--lmp",
+      "nodes=40000",
+      "exe=gate-futpv"
+    ],
+    "baseArgs": [
+      "--futility",
+      "--rfp",
+      "--tt-prune-store",
+      "--qtt",
+      "--histmalus",
+      "--histlmr",
+      "--lmp",
+      "nodes=40000",
+      "exe=chess-vision-studio-rust-engine-ladder"
+    ],
+    "tc": "nodes:40000",
+    "nodes": 40000,
+    "threads": 1,
+    "openingsSha": "9fb74795c5c93174"
+  }
+}

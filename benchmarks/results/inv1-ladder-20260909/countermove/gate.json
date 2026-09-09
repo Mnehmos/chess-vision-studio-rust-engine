@@ -1,0 +1,62 @@
+{
+  "gate": "countermove",
+  "what": "countermove heuristic in quiet move ordering",
+  "kind": "flag",
+  "games": 517,
+  "wins": 193,
+  "losses": 280,
+  "draws": 44,
+  "llr": -2.9539,
+  "boundary": "lower",
+  "decision": "reject",
+  "elapsedSec": 519.8,
+  "cappedAt": null,
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 45,
+      "losses": 65,
+      "draws": 10,
+      "llr": -0.6784,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 90,
+      "losses": 130,
+      "draws": 20,
+      "llr": -1.3569,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 135,
+      "losses": 195,
+      "draws": 30,
+      "llr": -2.0353,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 480,
+      "wins": 180,
+      "losses": 260,
+      "draws": 40,
+      "llr": -2.7137,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 517,
+      "wins": 193,
+      "losses": 280,
+      "draws": 44,
+      "llr": -2.9539,
+      "boundary": "lower"
+    }
+  ],
+  "record": "benchmarks/results/inv1-ladder-20260909/countermove/sprt.json"
+}

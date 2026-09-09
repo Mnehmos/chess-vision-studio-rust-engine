@@ -1,0 +1,53 @@
+{
+  "gate": "tt2",
+  "what": "two-tier transposition table",
+  "kind": "flag",
+  "games": 430,
+  "wins": 215,
+  "losses": 125,
+  "draws": 90,
+  "llr": 2.9535,
+  "boundary": "upper",
+  "decision": "promote",
+  "elapsedSec": 394.7,
+  "cappedAt": null,
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 60,
+      "losses": 35,
+      "draws": 25,
+      "llr": 0.8194,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 120,
+      "losses": 70,
+      "draws": 50,
+      "llr": 1.6387,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 180,
+      "losses": 105,
+      "draws": 75,
+      "llr": 2.4581,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 430,
+      "wins": 215,
+      "losses": 125,
+      "draws": 90,
+      "llr": 2.9535,
+      "boundary": "upper"
+    }
+  ],
+  "record": "benchmarks/results/inv1-ladder-20260909/tt2/sprt.json"
+}

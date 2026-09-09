@@ -1,0 +1,44 @@
+{
+  "gate": "rule50",
+  "what": "rule-50 score scaling",
+  "kind": "flag",
+  "games": 257,
+  "wins": 66,
+  "losses": 150,
+  "draws": 41,
+  "llr": -2.9704,
+  "boundary": "lower",
+  "decision": "reject",
+  "elapsedSec": 294.3,
+  "cappedAt": null,
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 30,
+      "losses": 70,
+      "draws": 20,
+      "llr": -1.4239,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 60,
+      "losses": 140,
+      "draws": 40,
+      "llr": -2.8478,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 257,
+      "wins": 66,
+      "losses": 150,
+      "draws": 41,
+      "llr": -2.9704,
+      "boundary": "lower"
+    }
+  ],
+  "record": "benchmarks/results/inv1-ladder-20260909/rule50/sprt.json"
+}

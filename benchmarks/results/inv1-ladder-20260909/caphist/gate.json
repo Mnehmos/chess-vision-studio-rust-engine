@@ -1,0 +1,44 @@
+{
+  "gate": "caphist",
+  "what": "capture history in capture ordering and LMR",
+  "kind": "flag",
+  "games": 293,
+  "wins": 159,
+  "losses": 72,
+  "draws": 62,
+  "llr": 2.9489,
+  "boundary": "upper",
+  "decision": "promote",
+  "elapsedSec": 304.6,
+  "cappedAt": null,
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 65,
+      "losses": 30,
+      "draws": 25,
+      "llr": 1.1809,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 130,
+      "losses": 60,
+      "draws": 50,
+      "llr": 2.3617,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 293,
+      "wins": 159,
+      "losses": 72,
+      "draws": 62,
+      "llr": 2.9489,
+      "boundary": "upper"
+    }
+  ],
+  "record": "benchmarks/results/inv1-ladder-20260909/caphist/sprt.json"
+}
