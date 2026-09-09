@@ -79,6 +79,23 @@ Score 50.9% -> a point estimate of about +6 Elo for the combined set, not the +4
 repeated-games record implied. The set is not harmful, but it is **not established** at
 the SPRT's declared bounds, and no individual flag in it has valid promotion evidence.
 
+`benchmarks/results/singular-regate-20260909/` — champion vs champion + `--singular`
+(the ladder's highest-holding candidate), book offset 1000 (a sample disjoint from the
+bundle run), 2000 games:
+
+| games | W-L-D | LLR | boundary | decision |
+|---:|---|---:|---|---|
+| 2000 | 860-844-296 | -0.401 | none | **hold_for_more_data** |
+
++2.8 Elo point estimate. The superseded ladder record claimed LLR +2.672 over 3000
+repeated games; the 120 unique games it replayed gave LLR +0.107.
+
+Throughput check (`benchmarks/scripts/bench_flag_cost.py`, warmup plus a champion control
+at both ends): no promoted flag costs a measurable penalty — champion 0.81 MNPS vs
+no-tt2 0.81 MNPS at 1 s/move on the canonical positions, same depth. An earlier sweep
+without warmup showed a spurious +15-26% for *every* flag; the control exposed the order
+bias, which is why the control is part of the script.
+
 ## Standing consequences
 
 1. The five promoted defaults stay in place (the point estimate is positive and removing
