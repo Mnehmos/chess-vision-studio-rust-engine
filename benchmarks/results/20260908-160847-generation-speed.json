@@ -1,0 +1,120 @@
+{
+ "registry": "F:\\Github\\chess-vision-studio-rust-engine\\benchmarks\\engines.json",
+ "suite": {
+  "name": "canonical-ladder-subset",
+  "hash": "13de5e614066d55c",
+  "positions": [
+   "startpos",
+   "midgame-r1",
+   "preBd6-danger",
+   "tactical-wac001"
+  ]
+ },
+ "times_ms": [
+  50,
+  250
+ ],
+ "threads": [
+  1
+ ],
+ "repeats": 1,
+ "table": {
+  "g9.current-default.raw-plus-residual|1T|50ms": {
+   "median_avg_depth": 4,
+   "depth_stdev": 0.0,
+   "median_avg_mnps": 0.6699939215686275,
+   "mnps_stdev": 0.0,
+   "median_elapsed_ms": 38.5,
+   "repeats": 1
+  },
+  "g9.current-default.raw-plus-residual|1T|250ms": {
+   "median_avg_depth": 5.5,
+   "depth_stdev": 0.0,
+   "median_avg_mnps": 0.7184438964143427,
+   "mnps_stdev": 0.0,
+   "median_elapsed_ms": 188.5,
+   "repeats": 1
+  }
+ },
+ "provenance": [
+  {
+   "date": "2026-09-08T23:08:46+00:00",
+   "git_commit": "abc7288",
+   "git_describe": "v9.0.0-76-gabc7288-dirty",
+   "machine": {
+    "hostname": "DESKTOP-KF0SM7V",
+    "os": "Windows-10-10.0.19045-SP0",
+    "architecture": "AMD64",
+    "processor": "AMD64 Family 25 Model 33 Stepping 0, AuthenticAMD",
+    "logical_cpus": 16,
+    "memory_bytes": 137361182720,
+    "python": "3.12.10",
+    "rustc": "rustc 1.96.1 (31fca3adb 2026-06-26)",
+    "cargo": "cargo 1.96.1 (356927216 2026-06-26)"
+   },
+   "engine_id": "g9.current-default.raw-plus-residual",
+   "generation": 9,
+   "status": "audit-control",
+   "architecture": "raw-h256-main-plus-core104-residual-helper",
+   "search_profile": "current-default-2026-06-19",
+   "search_profile_sha": "0d6d68a4a45bc894",
+   "policy": {},
+   "policy_sha": "44136fa355b3678a",
+   "engine_exe": "F:\\Github\\chess-vision-studio-rust-engine\\target\\release\\analyze.exe",
+   "engine_sha": "6523687826a7db7a",
+   "uci_exe": "F:\\Github\\chess-vision-studio-rust-engine\\target\\release\\uci.exe",
+   "uci_sha": "c42544fc641f31d5",
+   "net": "F:\\Github\\chess-vision-studio-rust-engine\\target-cvs\\matrix-raw.json",
+   "net_sha": "b23c75b8e25d7480",
+   "net_metadata": {
+    "modelKind": "nnue",
+    "arch": "768x256cReLU-1",
+    "hidden": 256
+   },
+   "helper_net": "F:\\Github\\chess-vision-studio-rust-engine\\target-cvs\\matrix-residual.json",
+   "helper_net_sha": "d2a98888ad83a356",
+   "helper_net_metadata": {
+    "modelKind": "cvs_residual_nnue",
+    "arch": "PS(768x256cReLU) + CVS(104x32cReLU)",
+    "registryVersion": 1,
+    "registryHash": "58cb4e1e461a607d",
+    "psHidden": 256,
+    "cvsHidden": 32,
+    "cvsDim": 104
+   },
+   "base_weights": "F:\\Github\\chess-vision-studio\\arena\\out\\value-weights-mixed.json",
+   "base_weights_sha": "a3435d1a89f3ae06",
+   "rung2_weights": "F:\\Github\\chess-vision-studio\\arena\\out\\rung2-weights-mixed.json",
+   "rung2_weights_sha": "a91268e53567b804",
+   "legacy_futility_cli_flag": false,
+   "expected_search_options": {
+    "rfp": true,
+    "futility": true,
+    "lmp": false,
+    "seePrune": false,
+    "deltaPrune": false,
+    "countermove": false,
+    "continuationHistory": false,
+    "ttPruneStore": true,
+    "rule50Scale": false,
+    "qsearchTt": true,
+    "historyMalus": true,
+    "historyLmr": true,
+    "captureHistory": false,
+    "tt2": false,
+    "improving": false,
+    "kingActivity": false,
+    "singular": false,
+    "syzygy": true,
+    "book": true
+   },
+   "extra_flags": [
+    "--helper-nnue",
+    "F:\\Github\\chess-vision-studio-rust-engine\\target-cvs\\matrix-residual.json"
+   ],
+   "threads": 1,
+   "depth": 30,
+   "baseline_ref": "snapshot/gen7-acc-futility-2026-06-11"
+  }
+ ]
+}
