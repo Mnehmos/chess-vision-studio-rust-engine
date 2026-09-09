@@ -406,6 +406,7 @@ impl Searcher {
         // eval hopelessly below alpha, quiet non-checking moves cannot recover
         // — only tactics can, so only tactics get searched.
         let futile = self.opts.futility
+            && !is_pv
             && !checked
             && depth <= 3
             && alpha.abs() < MATE_THRESHOLD

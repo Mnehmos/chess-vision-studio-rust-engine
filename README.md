@@ -16,7 +16,7 @@ launch `analyze --serve` as a localhost-only engine bridge.
 deterministic teaching facts — this engine is the **truth layer** of Chess Vision
 Studio's "Control Lens" teaching contract: it emits facts, never grades or prose.
 
-The `TeachingFactBundleV1` protocol (facts registry **v22**) returns legal
+The `TeachingFactBundleV1` protocol (facts registry **v23**) returns legal
 played/best/refutation branches, each with full position facts: per-piece
 attackers/defenders and SEE, named pawn-structure facts, king safety, 64-square
 control, deterministic position **hazards** (losing-material, fork-threat,
@@ -39,7 +39,7 @@ teaching compiler owns that. Validators live in `src/facts/`. See
 - Iterative deepening alpha-beta search.
 - UCI frontend for cutechess and external harnesses.
 - JSON-line `analyze --serve` mode for the Chess Vision Studio app.
-- Deterministic teaching-facts validators (`TeachingFactBundleV1`, registry v22):
+- Deterministic teaching-facts validators (`TeachingFactBundleV1`, registry v23):
   SEE, attackers/defenders, 18 motif detectors, pawn structure, king safety,
   square control, hazards.
 - A deterministic fixed-node diagnostic interface (`nodeBudget` +
@@ -276,7 +276,7 @@ Treat this as a controlled engineering anchor, not a human rating claim.
 
 Contracts and engineering standards:
 
-- `docs/TEACHING_FACTS_PROTOCOL.md` — the facts contract (registry v22).
+- `docs/TEACHING_FACTS_PROTOCOL.md` — the facts contract (registry v23).
 - `docs/DETECTOR_SOUNDNESS.md` — detector guard patterns, the fuzz-found
   false-positive classes, and the verification protocol.
 - `docs/RESPONSIBILITIES.md` — module ownership and change checklists.
