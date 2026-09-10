@@ -18,7 +18,7 @@ run() { # name cap
 }
 # wait for the anchor benchmark to finish (it owns the CPU)
 while true; do
-  running=$(powershell -NoProfile -Command "(Get-CimInstance Win32_Process | Where-Object { \$_.CommandLine -match 'bench_anchor' } | Measure-Object).Count" | tr -d ' \r')
+  running=$(powershell -NoProfile -Command "(Get-CimInstance Win32_Process | Where-Object { \$_.Name -eq 'python.exe' -and \$_.CommandLine -match 'bench_anchor' } | Measure-Object).Count" | tr -d ' \r')
   [ "$running" = "0" ] && break
   sleep 60
 done
