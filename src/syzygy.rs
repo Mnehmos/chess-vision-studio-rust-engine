@@ -38,11 +38,100 @@ pub struct Syzygy {
     pub tb: TableBases<CvsEngineAdapter>,
 }
 
+/// KQvK, White to move: a tablebase win, used to verify that tables really probe.
+const PROBE_FEN: &str = "8/8/8/8/8/2k5/8/KQ6 w - - 0 1";
+
+/// Split a Windows drive-letter prefix off a path (`F:/x` -> (`F`, `/x`)).
+#[cfg(windows)]
+fn split_drive_prefix(path: &str) -> Option<(&str, &str)> {
+    let b = path.as_bytes();
+    if b.len() >= 2 && b[1] == b':' && b[0].is_ascii_alphabetic() {
+        Some((&path[..1], &path[2..]))
+    } else {
+        None
+    }
+}
+
+#[cfg(not(windows))]
+fn split_drive_prefix(_path: &str) -> Option<(&str, &str)> {
+    None
+}
+
+/// The drive letter the process is running from, if any.
+fn cwd_drive() -> Option<String> {
+    let cwd = std::env::current_dir().ok()?;
+    let s = cwd.to_string_lossy();
+    split_drive_prefix(&s).map(|(d, _)| d.to_ascii_uppercase())
+}
+
+/// Rewrite a tablebase path into the form pyrrhic-rs can actually consume (see `Syzygy::new`).
+fn normalize_tb_path(path: &str) -> String {
+    if let Some((drive, rest)) = split_drive_prefix(path) {
+        let same_drive = cwd_drive()
+            .map(|c| c.eq_ignore_ascii_case(drive))
+            .unwrap_or(false);
+        if same_drive {
+            // Drive-relative: the crate's colon split already produces this component.
+            return rest.to_string();
+        }
+    }
+    path.to_string()
+}
+
+/// Extra guidance for the error when a drive mismatch is the most likely cause.
+fn tb_drive_hint(path: &str) -> String {
+    if let Some((drive, _)) = split_drive_prefix(path) {
+        if let Some(cwd) = cwd_drive() {
+            if !cwd.eq_ignore_ascii_case(drive) {
+                return format!(
+                    " — pyrrhic-rs splits paths on ':' and resolves the remainder \
+                     drive-relative, so tables on drive {drive}: cannot be reached from a \
+                     working directory on drive {cwd}:. Run the engine from drive {drive}: \
+                     (or move the tables)."
+                );
+            }
+        }
+    }
+    String::new()
+}
+
 impl Syzygy {
+    /// Load the Syzygy tables from `path`.
+    ///
+    /// pyrrhic-rs interprets the path as a **colon-separated list** (Unix PATH style), so a
+    /// Windows drive-letter path like `F:/tablebases/syzygy345` is split at its drive colon
+    /// into the components `"F"` and `"/tablebases/syzygy345"`. The second component then
+    /// resolves *drive-relative*, which means the tables load only when the process working
+    /// directory happens to be on the same drive as the tables — and fail silently
+    /// otherwise. When the drive matches the cwd's drive, drop the drive prefix and use the
+    /// drive-relative form deliberately; when it does not, return a loud error that names
+    /// both drives, because no colon-free absolute path exists on Windows.
     pub fn new(path: &str) -> Result<Self, String> {
-        TableBases::new(path)
-            .map(|tb| Syzygy { tb })
-            .map_err(|e| format!("Failed to initialize tablebases: {:?}", e))
+        let effective = normalize_tb_path(path);
+        match TableBases::new(&effective) {
+            Ok(tb) => {
+                let syz = Syzygy { tb };
+                // pyrrhic can report a successful init while resolving NO files (e.g. the
+                // drive-relative path above lands on the wrong drive): max_pieces() still
+                // reads the compiled-in maximum, so the only trustworthy check is a probe.
+                // KQvK with White to move is a tablebase win.
+                let probe_ok = Position::from_fen(PROBE_FEN)
+                    .map(|p| syz.probe_wdl(&p).is_some())
+                    .unwrap_or(false);
+                if probe_ok {
+                    Ok(syz)
+                } else {
+                    Err(format!(
+                        "tablebases at {path:?} loaded but do not probe (used {effective:?}){}",
+                        tb_drive_hint(path)
+                    ))
+                }
+            }
+            Err(e) => Err(format!(
+                "Failed to initialize tablebases from {path:?} (used {effective:?}): {e:?}{}",
+                tb_drive_hint(path)
+            )),
+        }
     }
 
     pub fn max_pieces(&self) -> u32 {

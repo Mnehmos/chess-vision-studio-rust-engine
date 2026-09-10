@@ -25,6 +25,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -46,6 +47,12 @@ N0_HELPER = str(REPO / "target-cvs/matrix-residual.json")
 N0_BASE_W = "f:/Github/chess-vision-studio/arena/out/value-weights-mixed.json"
 N0_RUNG2_W = "f:/Github/chess-vision-studio/arena/out/rung2-weights-mixed.json"
 N0_FLAGS = ["--futility", "--rfp", "--tt-prune-store", "--qtt", "--histmalus", "--histlmr", "--lmp"]
+# Tablebases are part of the deployed flagship config (the live bot passes --syzygy), so
+# the gate's baseline and candidate both carry them. Override/disable with CVS_SYZYGY_PATH
+# (set it to an empty string to run tablebase-free).
+N0_SYZYGY = os.environ.get("CVS_SYZYGY_PATH", "F:/tablebases/syzygy345")
+if N0_SYZYGY:
+    N0_FLAGS += ["--syzygy", N0_SYZYGY]
 
 
 # ── pure: cutechess argv composition ─────────────────────────────────────────

@@ -367,6 +367,19 @@ fn main() {
         get("--helper-nnue").map(|p| Nnue::load(&p, allow_unverified).expect("load helper nnue"));
     let syzygy_path = get("--syzygy");
     let book_path = get("--book");
+    // pyrrhic's tablebase init is PROCESS-GLOBAL (see uci.rs): create the handle once and
+    // share it into every searcher this serve process builds.
+    let tb_handle: Option<std::sync::Arc<cvs_bitboard_core::syzygy::Syzygy>> =
+        match &syzygy_path {
+            Some(path) => match cvs_bitboard_core::syzygy::Syzygy::new(path) {
+                Ok(tb) => Some(std::sync::Arc::new(tb)),
+                Err(e) => {
+                    eprintln!("warning: {e}");
+                    None
+                }
+            },
+            None => None,
+        };
     let make_searcher = |base: ValueWeights, rung2: Option<Rung2Weights>| {
         let mut searcher = match &nnue {
             Some(n) => Searcher::with_nnue(base, rung2, n.clone()),
@@ -375,10 +388,8 @@ fn main() {
         if let Some(n) = &helper_nnue {
             searcher.set_helper_nnue(Some(n.clone()));
         }
-        if let Some(path) = &syzygy_path {
-            if let Ok(tb) = cvs_bitboard_core::syzygy::Syzygy::new(path) {
-                searcher.tb = Some(std::sync::Arc::new(tb));
-            }
+        if let Some(tb) = &tb_handle {
+            searcher.tb = Some(tb.clone());
         }
         if let Some(path) = &book_path {
             if let Ok(b) = cvs_bitboard_core::book::Book::new(path) {
