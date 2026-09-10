@@ -1,0 +1,173 @@
+{
+  "gate": "iid",
+  "what": "internal iterative deepening",
+  "kind": "flag",
+  "games": 2000,
+  "wins": 837,
+  "losses": 830,
+  "draws": 333,
+  "llr": -0.7044,
+  "boundary": "none",
+  "decision": "hold_for_more_data",
+  "elapsedSec": 1540.3,
+  "cappedAt": 2000,
+  "bookExhausted": false,
+  "positionsUsed": 1000,
+  "book": "openings-inv1-20260909b.epd",
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 50,
+      "losses": 49,
+      "draws": 21,
+      "llr": -0.0228,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 92,
+      "losses": 99,
+      "draws": 49,
+      "llr": -0.3573,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 148,
+      "losses": 146,
+      "draws": 66,
+      "llr": -0.1024,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 480,
+      "wins": 197,
+      "losses": 195,
+      "draws": 88,
+      "llr": -0.1592,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 600,
+      "wins": 251,
+      "losses": 249,
+      "draws": 100,
+      "llr": -0.2147,
+      "boundary": "none"
+    },
+    {
+      "batch": 6,
+      "games": 720,
+      "wins": 295,
+      "losses": 300,
+      "draws": 125,
+      "llr": -0.5083,
+      "boundary": "none"
+    },
+    {
+      "batch": 7,
+      "games": 840,
+      "wins": 346,
+      "losses": 345,
+      "draws": 149,
+      "llr": -0.3628,
+      "boundary": "none"
+    },
+    {
+      "batch": 8,
+      "games": 960,
+      "wins": 394,
+      "losses": 399,
+      "draws": 167,
+      "llr": -0.6216,
+      "boundary": "none"
+    },
+    {
+      "batch": 9,
+      "games": 1080,
+      "wins": 439,
+      "losses": 449,
+      "draws": 192,
+      "llr": -0.8491,
+      "boundary": "none"
+    },
+    {
+      "batch": 10,
+      "games": 1200,
+      "wins": 490,
+      "losses": 500,
+      "draws": 210,
+      "llr": -0.9043,
+      "boundary": "none"
+    },
+    {
+      "batch": 11,
+      "games": 1320,
+      "wins": 544,
+      "losses": 550,
+      "draws": 226,
+      "llr": -0.8238,
+      "boundary": "none"
+    },
+    {
+      "batch": 12,
+      "games": 1440,
+      "wins": 597,
+      "losses": 601,
+      "draws": 242,
+      "llr": -0.8114,
+      "boundary": "none"
+    },
+    {
+      "batch": 13,
+      "games": 1560,
+      "wins": 645,
+      "losses": 652,
+      "draws": 263,
+      "llr": -0.969,
+      "boundary": "none"
+    },
+    {
+      "batch": 14,
+      "games": 1680,
+      "wins": 699,
+      "losses": 707,
+      "draws": 274,
+      "llr": -1.0555,
+      "boundary": "none"
+    },
+    {
+      "batch": 15,
+      "games": 1800,
+      "wins": 754,
+      "losses": 755,
+      "draws": 291,
+      "llr": -0.8768,
+      "boundary": "none"
+    },
+    {
+      "batch": 16,
+      "games": 1920,
+      "wins": 805,
+      "losses": 801,
+      "draws": 314,
+      "llr": -0.7665,
+      "boundary": "none"
+    },
+    {
+      "batch": 17,
+      "games": 2000,
+      "wins": 837,
+      "losses": 830,
+      "draws": 333,
+      "llr": -0.7044,
+      "boundary": "none"
+    }
+  ],
+  "record": "benchmarks/results/iid-gate-20260909/iid/sprt.json"
+}
