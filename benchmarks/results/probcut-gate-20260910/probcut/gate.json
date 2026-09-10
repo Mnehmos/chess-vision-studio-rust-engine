@@ -1,0 +1,128 @@
+{
+  "gate": "probcut",
+  "what": "ProbCut: good captures at reduced depth with a raised beta may cut",
+  "kind": "flag",
+  "games": 2001,
+  "wins": 840,
+  "losses": 853,
+  "draws": 308,
+  "llr": -1.3654,
+  "boundary": "none",
+  "decision": "hold_for_more_data",
+  "elapsedSec": 1043.2,
+  "cappedAt": 2000,
+  "bookExhausted": false,
+  "positionsUsed": 687,
+  "book": "openings-inv1-20260910.epd",
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 360,
+      "wins": 153,
+      "losses": 147,
+      "draws": 60,
+      "llr": 0.0324,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 627,
+      "wins": 260,
+      "losses": 265,
+      "draws": 102,
+      "llr": -0.4612,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 867,
+      "wins": 364,
+      "losses": 369,
+      "draws": 134,
+      "llr": -0.5708,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 1107,
+      "wins": 472,
+      "losses": 461,
+      "draws": 174,
+      "llr": -0.1511,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 1227,
+      "wins": 525,
+      "losses": 515,
+      "draws": 187,
+      "llr": -0.2403,
+      "boundary": "none"
+    },
+    {
+      "batch": 6,
+      "games": 1347,
+      "wins": 579,
+      "losses": 568,
+      "draws": 200,
+      "llr": -0.263,
+      "boundary": "none"
+    },
+    {
+      "batch": 7,
+      "games": 1467,
+      "wins": 632,
+      "losses": 616,
+      "draws": 219,
+      "llr": -0.1534,
+      "boundary": "none"
+    },
+    {
+      "batch": 8,
+      "games": 1587,
+      "wins": 681,
+      "losses": 664,
+      "draws": 242,
+      "llr": -0.176,
+      "boundary": "none"
+    },
+    {
+      "batch": 9,
+      "games": 1707,
+      "wins": 724,
+      "losses": 718,
+      "draws": 265,
+      "llr": -0.5975,
+      "boundary": "none"
+    },
+    {
+      "batch": 10,
+      "games": 1827,
+      "wins": 776,
+      "losses": 768,
+      "draws": 283,
+      "llr": -0.587,
+      "boundary": "none"
+    },
+    {
+      "batch": 11,
+      "games": 1947,
+      "wins": 819,
+      "losses": 826,
+      "draws": 302,
+      "llr": -1.1417,
+      "boundary": "none"
+    },
+    {
+      "batch": 12,
+      "games": 2001,
+      "wins": 840,
+      "losses": 853,
+      "draws": 308,
+      "llr": -1.3654,
+      "boundary": "none"
+    }
+  ],
+  "record": "benchmarks/results/probcut-gate-20260910/probcut/sprt.json"
+}

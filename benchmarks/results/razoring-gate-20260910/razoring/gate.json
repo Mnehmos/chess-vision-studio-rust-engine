@@ -1,0 +1,173 @@
+{
+  "gate": "razoring",
+  "what": "razoring: shallow non-PV nodes far below alpha verified in quiescence",
+  "kind": "flag",
+  "games": 2000,
+  "wins": 873,
+  "losses": 857,
+  "draws": 270,
+  "llr": -0.4003,
+  "boundary": "none",
+  "decision": "hold_for_more_data",
+  "elapsedSec": 1376.2,
+  "cappedAt": 2000,
+  "bookExhausted": false,
+  "positionsUsed": 1000,
+  "book": "openings-inv1-20260910.epd",
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 56,
+      "losses": 44,
+      "draws": 20,
+      "llr": 0.3472,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 106,
+      "losses": 99,
+      "draws": 35,
+      "llr": 0.1194,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 157,
+      "losses": 151,
+      "draws": 52,
+      "llr": 0.0306,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 480,
+      "wins": 219,
+      "losses": 201,
+      "draws": 60,
+      "llr": 0.3628,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 600,
+      "wins": 269,
+      "losses": 251,
+      "draws": 80,
+      "llr": 0.3106,
+      "boundary": "none"
+    },
+    {
+      "batch": 6,
+      "games": 720,
+      "wins": 318,
+      "losses": 299,
+      "draws": 103,
+      "llr": 0.2913,
+      "boundary": "none"
+    },
+    {
+      "batch": 7,
+      "games": 840,
+      "wins": 369,
+      "losses": 351,
+      "draws": 120,
+      "llr": 0.2026,
+      "boundary": "none"
+    },
+    {
+      "batch": 8,
+      "games": 960,
+      "wins": 421,
+      "losses": 408,
+      "draws": 131,
+      "llr": -0.0182,
+      "boundary": "none"
+    },
+    {
+      "batch": 9,
+      "games": 1080,
+      "wins": 470,
+      "losses": 459,
+      "draws": 151,
+      "llr": -0.139,
+      "boundary": "none"
+    },
+    {
+      "batch": 10,
+      "games": 1200,
+      "wins": 521,
+      "losses": 512,
+      "draws": 167,
+      "llr": -0.2601,
+      "boundary": "none"
+    },
+    {
+      "batch": 11,
+      "games": 1320,
+      "wins": 575,
+      "losses": 564,
+      "draws": 181,
+      "llr": -0.2499,
+      "boundary": "none"
+    },
+    {
+      "batch": 12,
+      "games": 1440,
+      "wins": 622,
+      "losses": 617,
+      "draws": 201,
+      "llr": -0.5024,
+      "boundary": "none"
+    },
+    {
+      "batch": 13,
+      "games": 1560,
+      "wins": 674,
+      "losses": 668,
+      "draws": 218,
+      "llr": -0.5252,
+      "boundary": "none"
+    },
+    {
+      "batch": 14,
+      "games": 1680,
+      "wins": 725,
+      "losses": 721,
+      "draws": 234,
+      "llr": -0.6462,
+      "boundary": "none"
+    },
+    {
+      "batch": 15,
+      "games": 1800,
+      "wins": 780,
+      "losses": 771,
+      "draws": 249,
+      "llr": -0.5375,
+      "boundary": "none"
+    },
+    {
+      "batch": 16,
+      "games": 1920,
+      "wins": 832,
+      "losses": 825,
+      "draws": 263,
+      "llr": -0.6581,
+      "boundary": "none"
+    },
+    {
+      "batch": 17,
+      "games": 2000,
+      "wins": 873,
+      "losses": 857,
+      "draws": 270,
+      "llr": -0.4003,
+      "boundary": "none"
+    }
+  ],
+  "record": "benchmarks/results/razoring-gate-20260910/razoring/sprt.json"
+}

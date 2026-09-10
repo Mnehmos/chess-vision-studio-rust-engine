@@ -1,0 +1,155 @@
+{
+  "gate": "conthist",
+  "what": "continuation history in quiet move ordering",
+  "kind": "flag",
+  "games": 1781,
+  "wins": 824,
+  "losses": 709,
+  "draws": 248,
+  "llr": 2.9488,
+  "boundary": "upper",
+  "decision": "promote",
+  "elapsedSec": 1575.0,
+  "cappedAt": null,
+  "bookExhausted": false,
+  "positionsUsed": 900,
+  "book": "openings-inv1-20260910.epd",
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 54,
+      "losses": 52,
+      "draws": 14,
+      "llr": 0.0095,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 115,
+      "losses": 98,
+      "draws": 27,
+      "llr": 0.4354,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 175,
+      "losses": 140,
+      "draws": 45,
+      "llr": 0.9694,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 480,
+      "wins": 234,
+      "losses": 179,
+      "draws": 67,
+      "llr": 1.5849,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 600,
+      "wins": 286,
+      "losses": 231,
+      "draws": 83,
+      "llr": 1.5265,
+      "boundary": "none"
+    },
+    {
+      "batch": 6,
+      "games": 720,
+      "wins": 340,
+      "losses": 285,
+      "draws": 95,
+      "llr": 1.4615,
+      "boundary": "none"
+    },
+    {
+      "batch": 7,
+      "games": 840,
+      "wins": 393,
+      "losses": 339,
+      "draws": 108,
+      "llr": 1.3688,
+      "boundary": "none"
+    },
+    {
+      "batch": 8,
+      "games": 960,
+      "wins": 443,
+      "losses": 388,
+      "draws": 129,
+      "llr": 1.3536,
+      "boundary": "none"
+    },
+    {
+      "batch": 9,
+      "games": 1080,
+      "wins": 505,
+      "losses": 430,
+      "draws": 145,
+      "llr": 1.9517,
+      "boundary": "none"
+    },
+    {
+      "batch": 10,
+      "games": 1200,
+      "wins": 557,
+      "losses": 480,
+      "draws": 163,
+      "llr": 1.9645,
+      "boundary": "none"
+    },
+    {
+      "batch": 11,
+      "games": 1320,
+      "wins": 611,
+      "losses": 530,
+      "draws": 179,
+      "llr": 2.0393,
+      "boundary": "none"
+    },
+    {
+      "batch": 12,
+      "games": 1440,
+      "wins": 670,
+      "losses": 577,
+      "draws": 193,
+      "llr": 2.3729,
+      "boundary": "none"
+    },
+    {
+      "batch": 13,
+      "games": 1560,
+      "wins": 721,
+      "losses": 627,
+      "draws": 212,
+      "llr": 2.3542,
+      "boundary": "none"
+    },
+    {
+      "batch": 14,
+      "games": 1680,
+      "wins": 773,
+      "losses": 673,
+      "draws": 234,
+      "llr": 2.5033,
+      "boundary": "none"
+    },
+    {
+      "batch": 15,
+      "games": 1781,
+      "wins": 824,
+      "losses": 709,
+      "draws": 248,
+      "llr": 2.9488,
+      "boundary": "upper"
+    }
+  ],
+  "record": "benchmarks/results/conthist-big-gate-20260910/conthist/sprt.json"
+}

@@ -126,6 +126,10 @@ REGATES: dict[str, dict] = {
                        "what": f"re-gate {name}: champion vs champion with {name} disabled"}
     for name, off in PROMOTED_FLAGS.items()
 }
+REGATES["lmp-regate"] = {
+    "kind": "flag", "add": [], "base_add": ["--no-lmp"],
+    "what": "re-gate lmp: champion vs champion with LMP disabled (on in the bot and N0_FLAGS despite a historical negative note)",
+}
 REGATES["bundle-inv1"] = {
     "kind": "flag", "add": [], "base_add": sorted(PROMOTED_FLAGS.values()),
     "what": "confirmation: current champion vs champion with the promoted INV-1 set disabled",
