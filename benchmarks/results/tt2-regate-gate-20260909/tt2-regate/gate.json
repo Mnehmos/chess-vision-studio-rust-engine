@@ -1,0 +1,173 @@
+{
+  "gate": "tt2-regate",
+  "what": "re-gate tt2: champion vs champion with tt2 disabled",
+  "kind": "flag",
+  "games": 2000,
+  "wins": 871,
+  "losses": 858,
+  "draws": 271,
+  "llr": -0.4984,
+  "boundary": "none",
+  "decision": "hold_for_more_data",
+  "elapsedSec": 1487.8,
+  "cappedAt": 2000,
+  "bookExhausted": false,
+  "positionsUsed": 1000,
+  "book": "openings-inv1-20260909b.epd",
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 48,
+      "losses": 48,
+      "draws": 24,
+      "llr": -0.0573,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 105,
+      "losses": 96,
+      "draws": 39,
+      "llr": 0.1887,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 161,
+      "losses": 138,
+      "draws": 61,
+      "llr": 0.6053,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 480,
+      "wins": 205,
+      "losses": 196,
+      "draws": 79,
+      "llr": 0.0764,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 600,
+      "wins": 253,
+      "losses": 255,
+      "draws": 92,
+      "llr": -0.3462,
+      "boundary": "none"
+    },
+    {
+      "batch": 6,
+      "games": 720,
+      "wins": 303,
+      "losses": 303,
+      "draws": 114,
+      "llr": -0.3367,
+      "boundary": "none"
+    },
+    {
+      "batch": 7,
+      "games": 840,
+      "wins": 348,
+      "losses": 361,
+      "draws": 131,
+      "llr": -0.8249,
+      "boundary": "none"
+    },
+    {
+      "batch": 8,
+      "games": 960,
+      "wins": 402,
+      "losses": 409,
+      "draws": 149,
+      "llr": -0.681,
+      "boundary": "none"
+    },
+    {
+      "batch": 9,
+      "games": 1080,
+      "wins": 458,
+      "losses": 463,
+      "draws": 159,
+      "llr": -0.6671,
+      "boundary": "none"
+    },
+    {
+      "batch": 10,
+      "games": 1200,
+      "wins": 509,
+      "losses": 511,
+      "draws": 180,
+      "llr": -0.6249,
+      "boundary": "none"
+    },
+    {
+      "batch": 11,
+      "games": 1320,
+      "wins": 565,
+      "losses": 560,
+      "draws": 195,
+      "llr": -0.4486,
+      "boundary": "none"
+    },
+    {
+      "batch": 12,
+      "games": 1440,
+      "wins": 619,
+      "losses": 615,
+      "draws": 206,
+      "llr": -0.5362,
+      "boundary": "none"
+    },
+    {
+      "batch": 13,
+      "games": 1560,
+      "wins": 670,
+      "losses": 670,
+      "draws": 220,
+      "llr": -0.7225,
+      "boundary": "none"
+    },
+    {
+      "batch": 14,
+      "games": 1680,
+      "wins": 720,
+      "losses": 721,
+      "draws": 239,
+      "llr": -0.8116,
+      "boundary": "none"
+    },
+    {
+      "batch": 15,
+      "games": 1800,
+      "wins": 777,
+      "losses": 772,
+      "draws": 251,
+      "llr": -0.6689,
+      "boundary": "none"
+    },
+    {
+      "batch": 16,
+      "games": 1920,
+      "wins": 827,
+      "losses": 830,
+      "draws": 263,
+      "llr": -0.9853,
+      "boundary": "none"
+    },
+    {
+      "batch": 17,
+      "games": 2000,
+      "wins": 871,
+      "losses": 858,
+      "draws": 271,
+      "llr": -0.4984,
+      "boundary": "none"
+    }
+  ],
+  "record": "benchmarks/results/tt2-regate-gate-20260909/tt2-regate/sprt.json"
+}

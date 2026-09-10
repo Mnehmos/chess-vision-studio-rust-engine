@@ -1,0 +1,173 @@
+{
+  "gate": "delta",
+  "what": "delta pruning in quiescence",
+  "kind": "flag",
+  "games": 2000,
+  "wins": 874,
+  "losses": 831,
+  "draws": 295,
+  "llr": 0.4904,
+  "boundary": "none",
+  "decision": "hold_for_more_data",
+  "elapsedSec": 1539.2,
+  "cappedAt": 2000,
+  "bookExhausted": false,
+  "positionsUsed": 1000,
+  "book": "openings-inv1-20260909b.epd",
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 53,
+      "losses": 45,
+      "draws": 22,
+      "llr": 0.2158,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 111,
+      "losses": 90,
+      "draws": 39,
+      "llr": 0.5909,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 166,
+      "losses": 139,
+      "draws": 55,
+      "llr": 0.7287,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 480,
+      "wins": 217,
+      "losses": 192,
+      "draws": 71,
+      "llr": 0.6031,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 600,
+      "wins": 270,
+      "losses": 243,
+      "draws": 87,
+      "llr": 0.6115,
+      "boundary": "none"
+    },
+    {
+      "batch": 6,
+      "games": 720,
+      "wins": 319,
+      "losses": 298,
+      "draws": 103,
+      "llr": 0.3571,
+      "boundary": "none"
+    },
+    {
+      "batch": 7,
+      "games": 840,
+      "wins": 367,
+      "losses": 341,
+      "draws": 132,
+      "llr": 0.4734,
+      "boundary": "none"
+    },
+    {
+      "batch": 8,
+      "games": 960,
+      "wins": 425,
+      "losses": 381,
+      "draws": 154,
+      "llr": 1.0205,
+      "boundary": "none"
+    },
+    {
+      "batch": 9,
+      "games": 1080,
+      "wins": 477,
+      "losses": 427,
+      "draws": 176,
+      "llr": 1.1678,
+      "boundary": "none"
+    },
+    {
+      "batch": 10,
+      "games": 1200,
+      "wins": 523,
+      "losses": 480,
+      "draws": 197,
+      "llr": 0.8781,
+      "boundary": "none"
+    },
+    {
+      "batch": 11,
+      "games": 1320,
+      "wins": 582,
+      "losses": 532,
+      "draws": 206,
+      "llr": 1.0474,
+      "boundary": "none"
+    },
+    {
+      "batch": 12,
+      "games": 1440,
+      "wins": 628,
+      "losses": 592,
+      "draws": 220,
+      "llr": 0.5231,
+      "boundary": "none"
+    },
+    {
+      "batch": 13,
+      "games": 1560,
+      "wins": 682,
+      "losses": 642,
+      "draws": 236,
+      "llr": 0.5988,
+      "boundary": "none"
+    },
+    {
+      "batch": 14,
+      "games": 1680,
+      "wins": 739,
+      "losses": 693,
+      "draws": 248,
+      "llr": 0.7385,
+      "boundary": "none"
+    },
+    {
+      "batch": 15,
+      "games": 1800,
+      "wins": 794,
+      "losses": 740,
+      "draws": 266,
+      "llr": 0.9471,
+      "boundary": "none"
+    },
+    {
+      "batch": 16,
+      "games": 1920,
+      "wins": 848,
+      "losses": 789,
+      "draws": 283,
+      "llr": 1.0561,
+      "boundary": "none"
+    },
+    {
+      "batch": 17,
+      "games": 2000,
+      "wins": 874,
+      "losses": 831,
+      "draws": 295,
+      "llr": 0.4904,
+      "boundary": "none"
+    }
+  ],
+  "record": "benchmarks/results/delta-gate-20260909/delta/sprt.json"
+}

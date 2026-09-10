@@ -1,0 +1,173 @@
+{
+  "gate": "improving-regate",
+  "what": "re-gate improving: champion vs champion with improving disabled",
+  "kind": "flag",
+  "games": 2000,
+  "wins": 846,
+  "losses": 847,
+  "draws": 307,
+  "llr": -0.9661,
+  "boundary": "none",
+  "decision": "hold_for_more_data",
+  "elapsedSec": 1538.5,
+  "cappedAt": 2000,
+  "bookExhausted": false,
+  "positionsUsed": 1000,
+  "book": "openings-inv1-20260909b.epd",
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 51,
+      "losses": 49,
+      "draws": 20,
+      "llr": 0.0108,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 109,
+      "losses": 100,
+      "draws": 31,
+      "llr": 0.1822,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 153,
+      "losses": 151,
+      "draws": 56,
+      "llr": -0.1016,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 480,
+      "wins": 202,
+      "losses": 202,
+      "draws": 76,
+      "llr": -0.2245,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 600,
+      "wins": 243,
+      "losses": 258,
+      "draws": 99,
+      "llr": -0.7846,
+      "boundary": "none"
+    },
+    {
+      "batch": 6,
+      "games": 720,
+      "wins": 285,
+      "losses": 318,
+      "draws": 117,
+      "llr": -1.4419,
+      "boundary": "none"
+    },
+    {
+      "batch": 7,
+      "games": 840,
+      "wins": 338,
+      "losses": 368,
+      "draws": 134,
+      "llr": -1.3945,
+      "boundary": "none"
+    },
+    {
+      "batch": 8,
+      "games": 960,
+      "wins": 388,
+      "losses": 415,
+      "draws": 157,
+      "llr": -1.3545,
+      "boundary": "none"
+    },
+    {
+      "batch": 9,
+      "games": 1080,
+      "wins": 440,
+      "losses": 467,
+      "draws": 173,
+      "llr": -1.4073,
+      "boundary": "none"
+    },
+    {
+      "batch": 10,
+      "games": 1200,
+      "wins": 498,
+      "losses": 516,
+      "draws": 186,
+      "llr": -1.1586,
+      "boundary": "none"
+    },
+    {
+      "batch": 11,
+      "games": 1320,
+      "wins": 554,
+      "losses": 564,
+      "draws": 202,
+      "llr": -0.9474,
+      "boundary": "none"
+    },
+    {
+      "batch": 12,
+      "games": 1440,
+      "wins": 604,
+      "losses": 616,
+      "draws": 220,
+      "llr": -1.0696,
+      "boundary": "none"
+    },
+    {
+      "batch": 13,
+      "games": 1560,
+      "wins": 658,
+      "losses": 662,
+      "draws": 240,
+      "llr": -0.8607,
+      "boundary": "none"
+    },
+    {
+      "batch": 14,
+      "games": 1680,
+      "wins": 708,
+      "losses": 715,
+      "draws": 257,
+      "llr": -1.0157,
+      "boundary": "none"
+    },
+    {
+      "batch": 15,
+      "games": 1800,
+      "wins": 761,
+      "losses": 772,
+      "draws": 267,
+      "llr": -1.2008,
+      "boundary": "none"
+    },
+    {
+      "batch": 16,
+      "games": 1920,
+      "wins": 815,
+      "losses": 820,
+      "draws": 285,
+      "llr": -1.0584,
+      "boundary": "none"
+    },
+    {
+      "batch": 17,
+      "games": 2000,
+      "wins": 846,
+      "losses": 847,
+      "draws": 307,
+      "llr": -0.9661,
+      "boundary": "none"
+    }
+  ],
+  "record": "benchmarks/results/improving-regate-gate-20260909/improving-regate/sprt.json"
+}
