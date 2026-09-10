@@ -26,15 +26,16 @@ fn champion_defaults_keep_rejected_experiments_off() {
     assert!(options.improving);
     assert!(options.tt2);
 
-    // INV-1 promotion 2026-09-09 on the fixed harness (independent positions, no
-    // repeats): loglmr crossed upper at 1030 games, LLR +2.965 — first valid crossing.
+    // INV-1 promotions on the fixed harness (independent positions, no repeats):
+    // loglmr crossed upper at 1030 games (LLR +2.965); conthist at 1781 games on the
+    // high-power book (LLR +2.949). delta crossed the LOWER bound and stays off.
     assert!(options.loglmr);
+    assert!(options.conthist);
 
     // Rejected at the lower bound or held at cap — default-off until a gate says otherwise.
     assert!(!options.lmp);
-    assert!(!options.delta_prune);
+    assert!(!options.delta_prune); // rejected at the lower bound 2026-09-10
     assert!(!options.countermove);
-    assert!(!options.conthist);
     assert!(!options.rule50_scale);
     assert!(!options.singular);
     assert!(options.king_activity);
