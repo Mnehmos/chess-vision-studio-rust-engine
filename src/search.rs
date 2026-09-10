@@ -67,21 +67,27 @@ pub fn mate_probe_adjust(score: i32, ply: i32) -> i32 {
     }
 }
 
-/// Log-based LMR reduction (--loglmr): `r ≈ 0.75 + ln(d)·ln(i)/2.25` — the standard
+/// Log-based LMR reduction (--loglmr): `r ≈ 0.75 + ln(d)·ln(i)/div` — the standard
 /// shape strong engines use, replacing the flat 1-ply tier (depth/move-index aware:
-/// reduce later + deeper moves more). Precomputed once into a 64×64 table.
-pub fn log_lmr_reduction(depth: i32, move_index: usize) -> i32 {
-    static TABLE: std::sync::OnceLock<[[i32; 64]; 64]> = std::sync::OnceLock::new();
-    let t = TABLE.get_or_init(|| {
-        let mut t = [[0i32; 64]; 64];
-        for d in 1..64usize {
-            for i in 1..64usize {
-                t[d][i] = (0.75 + (d as f64).ln() * (i as f64).ln() / 2.25) as i32;
+/// reduce later + deeper moves more). The default divisor 2.25 reads a precomputed
+/// 64×64 table; `--lmr-div <v>` computes directly (gates run at fixed nodes).
+pub fn log_lmr_reduction(depth: i32, move_index: usize, div: f32) -> i32 {
+    if (div - 2.25).abs() < 1e-6 {
+        static TABLE: std::sync::OnceLock<[[i32; 64]; 64]> = std::sync::OnceLock::new();
+        let t = TABLE.get_or_init(|| {
+            let mut t = [[0i32; 64]; 64];
+            for d in 1..64usize {
+                for i in 1..64usize {
+                    t[d][i] = (0.75 + (d as f64).ln() * (i as f64).ln() / 2.25) as i32;
+                }
             }
-        }
-        t
-    });
-    t[(depth.max(0) as usize).min(63)][move_index.min(63)]
+            t
+        });
+        return t[(depth.max(0) as usize).min(63)][move_index.min(63)];
+    }
+    let d = (depth.max(1) as f64).ln();
+    let i = (move_index.max(1) as f64).ln();
+    (0.75 + d * i / (div.max(0.5) as f64)) as i32
 }
 const MAX_QUIESCENCE_PLY: u32 = 64;
 // Forcing quiet-check quiescence extensions (the d4 lesson: chess danger is not

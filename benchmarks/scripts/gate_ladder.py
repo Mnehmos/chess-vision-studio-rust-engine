@@ -84,6 +84,29 @@ LADDER: dict[str, dict] = {
     "kingact":     {"kind": "flag", "add": ["--king-activity"],
                     "what": "king activity term in endgames"},
     "futility-pv": {"kind": "exe", "what": "futility pruning skipped at PV nodes (#75)"},
+    "razoring":    {"kind": "flag", "add": ["--razoring"],
+                    "what": "razoring: shallow non-PV nodes far below alpha verified in quiescence"},
+    "probcut":     {"kind": "flag", "add": ["--probcut"],
+                    "what": "ProbCut: good captures at reduced depth with a raised beta may cut"},
+    "recapture":   {"kind": "flag", "add": ["--recapture"],
+                    "what": "recapture extension: extend a capture on the opponent's last square"},
+    # Bundle of the two default-off features with the largest positive point estimates whose
+    # individual 2000-game gates could not resolve them (delta +7.5, conthist +5.6 Elo, each
+    # CI ~±16). Their combined effect is what a bundle gate can actually detect.
+    "smallpos-bundle": {"kind": "flag", "add": ["--delta", "--conthist"],
+                        "what": "delta pruning + continuation history (positive-leaning small effects)"},
+    "lmrdiv175":   {"kind": "flag", "add": ["--loglmr", "--lmr-div", "1.75"],
+                    "what": "log-LMR divisor 1.75 (more aggressive than the gated 2.25)"},
+    "lmrdiv20":    {"kind": "flag", "add": ["--loglmr", "--lmr-div", "2.0"],
+                    "what": "log-LMR divisor 2.0 (more aggressive than the gated 2.25)"},
+    "lmrdiv25":    {"kind": "flag", "add": ["--loglmr", "--lmr-div", "2.5"],
+                    "what": "log-LMR divisor 2.5 (less aggressive than the gated 2.25)"},
+    "lmrdiv275":   {"kind": "flag", "add": ["--loglmr", "--lmr-div", "2.75"],
+                    "what": "log-LMR divisor 2.75 (less aggressive than the gated 2.25)"},
+    "seeverify":   {"kind": "flag", "add": ["--seeverify"],
+                    "what": "SEE verification before pruning a capture"},
+    "rootsafequiet": {"kind": "flag", "add": ["--rootsafequiet"],
+                      "what": "root safe-quiet ordering"},
 }
 
 # Re-gates: the candidate is the CURRENT champion (flag already default-on), the baseline is

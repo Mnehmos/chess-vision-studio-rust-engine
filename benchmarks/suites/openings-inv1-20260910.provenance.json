@@ -1,0 +1,31 @@
+{
+  "book": "openings-inv1-20260910.epd",
+  "positions": 4910,
+  "sha256": "4d96e552fd257e66fe39d78420e1e48cfed6753795dd0a3e20cd222a3757e6b3",
+  "seed": 20260911,
+  "sources": {
+    "control": {
+      "path": "F:\\tools\\openings.epd",
+      "positions": 12
+    },
+    "harvest": {
+      "path": "F:\\Github\\chess-vision-studio\\arena\\out\\lichess-dataset.jsonl",
+      "sampled": 5804,
+      "sha256": "c7bba9e3eee42e578b2436d5b3626db049689c23f7e2b1e5bf422fe31b59b652"
+    }
+  },
+  "filters": {
+    "fullmove": [
+      4,
+      20
+    ],
+    "maxHalfmoveClock": 6,
+    "maxMaterialDiffPawns": 3.0,
+    "minNonPawnsPerSide": 2,
+    "minNonPawnsTotal": 6,
+    "phases": [
+      "opening",
+      "middlegame"
+    ]
+  }
+}
