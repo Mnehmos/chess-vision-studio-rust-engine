@@ -1,0 +1,173 @@
+{
+  "gate": "caphist-regate",
+  "what": "re-gate caphist: champion vs champion with caphist disabled",
+  "kind": "flag",
+  "games": 2000,
+  "wins": 846,
+  "losses": 853,
+  "draws": 301,
+  "llr": -1.1632,
+  "boundary": "none",
+  "decision": "hold_for_more_data",
+  "elapsedSec": 1543.9,
+  "cappedAt": 2000,
+  "bookExhausted": false,
+  "positionsUsed": 1000,
+  "book": "openings-inv1-20260909b.epd",
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 52,
+      "losses": 47,
+      "draws": 21,
+      "llr": 0.1125,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 103,
+      "losses": 101,
+      "draws": 36,
+      "llr": -0.0455,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 149,
+      "losses": 163,
+      "draws": 48,
+      "llr": -0.6227,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 480,
+      "wins": 193,
+      "losses": 215,
+      "draws": 72,
+      "llr": -0.9518,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 600,
+      "wins": 243,
+      "losses": 271,
+      "draws": 86,
+      "llr": -1.1999,
+      "boundary": "none"
+    },
+    {
+      "batch": 6,
+      "games": 720,
+      "wins": 300,
+      "losses": 316,
+      "draws": 104,
+      "llr": -0.8612,
+      "boundary": "none"
+    },
+    {
+      "batch": 7,
+      "games": 840,
+      "wins": 356,
+      "losses": 361,
+      "draws": 123,
+      "llr": -0.5553,
+      "boundary": "none"
+    },
+    {
+      "batch": 8,
+      "games": 960,
+      "wins": 408,
+      "losses": 412,
+      "draws": 140,
+      "llr": -0.5778,
+      "boundary": "none"
+    },
+    {
+      "batch": 9,
+      "games": 1080,
+      "wins": 456,
+      "losses": 466,
+      "draws": 158,
+      "llr": -0.8317,
+      "boundary": "none"
+    },
+    {
+      "batch": 10,
+      "games": 1200,
+      "wins": 503,
+      "losses": 525,
+      "draws": 172,
+      "llr": -1.2805,
+      "boundary": "none"
+    },
+    {
+      "batch": 11,
+      "games": 1320,
+      "wins": 551,
+      "losses": 573,
+      "draws": 196,
+      "llr": -1.3412,
+      "boundary": "none"
+    },
+    {
+      "batch": 12,
+      "games": 1440,
+      "wins": 602,
+      "losses": 626,
+      "draws": 212,
+      "llr": -1.4618,
+      "boundary": "none"
+    },
+    {
+      "batch": 13,
+      "games": 1560,
+      "wins": 652,
+      "losses": 675,
+      "draws": 233,
+      "llr": -1.4869,
+      "boundary": "none"
+    },
+    {
+      "batch": 14,
+      "games": 1680,
+      "wins": 709,
+      "losses": 721,
+      "draws": 250,
+      "llr": -1.1784,
+      "boundary": "none"
+    },
+    {
+      "batch": 15,
+      "games": 1800,
+      "wins": 758,
+      "losses": 771,
+      "draws": 271,
+      "llr": -1.2688,
+      "boundary": "none"
+    },
+    {
+      "batch": 16,
+      "games": 1920,
+      "wins": 820,
+      "losses": 815,
+      "draws": 285,
+      "llr": -0.7278,
+      "boundary": "none"
+    },
+    {
+      "batch": 17,
+      "games": 2000,
+      "wins": 846,
+      "losses": 853,
+      "draws": 301,
+      "llr": -1.1632,
+      "boundary": "none"
+    }
+  ],
+  "record": "benchmarks/results/caphist-regate-gate-20260909/caphist-regate/sprt.json"
+}

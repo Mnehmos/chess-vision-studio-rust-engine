@@ -96,6 +96,29 @@ no-tt2 0.81 MNPS at 1 s/move on the canonical positions, same depth. An earlier 
 without warmup showed a spurious +15-26% for *every* flag; the control exposed the order
 bias, which is why the control is part of the script.
 
+## Individual re-gates and new candidates (continuous chain)
+
+Each gate below is champion vs champion ± one flag, 40k fixed nodes, ~1000 distinct book
+positions (no repeats). The W-L-D/LLR are the final `sprt.json` record values (not the
+per-batch log lines).
+
+| gate | W-L-D | LLR | decision |
+|---|---:|---:|---|
+| `loglmr` (new candidate) | 497-392-141 | **+2.965** | **promote** (first valid crossing) |
+| `countermove` (new candidate) | 826-855-319 | -1.904 | hold (stays off) |
+| `seeprune-regate` | 874-837-289 | +0.291 | hold — not confirmed |
+| `caphist-regate` | 846-853-301 | -1.163 | hold — not confirmed |
+
+`loglmr` is promoted (PR #86) and deployed. The re-gates so far say the superseded
+promotions are **neutral**, not the +2.9-LLR crossings their records claimed: SEE pruning
+and capture history earn their keep at most marginally. The remaining re-gates
+(`improving`, `tt2`, `kingact`) and candidates (`iid`, `delta`, `conthist`, `seeverify`,
+`rootsafequiet`) run in `benchmarks/scripts/gate_chain.sh` / `gate_chain2.sh`.
+
+> Correction: the commit message on #87 quoted intermediate batch counts for
+> countermove/seeprune (743-775-282 / 792-744-264). The final record values are the table
+> above; the JSON records were always correct.
+
 ## Standing consequences
 
 1. The five promoted defaults stay in place (the point estimate is positive and removing
