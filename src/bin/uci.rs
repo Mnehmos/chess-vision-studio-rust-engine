@@ -131,6 +131,21 @@ fn main() {
         get("--helper-nnue").map(|p| Nnue::load(&p, allow_unverified).expect("load helper nnue"));
     let syzygy_path = get("--syzygy");
     let book_path = get("--book");
+    // pyrrhic's tablebase init is PROCESS-GLOBAL: a second TableBases::new returns
+    // AlreadyInitialized. Both binaries rebuild the searcher per search/newgame, so the
+    // handle is created once here and shared into every searcher — otherwise only the
+    // very first search of the process would see tablebases.
+    let tb_handle: Option<Arc<cvs_bitboard_core::syzygy::Syzygy>> = match &syzygy_path {
+        Some(path) => match cvs_bitboard_core::syzygy::Syzygy::new(path) {
+            Ok(tb) => Some(Arc::new(tb)),
+            // Never silent: a tablebase path that does not load is a strength bug.
+            Err(e) => {
+                eprintln!("warning: {e}");
+                None
+            }
+        },
+        None => None,
+    };
     let mk = |base: ValueWeights, rung2: Option<Rung2Weights>| {
         let mut searcher = match &nnue {
             Some(n) => Searcher::with_nnue(base, rung2, n.clone()),
@@ -139,10 +154,8 @@ fn main() {
         if let Some(n) = &helper_nnue {
             searcher.set_helper_nnue(Some(n.clone()));
         }
-        if let Some(path) = &syzygy_path {
-            if let Ok(tb) = cvs_bitboard_core::syzygy::Syzygy::new(path) {
-                searcher.tb = Some(Arc::new(tb));
-            }
+        if let Some(tb) = &tb_handle {
+            searcher.tb = Some(tb.clone());
         }
         if let Some(path) = &book_path {
             if let Ok(b) = cvs_bitboard_core::book::Book::new(path) {
