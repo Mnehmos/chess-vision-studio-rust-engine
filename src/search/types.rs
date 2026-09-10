@@ -152,7 +152,11 @@ impl Default for SearchOptions {
             pvs: true,
             rfp: true,
             futility: true,
-            lmp: false,
+            // INV-1 promotion 2026-09-10 (high-power re-gate): LMP crossed the upper bound
+            // at 515 games (271-174-70, LLR +2.948) — the historical negative note is
+            // overturned; it was already on in the bot and in the gate baseline by flag.
+            // benchmarks/results/lmp-regate-hp-20260910/.
+            lmp: true,
             // Mate-TT ply normalization ON by default (audit #60): raw
             // root-relative mate scores in the TT corrupt cross-ply probes.
             // The adjustment is exact (node-intrinsic distance), not a

@@ -33,7 +33,7 @@ fn champion_defaults_keep_rejected_experiments_off() {
     assert!(options.conthist);
 
     // Rejected at the lower bound or held at cap — default-off until a gate says otherwise.
-    assert!(!options.lmp);
+    assert!(options.lmp); // re-gated 2026-09-10: crossed upper (+2.948 at 515 games)
     assert!(!options.delta_prune); // rejected at the lower bound 2026-09-10
     assert!(!options.countermove);
     assert!(!options.rule50_scale);
