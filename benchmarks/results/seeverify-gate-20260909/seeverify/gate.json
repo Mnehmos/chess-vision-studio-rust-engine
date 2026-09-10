@@ -1,0 +1,146 @@
+{
+  "gate": "seeverify",
+  "what": "SEE verification before pruning a capture",
+  "kind": "flag",
+  "games": 1644,
+  "wins": 663,
+  "losses": 729,
+  "draws": 252,
+  "llr": -2.958,
+  "boundary": "lower",
+  "decision": "reject",
+  "elapsedSec": 1332.0,
+  "cappedAt": null,
+  "bookExhausted": false,
+  "positionsUsed": 840,
+  "book": "openings-inv1-20260909b.epd",
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 50,
+      "losses": 51,
+      "draws": 19,
+      "llr": -0.0895,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 95,
+      "losses": 103,
+      "draws": 42,
+      "llr": -0.3838,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 141,
+      "losses": 158,
+      "draws": 61,
+      "llr": -0.7417,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 480,
+      "wins": 182,
+      "losses": 215,
+      "draws": 83,
+      "llr": -1.3409,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 600,
+      "wins": 228,
+      "losses": 274,
+      "draws": 98,
+      "llr": -1.8228,
+      "boundary": "none"
+    },
+    {
+      "batch": 6,
+      "games": 720,
+      "wins": 277,
+      "losses": 331,
+      "draws": 112,
+      "llr": -2.1335,
+      "boundary": "none"
+    },
+    {
+      "batch": 7,
+      "games": 840,
+      "wins": 320,
+      "losses": 389,
+      "draws": 131,
+      "llr": -2.69,
+      "boundary": "none"
+    },
+    {
+      "batch": 8,
+      "games": 960,
+      "wins": 376,
+      "losses": 434,
+      "draws": 150,
+      "llr": -2.3795,
+      "boundary": "none"
+    },
+    {
+      "batch": 9,
+      "games": 1080,
+      "wins": 433,
+      "losses": 481,
+      "draws": 166,
+      "llr": -2.0981,
+      "boundary": "none"
+    },
+    {
+      "batch": 10,
+      "games": 1200,
+      "wins": 487,
+      "losses": 526,
+      "draws": 187,
+      "llr": -1.858,
+      "boundary": "none"
+    },
+    {
+      "batch": 11,
+      "games": 1320,
+      "wins": 533,
+      "losses": 582,
+      "draws": 205,
+      "llr": -2.2459,
+      "boundary": "none"
+    },
+    {
+      "batch": 12,
+      "games": 1440,
+      "wins": 589,
+      "losses": 630,
+      "draws": 221,
+      "llr": -2.033,
+      "boundary": "none"
+    },
+    {
+      "batch": 13,
+      "games": 1560,
+      "wins": 637,
+      "losses": 686,
+      "draws": 237,
+      "llr": -2.3518,
+      "boundary": "none"
+    },
+    {
+      "batch": 14,
+      "games": 1644,
+      "wins": 663,
+      "losses": 729,
+      "draws": 252,
+      "llr": -2.958,
+      "boundary": "lower"
+    }
+  ],
+  "record": "benchmarks/results/seeverify-gate-20260909/seeverify/sprt.json"
+}

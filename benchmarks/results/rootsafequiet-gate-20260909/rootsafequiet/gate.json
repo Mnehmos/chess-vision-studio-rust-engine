@@ -1,0 +1,173 @@
+{
+  "gate": "rootsafequiet",
+  "what": "root safe-quiet ordering",
+  "kind": "flag",
+  "games": 2000,
+  "wins": 855,
+  "losses": 849,
+  "draws": 296,
+  "llr": -0.7318,
+  "boundary": "none",
+  "decision": "hold_for_more_data",
+  "elapsedSec": 1510.0,
+  "cappedAt": 2000,
+  "bookExhausted": false,
+  "positionsUsed": 1000,
+  "book": "openings-inv1-20260909b.epd",
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 48,
+      "losses": 50,
+      "draws": 22,
+      "llr": -0.125,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 106,
+      "losses": 92,
+      "draws": 42,
+      "llr": 0.3605,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 161,
+      "losses": 139,
+      "draws": 60,
+      "llr": 0.57,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 480,
+      "wins": 210,
+      "losses": 192,
+      "draws": 78,
+      "llr": 0.3774,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 600,
+      "wins": 259,
+      "losses": 241,
+      "draws": 100,
+      "llr": 0.3226,
+      "boundary": "none"
+    },
+    {
+      "batch": 6,
+      "games": 720,
+      "wins": 313,
+      "losses": 286,
+      "draws": 121,
+      "llr": 0.5694,
+      "boundary": "none"
+    },
+    {
+      "batch": 7,
+      "games": 840,
+      "wins": 365,
+      "losses": 336,
+      "draws": 139,
+      "llr": 0.5786,
+      "boundary": "none"
+    },
+    {
+      "batch": 8,
+      "games": 960,
+      "wins": 416,
+      "losses": 387,
+      "draws": 157,
+      "llr": 0.5211,
+      "boundary": "none"
+    },
+    {
+      "batch": 9,
+      "games": 1080,
+      "wins": 471,
+      "losses": 440,
+      "draws": 169,
+      "llr": 0.5274,
+      "boundary": "none"
+    },
+    {
+      "batch": 10,
+      "games": 1200,
+      "wins": 520,
+      "losses": 498,
+      "draws": 182,
+      "llr": 0.1701,
+      "boundary": "none"
+    },
+    {
+      "batch": 11,
+      "games": 1320,
+      "wins": 574,
+      "losses": 546,
+      "draws": 200,
+      "llr": 0.313,
+      "boundary": "none"
+    },
+    {
+      "batch": 12,
+      "games": 1440,
+      "wins": 626,
+      "losses": 603,
+      "draws": 211,
+      "llr": 0.0899,
+      "boundary": "none"
+    },
+    {
+      "batch": 13,
+      "games": 1560,
+      "wins": 676,
+      "losses": 657,
+      "draws": 227,
+      "llr": -0.098,
+      "boundary": "none"
+    },
+    {
+      "batch": 14,
+      "games": 1680,
+      "wins": 724,
+      "losses": 713,
+      "draws": 243,
+      "llr": -0.4174,
+      "boundary": "none"
+    },
+    {
+      "batch": 15,
+      "games": 1800,
+      "wins": 770,
+      "losses": 763,
+      "draws": 267,
+      "llr": -0.6059,
+      "boundary": "none"
+    },
+    {
+      "batch": 16,
+      "games": 1920,
+      "wins": 823,
+      "losses": 817,
+      "draws": 280,
+      "llr": -0.6939,
+      "boundary": "none"
+    },
+    {
+      "batch": 17,
+      "games": 2000,
+      "wins": 855,
+      "losses": 849,
+      "draws": 296,
+      "llr": -0.7318,
+      "boundary": "none"
+    }
+  ],
+  "record": "benchmarks/results/rootsafequiet-gate-20260909/rootsafequiet/sprt.json"
+}
