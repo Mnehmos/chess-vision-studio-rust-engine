@@ -1,0 +1,119 @@
+{
+  "gate": "delta",
+  "what": "delta pruning in quiescence",
+  "kind": "flag",
+  "games": 1201,
+  "wins": 477,
+  "losses": 550,
+  "draws": 174,
+  "llr": -2.964,
+  "boundary": "lower",
+  "decision": "reject",
+  "elapsedSec": 1217.3,
+  "cappedAt": null,
+  "bookExhausted": false,
+  "positionsUsed": 660,
+  "book": "openings-inv1-20260910.epd",
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 52,
+      "losses": 53,
+      "draws": 15,
+      "llr": -0.0874,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 98,
+      "losses": 111,
+      "draws": 31,
+      "llr": -0.533,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 144,
+      "losses": 166,
+      "draws": 50,
+      "llr": -0.888,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 480,
+      "wins": 192,
+      "losses": 221,
+      "draws": 67,
+      "llr": -1.1737,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 600,
+      "wins": 242,
+      "losses": 281,
+      "draws": 77,
+      "llr": -1.5429,
+      "boundary": "none"
+    },
+    {
+      "batch": 6,
+      "games": 720,
+      "wins": 288,
+      "losses": 337,
+      "draws": 95,
+      "llr": -1.9289,
+      "boundary": "none"
+    },
+    {
+      "batch": 7,
+      "games": 840,
+      "wins": 338,
+      "losses": 387,
+      "draws": 115,
+      "llr": -1.9921,
+      "boundary": "none"
+    },
+    {
+      "batch": 8,
+      "games": 960,
+      "wins": 389,
+      "losses": 440,
+      "draws": 131,
+      "llr": -2.1121,
+      "boundary": "none"
+    },
+    {
+      "batch": 9,
+      "games": 1080,
+      "wins": 435,
+      "losses": 494,
+      "draws": 151,
+      "llr": -2.436,
+      "boundary": "none"
+    },
+    {
+      "batch": 10,
+      "games": 1200,
+      "wins": 477,
+      "losses": 549,
+      "draws": 174,
+      "llr": -2.9308,
+      "boundary": "none"
+    },
+    {
+      "batch": 11,
+      "games": 1201,
+      "wins": 477,
+      "losses": 550,
+      "draws": 174,
+      "llr": -2.964,
+      "boundary": "lower"
+    }
+  ],
+  "record": "benchmarks/results/delta-big-gate-20260910/delta/sprt.json"
+}

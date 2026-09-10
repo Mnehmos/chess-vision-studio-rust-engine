@@ -1,0 +1,155 @@
+{
+  "gate": "smallpos-bundle",
+  "what": "delta pruning + continuation history (positive-leaning small effects)",
+  "kind": "flag",
+  "games": 1725,
+  "wins": 785,
+  "losses": 672,
+  "draws": 268,
+  "llr": 2.9545,
+  "boundary": "upper",
+  "decision": "promote",
+  "elapsedSec": 1623.0,
+  "cappedAt": null,
+  "bookExhausted": false,
+  "positionsUsed": 900,
+  "book": "openings-inv1-20260910.epd",
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 50,
+      "losses": 53,
+      "draws": 17,
+      "llr": -0.1542,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 100,
+      "losses": 100,
+      "draws": 40,
+      "llr": -0.1127,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 155,
+      "losses": 142,
+      "draws": 63,
+      "llr": 0.2699,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 480,
+      "wins": 216,
+      "losses": 180,
+      "draws": 84,
+      "llr": 0.9922,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 600,
+      "wins": 271,
+      "losses": 233,
+      "draws": 96,
+      "llr": 0.9886,
+      "boundary": "none"
+    },
+    {
+      "batch": 6,
+      "games": 720,
+      "wins": 324,
+      "losses": 282,
+      "draws": 114,
+      "llr": 1.0642,
+      "boundary": "none"
+    },
+    {
+      "batch": 7,
+      "games": 840,
+      "wins": 376,
+      "losses": 335,
+      "draws": 129,
+      "llr": 0.9699,
+      "boundary": "none"
+    },
+    {
+      "batch": 8,
+      "games": 960,
+      "wins": 437,
+      "losses": 376,
+      "draws": 147,
+      "llr": 1.578,
+      "boundary": "none"
+    },
+    {
+      "batch": 9,
+      "games": 1080,
+      "wins": 496,
+      "losses": 419,
+      "draws": 165,
+      "llr": 2.053,
+      "boundary": "none"
+    },
+    {
+      "batch": 10,
+      "games": 1200,
+      "wins": 549,
+      "losses": 471,
+      "draws": 180,
+      "llr": 2.0246,
+      "boundary": "none"
+    },
+    {
+      "batch": 11,
+      "games": 1320,
+      "wins": 601,
+      "losses": 523,
+      "draws": 196,
+      "llr": 1.9656,
+      "boundary": "none"
+    },
+    {
+      "batch": 12,
+      "games": 1440,
+      "wins": 652,
+      "losses": 570,
+      "draws": 218,
+      "llr": 2.0477,
+      "boundary": "none"
+    },
+    {
+      "batch": 13,
+      "games": 1560,
+      "wins": 712,
+      "losses": 617,
+      "draws": 231,
+      "llr": 2.4153,
+      "boundary": "none"
+    },
+    {
+      "batch": 14,
+      "games": 1680,
+      "wins": 766,
+      "losses": 657,
+      "draws": 257,
+      "llr": 2.8359,
+      "boundary": "none"
+    },
+    {
+      "batch": 15,
+      "games": 1725,
+      "wins": 785,
+      "losses": 672,
+      "draws": 268,
+      "llr": 2.9545,
+      "boundary": "upper"
+    }
+  ],
+  "record": "benchmarks/results/smallpos-bundle-gate-20260910/smallpos-bundle/sprt.json"
+}

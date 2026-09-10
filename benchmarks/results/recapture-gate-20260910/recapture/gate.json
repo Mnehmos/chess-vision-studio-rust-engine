@@ -1,0 +1,173 @@
+{
+  "gate": "recapture",
+  "what": "recapture extension: extend a capture on the opponent's last square",
+  "kind": "flag",
+  "games": 2000,
+  "wins": 843,
+  "losses": 863,
+  "draws": 294,
+  "llr": -1.5898,
+  "boundary": "none",
+  "decision": "hold_for_more_data",
+  "elapsedSec": 1607.0,
+  "cappedAt": 2000,
+  "bookExhausted": false,
+  "positionsUsed": 1000,
+  "book": "openings-inv1-20260910.epd",
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 54,
+      "losses": 46,
+      "draws": 20,
+      "llr": 0.2124,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 107,
+      "losses": 89,
+      "draws": 44,
+      "llr": 0.5,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 156,
+      "losses": 141,
+      "draws": 63,
+      "llr": 0.3376,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 480,
+      "wins": 207,
+      "losses": 198,
+      "draws": 75,
+      "llr": 0.0753,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 600,
+      "wins": 262,
+      "losses": 250,
+      "draws": 88,
+      "llr": 0.1172,
+      "boundary": "none"
+    },
+    {
+      "batch": 6,
+      "games": 720,
+      "wins": 309,
+      "losses": 306,
+      "draws": 105,
+      "llr": -0.2355,
+      "boundary": "none"
+    },
+    {
+      "batch": 7,
+      "games": 840,
+      "wins": 355,
+      "losses": 371,
+      "draws": 114,
+      "llr": -0.9108,
+      "boundary": "none"
+    },
+    {
+      "batch": 8,
+      "games": 960,
+      "wins": 415,
+      "losses": 413,
+      "draws": 132,
+      "llr": -0.3782,
+      "boundary": "none"
+    },
+    {
+      "batch": 9,
+      "games": 1080,
+      "wins": 461,
+      "losses": 466,
+      "draws": 153,
+      "llr": -0.6647,
+      "boundary": "none"
+    },
+    {
+      "batch": 10,
+      "games": 1200,
+      "wins": 509,
+      "losses": 522,
+      "draws": 169,
+      "llr": -0.9826,
+      "boundary": "none"
+    },
+    {
+      "batch": 11,
+      "games": 1320,
+      "wins": 556,
+      "losses": 576,
+      "draws": 188,
+      "llr": -1.2695,
+      "boundary": "none"
+    },
+    {
+      "batch": 12,
+      "games": 1440,
+      "wins": 602,
+      "losses": 635,
+      "draws": 203,
+      "llr": -1.7507,
+      "boundary": "none"
+    },
+    {
+      "batch": 13,
+      "games": 1560,
+      "wins": 648,
+      "losses": 690,
+      "draws": 222,
+      "llr": -2.104,
+      "boundary": "none"
+    },
+    {
+      "batch": 14,
+      "games": 1680,
+      "wins": 696,
+      "losses": 739,
+      "draws": 245,
+      "llr": -2.1985,
+      "boundary": "none"
+    },
+    {
+      "batch": 15,
+      "games": 1800,
+      "wins": 754,
+      "losses": 785,
+      "draws": 261,
+      "llr": -1.8573,
+      "boundary": "none"
+    },
+    {
+      "batch": 16,
+      "games": 1920,
+      "wins": 811,
+      "losses": 829,
+      "draws": 280,
+      "llr": -1.4854,
+      "boundary": "none"
+    },
+    {
+      "batch": 17,
+      "games": 2000,
+      "wins": 843,
+      "losses": 863,
+      "draws": 294,
+      "llr": -1.5898,
+      "boundary": "none"
+    }
+  ],
+  "record": "benchmarks/results/recapture-gate-20260910/recapture/sprt.json"
+}
