@@ -283,6 +283,70 @@ impl Searcher {
         }
         let is_pv = beta_in - alpha_in > 1;
 
+        // Razoring (--razoring): a shallow, non-PV node whose static eval sits far below
+        // alpha is very likely a fail-low. Verify cheaply in quiescence and return that
+        // score when it confirms. A quiet TT move, a check, or a mate-scale window
+        // disables it (the classic guards).
+        if self.opts.razoring
+            && !is_pv
+            && !checked
+            && depth <= 3
+            && tt_move.is_none()
+            && alpha.abs() < MATE_THRESHOLD
+            && beta.abs() < MATE_THRESHOLD
+        {
+            self.tel.razor_attempts += 1;
+            let razor_margin = 300 + 200 * depth;
+            if static_eval!() + razor_margin < alpha {
+                let score = self.quiesce(pos, alpha, beta, ply, 0);
+                if score < alpha {
+                    self.tel.razor_cutoffs += 1;
+                    return score;
+                }
+            }
+        }
+
+        // ProbCut (--probcut): at depth, if a good capture searched at reduced depth
+        // with a raised beta still beats that raised beta, the node is almost certainly
+        // a fail-high — cut. SEE filters the candidates; the TT move is left to the
+        // main loop.
+        if self.opts.probcut
+            && !is_pv
+            && !checked
+            && depth >= 5
+            && beta.abs() < MATE_THRESHOLD
+            && beta > -MATE_THRESHOLD
+        {
+            self.tel.probcut_attempts += 1;
+            let pc_beta = beta + 120;
+            let mut cut: Option<i32> = None;
+            for i in 0..legal.len() {
+                let mv = legal.get(i);
+                if !mv.flag.is_capture() || mv.flag.promo_piece().is_some() || Some(mv) == tt_move {
+                    continue;
+                }
+                if see(pos, mv.from, mv.to) < 0 {
+                    continue;
+                }
+                self.acc_make(pos, mv);
+                pos.make(mv);
+                let score = -self.negamax(pos, depth - 4, -pc_beta, -pc_beta + 1, ply + 1, true);
+                pos.unmake();
+                self.acc_unmake();
+                if self.aborted {
+                    return score;
+                }
+                if score >= pc_beta {
+                    cut = Some(score);
+                    break;
+                }
+            }
+            if let Some(score) = cut {
+                self.tel.probcut_cutoffs += 1;
+                return score;
+            }
+        }
+
         // --improving: record this node's static eval and compare to the same
         // side's eval two plies back. Gated so flag-off computes nothing extra.
         let improving = if self.opts.improving {
@@ -484,7 +548,7 @@ impl Searcher {
             // are reduced an extra ply. SF: r -= statScore*445/4096.
             let mut lmr_r: i32 = if reduce {
                 if self.opts.loglmr {
-                    super::log_lmr_reduction(depth, move_index).max(1)
+                    super::log_lmr_reduction(depth, move_index, self.opts.lmr_div).max(1)
                 } else {
                     1
                 }
@@ -511,7 +575,23 @@ impl Searcher {
             if let Some(slot) = self.prev_moves.get_mut((ply + 1) as usize) {
                 *slot = Some(mv);
             }
-            let ext = if Some(mv) == tt_move { extension } else { 0 };
+            let mut ext = if Some(mv) == tt_move { extension } else { 0 };
+            // --recapture: a capture on the square the opponent just moved to is a
+            // recapture; extend it one ply (standard technique in Ethereal/Igel).
+            if self.opts.recapture
+                && ext == 0
+                && !checked
+                && depth < 16
+                && mv.flag.is_capture()
+                && ply > 0
+            {
+                if let Some(&Some(prev)) = self.prev_moves.get((ply - 1) as usize) {
+                    if prev.to == mv.to {
+                        ext = 1;
+                        self.tel.recapture_extensions += 1;
+                    }
+                }
+            }
             let mut score;
             if lmr_r > 0 {
                 self.tel.lmr_reductions += 1;

@@ -93,8 +93,17 @@ pub struct SearchOptions {
     /// BUG1: ply-adjust mate scores on TT store/probe so a mate score stored at one
     /// ply reads correctly when probed at another (node-intrinsic TT mate distance).
     pub matett: bool,
-    /// Log-based LMR reduction (r ≈ 0.75 + ln(d)·ln(i)/2.25) vs the flat 1-ply tier.
+    /// Razoring: a shallow non-PV node far below alpha is verified in quiescence.
+    pub razoring: bool,
+    /// ProbCut: a good capture searched at reduced depth with raised beta may cut.
+    pub probcut: bool,
+    /// Recapture extension: extend a capture on the square the opponent just moved to.
+    pub recapture: bool,
+    /// Log-based LMR reduction (r ≈ 0.75 + ln(d)·ln(i)/lmr_div) vs the flat 1-ply tier.
     pub loglmr: bool,
+    /// Divisor in the log-LMR reduction formula: smaller = more aggressive reduction.
+    /// Default 2.25 (the 2026-09-09 gated value); `--lmr-div <v>` tunes it.
+    pub lmr_div: f32,
     pub conthist: bool,
     pub tt_prune_store: bool,
     pub rule50_scale: bool,
@@ -153,6 +162,10 @@ impl Default for SearchOptions {
             // crossed the upper SPRT bound at 1030 games (497-392-141, LLR +2.965)
             // over 540 distinct book positions — benchmarks/results/loglmr-gate-20260909b/.
             loglmr: true,
+            lmr_div: 2.25,
+            razoring: false,
+            probcut: false,
+            recapture: false,
             // Promoted 2026-09-09 on records that are now SUPERSEDED: the ladder
             // replayed one 12-position book, so its SPRT counted dependent repeats
             // (benchmarks/INV1_GATE_INTEGRITY_2026-09-09.md). The combined set was
@@ -217,6 +230,16 @@ impl SearchOptions {
         self.lmp = toggle("--lmp", "--no-lmp", self.lmp);
         self.matett = toggle("--matett", "--no-matett", self.matett);
         self.loglmr = toggle("--loglmr", "--no-loglmr", self.loglmr);
+        self.razoring = toggle("--razoring", "--no-razoring", self.razoring);
+        self.probcut = toggle("--probcut", "--no-probcut", self.probcut);
+        self.recapture = toggle("--recapture", "--no-recapture", self.recapture);
+        if let Some(pos) = args.iter().position(|a| a == "--lmr-div") {
+            if let Some(v) = args.get(pos + 1).and_then(|s| s.parse::<f32>().ok()) {
+                if v.is_finite() && v > 0.0 {
+                    self.lmr_div = v;
+                }
+            }
+        }
         self.see_prune = toggle("--seeprune", "--no-seeprune", self.see_prune);
         self.see_verify = toggle("--seeverify", "--no-seeverify", self.see_verify);
         self.delta_prune = toggle("--delta", "--no-delta", self.delta_prune);
@@ -301,6 +324,11 @@ pub struct Telemetry {
     pub lmr_researches: u64,
     pub pvs_researches: u64,
     pub aspiration_researches: u64,
+    pub razor_attempts: u64,
+    pub razor_cutoffs: u64,
+    pub probcut_attempts: u64,
+    pub probcut_cutoffs: u64,
+    pub recapture_extensions: u64,
     pub rfp_attempts: u64,
     pub rfp_cutoffs: u64,
     pub futility_attempts: u64,
