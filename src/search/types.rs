@@ -176,7 +176,10 @@ impl Default for SearchOptions {
             see_verify: false,
             delta_prune: false,
             countermove: false,
-            conthist: false,
+            // INV-1 promotion 2026-09-10 (high-power gate on 4910 distinct positions):
+            // continuation history crossed the upper SPRT bound at 1781 games
+            // (824-709-248, LLR +2.949) — benchmarks/results/conthist-big-gate-20260910/.
+            conthist: true,
             tt_prune_store: true,
             rule50_scale: false,
             king_activity: true,
