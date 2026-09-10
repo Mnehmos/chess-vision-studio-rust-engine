@@ -71,8 +71,13 @@ def run_anchor(args, anchor: int, positions: list[str], out_dir: Path) -> dict:
         sys.stderr.write(f"[anchor {anchor}] cutechess exit {proc.returncode}\n{proc.stderr[-800:]}\n")
     text = pgn.read_text(encoding="utf-8", errors="replace") if pgn.exists() else ""
     rows = M.pgn_to_results(text, "CVS")
-    w = sum(1 for r in rows if (r["result"] == "1-0") == (r["candidateColor"] == "white"))
-    l = sum(1 for r in rows if r["result"] != "1/2-1/2" and (r["result"] == "1-0") != (r["candidateColor"] == "white"))
+    # NOTE: a draw must be excluded from BOTH decisive counts. `(result == "1-0") ==
+    # (color == "white")` is True for a draw with the candidate as Black, which silently
+    # turned draws into wins in the first version of this harness.
+    def _decisive(row) -> bool:
+        return row["result"] != "1/2-1/2"
+    w = sum(1 for r in rows if _decisive(r) and (r["result"] == "1-0") == (r["candidateColor"] == "white"))
+    l = sum(1 for r in rows if _decisive(r) and (r["result"] == "1-0") != (r["candidateColor"] == "white"))
     d = len(rows) - w - l
     n = len(rows)
     score = (w + 0.5 * d) / n if n else 0.0
