@@ -164,7 +164,9 @@ def label_chunk(job) -> tuple[int, int]:
     idx, chunk, part, deep, shallow, cap, stable_max, max_abs = job
     eng = Engine(cap)
     kept = seen = 0
-    with open(part, "w", encoding="utf-8") as fd:
+    # Append: with --resume the parent skips FENs already on disk, so appending can only
+    # add new rows. Opening with "w" here truncated the work of a previous run.
+    with open(part, "a", encoding="utf-8") as fd:
         for fen in chunk:
             seen += 1
             white = fen.split()[1] == "w"
@@ -234,7 +236,17 @@ def main(argv=None) -> int:
         print(f"resume: {len(done)} labelled rows already on disk")
 
     t0 = time.time()
-    fens = sample_fens(a.shards.split(","), a.positions, a.seed)
+    # Cache the sampled FEN list: the sampling pass (dedupe + quiet filter over every
+    # shard) is single-threaded and takes ~20 minutes at full corpus size, and it used
+    # to be repeated on every restart. Persisting it makes restarts start working
+    # immediately instead of idling for half an hour first.
+    cache = out_dir / "sampled-fens.json"
+    if a.resume and cache.exists():
+        fens = json.loads(cache.read_text(encoding="utf-8"))
+        print(f"reused {len(fens)} sampled FENs from {cache.name}", flush=True)
+    else:
+        fens = sample_fens(a.shards.split(","), a.positions, a.seed)
+        cache.write_text(json.dumps(fens), encoding="utf-8")
     if done:
         fens = [f for f in fens if f not in done]
     print(f"sampled {len(fens)} quiet deduped FENs to label "

@@ -60,16 +60,17 @@ def encode_ps(fen: str) -> list[int]:
 
 
 class RawNet(nn.Module):
-    def __init__(self, hidden: int):
+    def __init__(self, hidden: int, b1_init: float = 0.0, out_init: float = 0.05,
+                 embed_init: float = 0.05):
         super().__init__()
         self.embed = nn.EmbeddingBag(PS_INPUTS, hidden, mode='sum', include_last_offset=False)
         # Symmetry-breaking init: with a zeroed embedding every input feature is
         # identical and the net can only ever learn a constant (observed: a net
         # that output ~0 regardless of position). Matches the proven recipe.
-        nn.init.normal_(self.embed.weight, std=0.05)
-        self.b1 = nn.Parameter(torch.zeros(hidden))
+        nn.init.normal_(self.embed.weight, std=embed_init)
+        self.b1 = nn.Parameter(torch.full((hidden,), b1_init))
         self.out = nn.Linear(hidden, 1)
-        nn.init.normal_(self.out.weight, std=0.05)
+        nn.init.normal_(self.out.weight, std=out_init)
         nn.init.zeros_(self.out.bias)
 
     def forward(self, idx, offsets):
@@ -89,6 +90,10 @@ def main(argv=None) -> int:
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--holdout-frac", type=float, default=0.02)
     ap.add_argument("--clamp", type=int, default=1500)
+    ap.add_argument("--huber-delta", type=float, default=0.4,
+                    help="Huber delta in target units. Large values are effectively MSE, "
+                         "which is what the proven pipeline used: a small delta caps the "
+                         "gradient on large residuals and the net never fits the extremes")
     ap.add_argument("--target-mode", choices=("sigmoid", "sigmoid-mid", "linear"), default="sigmoid",
                     help="sigmoid: target = sigmoid(cp / --sigmoid-k), the proven recipe for "
                          "this [0,1]-clamped hidden layer (compressive; undo with --nnue-cal). "
@@ -100,7 +105,15 @@ def main(argv=None) -> int:
                          "The hidden layer clamps to [0,1], so the net's raw output range is "
                          "O(1) -- a LINEAR target at this scale keeps centipawns linear "
                          "(the old sigmoid(cp/256) target is what compressed the output).")
-    ap.add_argument("--lr-init", type=float, default=0.05, help="std for the output layer init")
+    ap.add_argument("--embed-init", type=float, default=0.05,
+                    help="input embedding std. Small values make every hidden unit nearly "
+                         "identical across positions, so the output layer receives no "
+                         "learning signal and the net sits at the target mean (observed with "
+                         "linear targets). Larger values start the layer position-sensitive.")
+    ap.add_argument("--b1-init", type=float, default=0.0,
+                    help="hidden bias init; ~0.5 keeps clamp(acc,0,1) units responsive at "
+                         "t=0, which is what a linear (unbounded-range) target needs")
+    ap.add_argument("--out-init", type=float, default=0.05, help="std for the output layer init")
     ap.add_argument("--label-field", default="cp", choices=("cp", "cpStatic"),
                     help="which corpus field is the training label (cpStatic = SF's static eval)")
     ap.add_argument("--stride", type=int, default=1,
@@ -169,9 +182,9 @@ def main(argv=None) -> int:
     ho_t = torch.tensor(ho)
     tr_t = ~ho_t
 
-    net = RawNet(a.hidden).to(dev)
+    net = RawNet(a.hidden, a.b1_init, a.out_init, a.embed_init).to(dev)
     opt = torch.optim.Adam(net.parameters(), lr=a.lr)
-    lossf = nn.HuberLoss(delta=0.4)
+    lossf = nn.HuberLoss(delta=a.huber_delta)
 
     def idx_for(mask):
         return offsets[mask].to(dev), idx.long().to(dev), target[mask].to(dev)

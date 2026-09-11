@@ -64,10 +64,19 @@ Measured label quality of the *old* corpora (120 sampled rows vs a fresh d24):
 | evaluator | slope | r | MAE (raw → calibrated) |
 |---|---:|---:|---:|
 | shipped net + shipped curve (reference) | 0.87 | **0.920** | 93.1 → **94.9**\* |
+| gen10 mid-target, **4.1M** static labels | 0.481 | **0.872** | 133.7 → 178.4 |
 | gen10 mid-target, 1.5M static labels | 0.467 | 0.848 | 138.3 → 170.9 |
 | gen10 sigmoid target, 1.5M static labels | 0.150 | 0.815 | 254.7 → 283.6 |
 | gen10 sigmoid target, 113k clean search labels | 0.131 | 0.748 | 266.6 → 295.1 |
 | gen10 sigmoid target, 113k old labels | 0.084 | 0.659 | 276.4 → 298.9 |
+
+Rank correlation tracks data volume cleanly (113k → 0.748, 1.5M → 0.848, 4.1M → 0.872) but
+does not reach the incumbent's 0.920: the shipped net was trained on 7.9M positions with
+**search** labels blended with game results, which carry more information than a static
+distillation. 4.1M is also the ceiling of this *source*: the shard corpus contains only
+that many quiet, deduped positions, so scaling further requires **generating new
+positions** (self-play across the 4,910 distinct inv1 book openings — repeat-free by
+construction — plus the live bot's games), not re-sampling the same shards.
 
 \* the reference's own curve was fitted on a larger sample than this run's 288 positions,
 hence "calibrated" not improving on raw here.
@@ -85,3 +94,17 @@ hence "calibrated" not improving on raw here.
 
 and then gate with `benchmarks/scripts/gate_ladder.py` (per-gate `net` override is wired, so
 a candidate net can be swapped in while the baseline keeps the champion's).
+
+Measured status of the two paths (2026-09-11):
+
+* **Data-only retrain: does not beat the shipped net.** 4.1M clean static labels reach
+  r 0.872 / MAE 134 against the incumbent's r 0.920 / MAE 93. Scaling the *existing*
+  source is exhausted (4.1M quiet positions is all the shard corpus has).
+* **Architecture: linear centipawn target needs a two-layer head.** Not attempted in
+  code. The shipped one-layer [0,1]-clamped head can only learn a bounded, compressed
+  score (which `--nnue-cal` inverts); a linear target collapses to the mean under every
+  init/LR/embedding-scale variant tried.
+
+So the next evaluator attempt needs *new* position generation (self-play over the
+distinct-opening book + live games) labelled with search scores, not another pass over
+the existing corpus.
