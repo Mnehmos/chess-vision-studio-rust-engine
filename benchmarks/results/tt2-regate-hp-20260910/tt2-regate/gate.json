@@ -1,0 +1,119 @@
+{
+  "gate": "tt2-regate",
+  "what": "re-gate tt2: champion vs champion with tt2 disabled",
+  "kind": "flag",
+  "games": 1214,
+  "wins": 481,
+  "losses": 553,
+  "draws": 180,
+  "llr": -2.9452,
+  "boundary": "lower",
+  "decision": "reject",
+  "elapsedSec": 848.1,
+  "cappedAt": null,
+  "bookExhausted": false,
+  "positionsUsed": 660,
+  "book": "openings-inv1-20260910.epd",
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 47,
+      "losses": 55,
+      "draws": 18,
+      "llr": -0.3208,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 93,
+      "losses": 107,
+      "draws": 40,
+      "llr": -0.583,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 140,
+      "losses": 164,
+      "draws": 56,
+      "llr": -0.9668,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 480,
+      "wins": 195,
+      "losses": 217,
+      "draws": 68,
+      "llr": -0.9455,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 600,
+      "wins": 246,
+      "losses": 275,
+      "draws": 79,
+      "llr": -1.2211,
+      "boundary": "none"
+    },
+    {
+      "batch": 6,
+      "games": 720,
+      "wins": 290,
+      "losses": 328,
+      "draws": 102,
+      "llr": -1.5826,
+      "boundary": "none"
+    },
+    {
+      "batch": 7,
+      "games": 840,
+      "wins": 344,
+      "losses": 376,
+      "draws": 120,
+      "llr": -1.4422,
+      "boundary": "none"
+    },
+    {
+      "batch": 8,
+      "games": 960,
+      "wins": 389,
+      "losses": 429,
+      "draws": 142,
+      "llr": -1.7682,
+      "boundary": "none"
+    },
+    {
+      "batch": 9,
+      "games": 1080,
+      "wins": 429,
+      "losses": 489,
+      "draws": 162,
+      "llr": -2.4895,
+      "boundary": "none"
+    },
+    {
+      "batch": 10,
+      "games": 1200,
+      "wins": 477,
+      "losses": 544,
+      "draws": 179,
+      "llr": -2.7752,
+      "boundary": "none"
+    },
+    {
+      "batch": 11,
+      "games": 1214,
+      "wins": 481,
+      "losses": 553,
+      "draws": 180,
+      "llr": -2.9452,
+      "boundary": "lower"
+    }
+  ],
+  "record": "benchmarks/results/tt2-regate-hp-20260910/tt2-regate/sprt.json"
+}

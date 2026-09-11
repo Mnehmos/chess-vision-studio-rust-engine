@@ -1,0 +1,326 @@
+{
+  "gate": "kingact-regate",
+  "what": "re-gate kingact: champion vs champion with kingact disabled",
+  "kind": "flag",
+  "games": 4000,
+  "wins": 1702,
+  "losses": 1635,
+  "draws": 663,
+  "llr": 0.3699,
+  "boundary": "none",
+  "decision": "hold_for_more_data",
+  "elapsedSec": 2577.6,
+  "cappedAt": 4000,
+  "bookExhausted": false,
+  "positionsUsed": 2000,
+  "book": "openings-inv1-20260910.epd",
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 53,
+      "losses": 53,
+      "draws": 14,
+      "llr": -0.0547,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 103,
+      "losses": 98,
+      "draws": 39,
+      "llr": 0.0548,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 151,
+      "losses": 152,
+      "draws": 57,
+      "llr": -0.2017,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 480,
+      "wins": 204,
+      "losses": 209,
+      "draws": 67,
+      "llr": -0.3861,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 600,
+      "wins": 256,
+      "losses": 266,
+      "draws": 78,
+      "llr": -0.6013,
+      "boundary": "none"
+    },
+    {
+      "batch": 6,
+      "games": 720,
+      "wins": 307,
+      "losses": 305,
+      "draws": 108,
+      "llr": -0.269,
+      "boundary": "none"
+    },
+    {
+      "batch": 7,
+      "games": 840,
+      "wins": 355,
+      "losses": 353,
+      "draws": 132,
+      "llr": -0.326,
+      "boundary": "none"
+    },
+    {
+      "batch": 8,
+      "games": 960,
+      "wins": 410,
+      "losses": 400,
+      "draws": 150,
+      "llr": -0.1157,
+      "boundary": "none"
+    },
+    {
+      "batch": 9,
+      "games": 1080,
+      "wins": 461,
+      "losses": 454,
+      "draws": 165,
+      "llr": -0.2713,
+      "boundary": "none"
+    },
+    {
+      "batch": 10,
+      "games": 1200,
+      "wins": 516,
+      "losses": 509,
+      "draws": 175,
+      "llr": -0.3265,
+      "boundary": "none"
+    },
+    {
+      "batch": 11,
+      "games": 1320,
+      "wins": 564,
+      "losses": 561,
+      "draws": 195,
+      "llr": -0.5147,
+      "boundary": "none"
+    },
+    {
+      "batch": 12,
+      "games": 1440,
+      "wins": 619,
+      "losses": 609,
+      "draws": 212,
+      "llr": -0.3392,
+      "boundary": "none"
+    },
+    {
+      "batch": 13,
+      "games": 1560,
+      "wins": 668,
+      "losses": 652,
+      "draws": 240,
+      "llr": -0.1965,
+      "boundary": "none"
+    },
+    {
+      "batch": 14,
+      "games": 1680,
+      "wins": 724,
+      "losses": 696,
+      "draws": 260,
+      "llr": 0.1464,
+      "boundary": "none"
+    },
+    {
+      "batch": 15,
+      "games": 1800,
+      "wins": 773,
+      "losses": 750,
+      "draws": 277,
+      "llr": -0.076,
+      "boundary": "none"
+    },
+    {
+      "batch": 16,
+      "games": 1920,
+      "wins": 827,
+      "losses": 796,
+      "draws": 297,
+      "llr": 0.1341,
+      "boundary": "none"
+    },
+    {
+      "batch": 17,
+      "games": 2040,
+      "wins": 876,
+      "losses": 849,
+      "draws": 315,
+      "llr": -0.055,
+      "boundary": "none"
+    },
+    {
+      "batch": 18,
+      "games": 2160,
+      "wins": 931,
+      "losses": 896,
+      "draws": 333,
+      "llr": 0.1547,
+      "boundary": "none"
+    },
+    {
+      "batch": 19,
+      "games": 2280,
+      "wins": 987,
+      "losses": 946,
+      "draws": 347,
+      "llr": 0.2969,
+      "boundary": "none"
+    },
+    {
+      "batch": 20,
+      "games": 2400,
+      "wins": 1037,
+      "losses": 988,
+      "draws": 375,
+      "llr": 0.5095,
+      "boundary": "none"
+    },
+    {
+      "batch": 21,
+      "games": 2520,
+      "wins": 1088,
+      "losses": 1036,
+      "draws": 396,
+      "llr": 0.5541,
+      "boundary": "none"
+    },
+    {
+      "batch": 22,
+      "games": 2640,
+      "wins": 1139,
+      "losses": 1082,
+      "draws": 419,
+      "llr": 0.6661,
+      "boundary": "none"
+    },
+    {
+      "batch": 23,
+      "games": 2760,
+      "wins": 1195,
+      "losses": 1130,
+      "draws": 435,
+      "llr": 0.8755,
+      "boundary": "none"
+    },
+    {
+      "batch": 24,
+      "games": 2880,
+      "wins": 1244,
+      "losses": 1178,
+      "draws": 458,
+      "llr": 0.8543,
+      "boundary": "none"
+    },
+    {
+      "batch": 25,
+      "games": 3000,
+      "wins": 1295,
+      "losses": 1230,
+      "draws": 475,
+      "llr": 0.764,
+      "boundary": "none"
+    },
+    {
+      "batch": 26,
+      "games": 3120,
+      "wins": 1343,
+      "losses": 1279,
+      "draws": 498,
+      "llr": 0.6759,
+      "boundary": "none"
+    },
+    {
+      "batch": 27,
+      "games": 3240,
+      "wins": 1387,
+      "losses": 1330,
+      "draws": 523,
+      "llr": 0.3876,
+      "boundary": "none"
+    },
+    {
+      "batch": 28,
+      "games": 3360,
+      "wins": 1437,
+      "losses": 1380,
+      "draws": 543,
+      "llr": 0.3315,
+      "boundary": "none"
+    },
+    {
+      "batch": 29,
+      "games": 3480,
+      "wins": 1487,
+      "losses": 1425,
+      "draws": 568,
+      "llr": 0.444,
+      "boundary": "none"
+    },
+    {
+      "batch": 30,
+      "games": 3600,
+      "wins": 1538,
+      "losses": 1466,
+      "draws": 596,
+      "llr": 0.7253,
+      "boundary": "none"
+    },
+    {
+      "batch": 31,
+      "games": 3720,
+      "wins": 1589,
+      "losses": 1517,
+      "draws": 614,
+      "llr": 0.6684,
+      "boundary": "none"
+    },
+    {
+      "batch": 32,
+      "games": 3840,
+      "wins": 1640,
+      "losses": 1569,
+      "draws": 631,
+      "llr": 0.5777,
+      "boundary": "none"
+    },
+    {
+      "batch": 33,
+      "games": 3960,
+      "wins": 1688,
+      "losses": 1619,
+      "draws": 653,
+      "llr": 0.455,
+      "boundary": "none"
+    },
+    {
+      "batch": 34,
+      "games": 4000,
+      "wins": 1702,
+      "losses": 1635,
+      "draws": 663,
+      "llr": 0.3699,
+      "boundary": "none"
+    }
+  ],
+  "record": "benchmarks/results/kingact-regate-hp-20260910/kingact-regate/sprt.json"
+}

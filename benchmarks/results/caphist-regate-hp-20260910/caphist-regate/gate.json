@@ -1,0 +1,326 @@
+{
+  "gate": "caphist-regate",
+  "what": "re-gate caphist: champion vs champion with caphist disabled",
+  "kind": "flag",
+  "games": 4000,
+  "wins": 1758,
+  "losses": 1689,
+  "draws": 553,
+  "llr": 0.411,
+  "boundary": "none",
+  "decision": "hold_for_more_data",
+  "elapsedSec": 2912.2,
+  "cappedAt": 4000,
+  "bookExhausted": false,
+  "positionsUsed": 2000,
+  "book": "openings-inv1-20260910.epd",
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 57,
+      "losses": 48,
+      "draws": 15,
+      "llr": 0.2366,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 104,
+      "losses": 101,
+      "draws": 35,
+      "llr": -0.0125,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 164,
+      "losses": 142,
+      "draws": 54,
+      "llr": 0.561,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 480,
+      "wins": 210,
+      "losses": 199,
+      "draws": 71,
+      "llr": 0.1402,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 600,
+      "wins": 264,
+      "losses": 248,
+      "draws": 88,
+      "llr": 0.2493,
+      "boundary": "none"
+    },
+    {
+      "batch": 6,
+      "games": 720,
+      "wins": 324,
+      "losses": 292,
+      "draws": 104,
+      "llr": 0.7202,
+      "boundary": "none"
+    },
+    {
+      "batch": 7,
+      "games": 840,
+      "wins": 382,
+      "losses": 339,
+      "draws": 119,
+      "llr": 1.0242,
+      "boundary": "none"
+    },
+    {
+      "batch": 8,
+      "games": 960,
+      "wins": 435,
+      "losses": 392,
+      "draws": 133,
+      "llr": 0.9655,
+      "boundary": "none"
+    },
+    {
+      "batch": 9,
+      "games": 1080,
+      "wins": 489,
+      "losses": 441,
+      "draws": 150,
+      "llr": 1.0742,
+      "boundary": "none"
+    },
+    {
+      "batch": 10,
+      "games": 1200,
+      "wins": 541,
+      "losses": 496,
+      "draws": 163,
+      "llr": 0.9173,
+      "boundary": "none"
+    },
+    {
+      "batch": 11,
+      "games": 1320,
+      "wins": 589,
+      "losses": 554,
+      "draws": 177,
+      "llr": 0.5337,
+      "boundary": "none"
+    },
+    {
+      "batch": 12,
+      "games": 1440,
+      "wins": 638,
+      "losses": 605,
+      "draws": 197,
+      "llr": 0.4145,
+      "boundary": "none"
+    },
+    {
+      "batch": 13,
+      "games": 1560,
+      "wins": 692,
+      "losses": 655,
+      "draws": 213,
+      "llr": 0.4898,
+      "boundary": "none"
+    },
+    {
+      "batch": 14,
+      "games": 1680,
+      "wins": 740,
+      "losses": 704,
+      "draws": 236,
+      "llr": 0.4039,
+      "boundary": "none"
+    },
+    {
+      "batch": 15,
+      "games": 1800,
+      "wins": 787,
+      "losses": 755,
+      "draws": 258,
+      "llr": 0.2182,
+      "boundary": "none"
+    },
+    {
+      "batch": 16,
+      "games": 1920,
+      "wins": 839,
+      "losses": 813,
+      "draws": 268,
+      "llr": -0.0357,
+      "boundary": "none"
+    },
+    {
+      "batch": 17,
+      "games": 2040,
+      "wins": 899,
+      "losses": 862,
+      "draws": 279,
+      "llr": 0.2681,
+      "boundary": "none"
+    },
+    {
+      "batch": 18,
+      "games": 2160,
+      "wins": 951,
+      "losses": 917,
+      "draws": 292,
+      "llr": 0.1139,
+      "boundary": "none"
+    },
+    {
+      "batch": 19,
+      "games": 2280,
+      "wins": 1005,
+      "losses": 964,
+      "draws": 311,
+      "llr": 0.2879,
+      "boundary": "none"
+    },
+    {
+      "batch": 20,
+      "games": 2400,
+      "wins": 1054,
+      "losses": 1018,
+      "draws": 328,
+      "llr": 0.0691,
+      "boundary": "none"
+    },
+    {
+      "batch": 21,
+      "games": 2520,
+      "wins": 1109,
+      "losses": 1068,
+      "draws": 343,
+      "llr": 0.1769,
+      "boundary": "none"
+    },
+    {
+      "batch": 22,
+      "games": 2640,
+      "wins": 1168,
+      "losses": 1121,
+      "draws": 351,
+      "llr": 0.3158,
+      "boundary": "none"
+    },
+    {
+      "batch": 23,
+      "games": 2760,
+      "wins": 1218,
+      "losses": 1173,
+      "draws": 369,
+      "llr": 0.1956,
+      "boundary": "none"
+    },
+    {
+      "batch": 24,
+      "games": 2880,
+      "wins": 1277,
+      "losses": 1217,
+      "draws": 386,
+      "llr": 0.6301,
+      "boundary": "none"
+    },
+    {
+      "batch": 25,
+      "games": 3000,
+      "wins": 1331,
+      "losses": 1269,
+      "draws": 400,
+      "llr": 0.6394,
+      "boundary": "none"
+    },
+    {
+      "batch": 26,
+      "games": 3120,
+      "wins": 1379,
+      "losses": 1318,
+      "draws": 423,
+      "llr": 0.5534,
+      "boundary": "none"
+    },
+    {
+      "batch": 27,
+      "games": 3240,
+      "wins": 1429,
+      "losses": 1363,
+      "draws": 448,
+      "llr": 0.6642,
+      "boundary": "none"
+    },
+    {
+      "batch": 28,
+      "games": 3360,
+      "wins": 1487,
+      "losses": 1405,
+      "draws": 468,
+      "llr": 1.1344,
+      "boundary": "none"
+    },
+    {
+      "batch": 29,
+      "games": 3480,
+      "wins": 1535,
+      "losses": 1459,
+      "draws": 486,
+      "llr": 0.8825,
+      "boundary": "none"
+    },
+    {
+      "batch": 30,
+      "games": 3600,
+      "wins": 1592,
+      "losses": 1506,
+      "draws": 502,
+      "llr": 1.1548,
+      "boundary": "none"
+    },
+    {
+      "batch": 31,
+      "games": 3720,
+      "wins": 1641,
+      "losses": 1566,
+      "draws": 513,
+      "llr": 0.7366,
+      "boundary": "none"
+    },
+    {
+      "batch": 32,
+      "games": 3840,
+      "wins": 1685,
+      "losses": 1624,
+      "draws": 531,
+      "llr": 0.2229,
+      "boundary": "none"
+    },
+    {
+      "batch": 33,
+      "games": 3960,
+      "wins": 1737,
+      "losses": 1675,
+      "draws": 548,
+      "llr": 0.2002,
+      "boundary": "none"
+    },
+    {
+      "batch": 34,
+      "games": 4000,
+      "wins": 1758,
+      "losses": 1689,
+      "draws": 553,
+      "llr": 0.411,
+      "boundary": "none"
+    }
+  ],
+  "record": "benchmarks/results/caphist-regate-hp-20260910/caphist-regate/sprt.json"
+}
