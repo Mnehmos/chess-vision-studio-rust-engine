@@ -206,9 +206,11 @@ def play_batch(gate_id: str, spec: dict, out: Path, args, batch_games: int, batc
     pgn = out / f"batch-{batch_no:03d}.pgn"
     cand_flags = BASE_FLAGS + spec.get("add", [])
     base_flags = BASE_FLAGS + spec.get("base_add", [])
-    cand = {"name": "cand", "exe": spec.get("cand_exe", args.exe), "net": args.net,
+    cand = {"name": "cand", "exe": spec.get("cand_exe", args.exe),
+            "net": spec.get("net", args.net),
             "helper": M.N0_HELPER, "flags": cand_flags, "nodes": args.nodes}
-    base = {"name": "base", "exe": spec.get("base_exe", args.exe), "net": args.net,
+    base = {"name": "base", "exe": spec.get("base_exe", args.exe),
+            "net": spec.get("base_net", args.net),
             "helper": M.N0_HELPER, "flags": base_flags, "nodes": args.nodes}
     cmd = M.build_cutechess_cmd(cand, base, batch_games, str(pgn),
                                 openings=str(openings), concurrency=args.concurrency,

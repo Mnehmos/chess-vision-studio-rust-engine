@@ -30,13 +30,13 @@ REPO = Path(__file__).resolve().parents[2]
 SHARDS = str(REPO / "training/gen9/gen9-cvs/shard-*.jsonl")
 
 
-def sample_rows(patterns: list[str], want: int, stride: int) -> list[dict]:
+def sample_rows(patterns: list[str], want: int, stride: int, stride_offset: int = 0) -> list[dict]:
     rows: list[dict] = []
     for pat in patterns:
         for f in sorted(glob.glob(pat)):
             with open(f, encoding="utf-8") as fd:
                 for i, line in enumerate(fd):
-                    if i % stride:
+                    if (i - stride_offset) % stride:
                         continue
                     try:
                         j = json.loads(line)
@@ -58,6 +58,9 @@ def main(argv=None) -> int:
     ap.add_argument("--shards", default=SHARDS)
     ap.add_argument("--positions", type=int, default=20000)
     ap.add_argument("--stride", type=int, default=7)
+    ap.add_argument("--stride-offset", type=int, default=0,
+                    help="phase of the stride to sample; use a phase disjoint from a "
+                         "training run's so the eval is scored on held-out positions")
     ap.add_argument("--json", default=None)
     ap.add_argument("--dump", default=None,
                     help="write per-position rows {fen,label_stm,nnue_stm,classic_white} for offline analysis")
@@ -66,7 +69,7 @@ def main(argv=None) -> int:
     ap.add_argument("--sf", default="f:/tools/stockfish/stockfish/stockfish-windows-x86-64-avx2.exe")
     a = ap.parse_args(argv)
 
-    rows = sample_rows(a.shards.split(","), a.positions, a.stride)
+    rows = sample_rows(a.shards.split(","), a.positions, a.stride, a.stride_offset)
     if not rows:
         raise SystemExit("no rows sampled")
     print(f"sampled {len(rows)} positions (labels: Stockfish oracle, mate rows excluded)")

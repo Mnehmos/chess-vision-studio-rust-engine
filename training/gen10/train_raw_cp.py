@@ -63,9 +63,14 @@ class RawNet(nn.Module):
     def __init__(self, hidden: int):
         super().__init__()
         self.embed = nn.EmbeddingBag(PS_INPUTS, hidden, mode='sum', include_last_offset=False)
-        nn.init.zeros_(self.embed.weight)
+        # Symmetry-breaking init: with a zeroed embedding every input feature is
+        # identical and the net can only ever learn a constant (observed: a net
+        # that output ~0 regardless of position). Matches the proven recipe.
+        nn.init.normal_(self.embed.weight, std=0.05)
         self.b1 = nn.Parameter(torch.zeros(hidden))
         self.out = nn.Linear(hidden, 1)
+        nn.init.normal_(self.out.weight, std=0.05)
+        nn.init.zeros_(self.out.bias)
 
     def forward(self, idx, offsets):
         acc = self.embed(idx, offsets) + self.b1
@@ -84,30 +89,80 @@ def main(argv=None) -> int:
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--holdout-frac", type=float, default=0.02)
     ap.add_argument("--clamp", type=int, default=1500)
+    ap.add_argument("--target-mode", choices=("sigmoid", "sigmoid-mid", "linear"), default="sigmoid",
+                    help="sigmoid: target = sigmoid(cp / --sigmoid-k), the proven recipe for "
+                         "this [0,1]-clamped hidden layer (compressive; undo with --nnue-cal). "
+                         "linear: target = cp / --target-scale (needs a differently-scaled "
+                         "architecture to be trainable from a cold start).")
+    ap.add_argument("--sigmoid-k", type=float, default=256.0)
+    ap.add_argument("--target-scale", type=float, default=400.0,
+                    help="train target = cp / target-scale; exported as outputScaleCp. "
+                         "The hidden layer clamps to [0,1], so the net's raw output range is "
+                         "O(1) -- a LINEAR target at this scale keeps centipawns linear "
+                         "(the old sigmoid(cp/256) target is what compressed the output).")
+    ap.add_argument("--lr-init", type=float, default=0.05, help="std for the output layer init")
+    ap.add_argument("--label-field", default="cp", choices=("cp", "cpStatic"),
+                    help="which corpus field is the training label (cpStatic = SF's static eval)")
+    ap.add_argument("--stride", type=int, default=1,
+                    help="take every Nth row (subsample a multi-million-row corpus in place)")
+    ap.add_argument("--files", default=None,
+                    help="glob of jsonl corpus files (default: read --data as one file)")
     ap.add_argument("--seed", type=int, default=0)
     a = ap.parse_args(argv)
 
     t0 = time.time()
-    fens, cps = [], []
-    with open(a.data, encoding="utf-8") as fd:
-        for line in fd:
-            j = json.loads(line)
-            fens.append(j["fen"])
-            cps.append(max(-a.clamp, min(a.clamp, j["cp"])))
-    n = len(fens)
-    print(f"loaded {n} rows in {time.time()-t0:.0f}s")
-
-    dev = 'cuda' if torch.cuda.is_available() else 'cpu'
-    idx_list, off_list = [], []
+    import glob as _glob
+    files = sorted(_glob.glob(a.files)) if a.files else [a.data]
+    from array import array
+    idx_list, off_list, targets = array('i'), array('q'), array('f')
     off = 0
-    for f in fens:
-        ii = encode_ps(f)
-        idx_list.extend(ii)
-        off_list.append(off)
-        off += len(ii)
-    idx = torch.tensor(idx_list, dtype=torch.long)
-    offsets = torch.tensor(off_list, dtype=torch.long)
-    target = torch.tensor([c / 100.0 for c in cps], dtype=torch.float32)
+    kept = seen = 0
+    for f in files:
+        with open(f, encoding="utf-8") as fd:
+            for line in fd:
+                seen += 1
+                if seen % a.stride:
+                    continue
+                j = json.loads(line)
+                cp = j.get(a.label_field)
+                if cp is None or abs(cp) > a.clamp:
+                    continue
+                # Labels are stored WHITE POV; the input encoding is side-to-move
+                # relative, so the target must be flipped for black-to-move rows
+                # (exactly as training/gen9/scripts/train_matrix.py's loader does).
+                # Without this the net sees half its targets sign-flipped and can
+                # only learn the mean -- measured r 0.12-0.56 vs the incumbent 0.92.
+                if j["fen"].split()[1] == "b":
+                    cp = -cp
+                ii = encode_ps(j["fen"])
+                idx_list.extend(ii)
+                off_list.append(off)
+                off += len(ii)
+                if a.target_mode == "sigmoid-mid":
+                    # The shipped pipeline's effective target in ENGINE-EVAL space is
+                    #   1024 * (sigmoid(cp/256) - 0.5)
+                    # (its training puts sigmoid(net/K) in the loss, which runs in the
+                    # sigmoid's linear region, and the engine then multiplies by
+                    # outputScaleCp=400). Reproducing that here means the candidate and
+                    # the incumbent can be decoded by the same calibration curve, so an
+                    # instrument comparison is apples to apples.
+                    import math as _m
+                    targets.append(2.56 * (1.0 / (1.0 + _m.exp(-cp / a.sigmoid_k)) - 0.5))
+                elif a.target_mode == "sigmoid":
+                    import math as _m
+                    targets.append(1.0 / (1.0 + _m.exp(-cp / a.sigmoid_k)))
+                else:
+                    targets.append(cp / a.target_scale)
+                kept += 1
+    print(f"kept {kept} of {seen} rows from {len(files)} file(s) in {time.time()-t0:.0f}s")
+    fens = None
+    import numpy as _np
+    import numpy as _np2
+    idx = torch.from_numpy(_np2.frombuffer(idx_list, dtype=_np2.int32).copy())
+    offsets = torch.from_numpy(_np2.frombuffer(off_list, dtype=_np2.int64).copy())
+    target = torch.from_numpy(_np2.frombuffer(targets, dtype=_np2.float32).copy())
+    n = kept
+    dev = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     rng = np.random.default_rng(a.seed)
     ho = rng.random(n) < a.holdout_frac
@@ -116,10 +171,10 @@ def main(argv=None) -> int:
 
     net = RawNet(a.hidden).to(dev)
     opt = torch.optim.Adam(net.parameters(), lr=a.lr)
-    lossf = nn.HuberLoss(delta=1.5)
+    lossf = nn.HuberLoss(delta=0.4)
 
     def idx_for(mask):
-        return offsets[mask].to(dev), idx.to(dev), target[mask].to(dev)
+        return offsets[mask].to(dev), idx.long().to(dev), target[mask].to(dev)
 
     tr_off, tr_idx, tr_y = idx_for(tr_t)
     ho_off, ho_idx, ho_y = idx_for(ho_t)
@@ -137,7 +192,7 @@ def main(argv=None) -> int:
                 lo = off_[s].item()
                 hi = (off_[e].item() if e < len(off_) else idx_.numel())
                 pred = net(idx_.cpu()[lo:hi].to(dev), off_b.to(dev) - lo)
-                errs.append((pred.cpu() - y_[s:e].cpu()).abs() * 100.0)
+                errs.append((pred.cpu() - y_[s:e].cpu()).abs() * a.target_scale)
         net.train()
         return torch.cat(errs).mean().item()
 
@@ -146,7 +201,9 @@ def main(argv=None) -> int:
         perm = torch.randperm(len(tr_off))
         tot = 0.0
         for b in range(nb):
-            sel = perm[b * a.batch:(b + 1) * a.batch]
+            # EmbeddingBag needs strictly increasing offsets into the sliced input,
+            # so the sampled rows must be sorted before slicing the flat index array.
+            sel, _ = torch.sort(perm[b * a.batch:(b + 1) * a.batch])
             batch_off = tr_off[sel].to(dev)
             lo = batch_off[0].item()
             hi = (tr_off[sel[-1]].item() + 1) if sel[-1].item() + 1 < len(tr_off) else idx.numel()
@@ -163,7 +220,7 @@ def main(argv=None) -> int:
     w1 = net.embed.weight.detach().cpu().numpy()
     json.dump({
         "modelKind": "nnue", "arch": f"{PS_INPUTS}x{a.hidden}cReLU-1(cp)",
-        "psInputs": PS_INPUTS, "hidden": a.hidden, "outputScaleCp": 100.0,
+        "psInputs": PS_INPUTS, "hidden": a.hidden, "outputScaleCp": float(a.target_scale),
         "w1": [[round(float(v), 6) for v in row] for row in w1],
         "b1": [round(float(v), 6) for v in net.b1.detach().cpu().numpy()],
         "w2": [round(float(v), 6) for v in net.out.weight.detach().cpu().numpy()[0]],
