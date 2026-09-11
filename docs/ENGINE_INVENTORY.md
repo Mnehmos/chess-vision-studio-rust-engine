@@ -109,6 +109,7 @@ deployed bot runs (defaults + its env list); "evidence" is the record on the fix
 | `--cvs-helpers N` | specialist lane threads | 2 (bot) / 0 (gates) |
 | `--lmr-div V` | log-LMR divisor | 2.25 (2.0/1.75/2.5/2.75 all gated worse or equal) |
 | `--nnue FILE` | main net | `target-cvs/matrix-raw.json` |
+| `--nnue-cal FILE` | eval output calibration curve (INV-1 promoted 2026-09-11; static MAE vs Stockfish 126 -> 85) | `target-cvs/eval-cal-20260911.json` |
 | `--helper-nnue FILE` | residual helper net | `target-cvs/matrix-residual.json` |
 | `--base FILE` / `--rung2 FILE` | handcrafted/TS weight files | Studio `arena/out/value-weights-mixed.json`, `rung2-weights-mixed.json` |
 | `--syzygy DIR` | tablebase directory | `F:/tablebases/syzygy345` |
@@ -121,7 +122,10 @@ deployed bot runs (defaults + its env list); "evidence" is the record on the fix
 ## 5. Gate evidence trail
 
 `benchmarks/results/*/sprt.json` — one record per gate, each valid only with a crossed
-boundary. Current tally on the fixed harness: **1 promote** (`loglmr`), **1 reject**
-(`seeverify`), everything else HOLD. The 2026-09-09 promotion batch (caphist, seeprune,
+boundary. Recent promotes: `loglmr` (2026-09-09), `conthist` (2026-09-10),
+`lmp` re-gate (2026-09-10), **`--nnue-cal` eval calibration (2026-09-11, 1000 games,
+479-375-146, LLR +2.971, no-adjudication gate)**. Rejects: `seeverify`, `delta`,
+`seeprune`, `improving`, `tt2`, and the SF-constant selectivity bundles `sfprune`
+at 12k nodes (-2.945) and `sfprune+sfnull` at equal time (-2.958). The 2026-09-09 promotion batch (caphist, seeprune,
 improving, tt2, kingact) sits on records that are superseded
 (`benchmarks/INV1_GATE_INTEGRITY_2026-09-09.md`) and their re-gates are neutral.

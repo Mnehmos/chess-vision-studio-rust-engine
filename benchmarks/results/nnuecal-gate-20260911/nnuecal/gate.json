@@ -1,0 +1,101 @@
+{
+  "gate": "nnuecal",
+  "what": "oracle-fitted eval output calibration (MAE 126->85 vs SF static); no-adjudication gate (score scales differ)",
+  "kind": "flag",
+  "games": 1000,
+  "wins": 479,
+  "losses": 375,
+  "draws": 146,
+  "llr": 2.9709,
+  "boundary": "upper",
+  "decision": "promote",
+  "elapsedSec": 792.1,
+  "cappedAt": null,
+  "bookExhausted": false,
+  "positionsUsed": 540,
+  "book": "openings-inv1-20260910.epd",
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 50,
+      "losses": 52,
+      "draws": 18,
+      "llr": -0.1221,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 118,
+      "losses": 92,
+      "draws": 30,
+      "llr": 0.733,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 184,
+      "losses": 130,
+      "draws": 46,
+      "llr": 1.5922,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 480,
+      "wins": 241,
+      "losses": 181,
+      "draws": 58,
+      "llr": 1.7195,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 600,
+      "wins": 300,
+      "losses": 227,
+      "draws": 73,
+      "llr": 2.0861,
+      "boundary": "none"
+    },
+    {
+      "batch": 6,
+      "games": 720,
+      "wins": 354,
+      "losses": 273,
+      "draws": 93,
+      "llr": 2.3054,
+      "boundary": "none"
+    },
+    {
+      "batch": 7,
+      "games": 840,
+      "wins": 409,
+      "losses": 316,
+      "draws": 115,
+      "llr": 2.6598,
+      "boundary": "none"
+    },
+    {
+      "batch": 8,
+      "games": 960,
+      "wins": 462,
+      "losses": 362,
+      "draws": 136,
+      "llr": 2.8458,
+      "boundary": "none"
+    },
+    {
+      "batch": 9,
+      "games": 1000,
+      "wins": 479,
+      "losses": 375,
+      "draws": 146,
+      "llr": 2.9709,
+      "boundary": "upper"
+    }
+  ],
+  "record": "benchmarks/results/nnuecal-gate-20260911/nnuecal/sprt.json"
+}

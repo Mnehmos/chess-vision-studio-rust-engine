@@ -41,6 +41,15 @@ pub struct Nnue {
     cvs_w2: Vec<f32>,
     b2: f32,
     scale: f32,
+    /// Optional output calibration (--nnue-cal): a monotone piecewise-linear map
+    /// from the net's raw centipawn output to the oracle-labelled scale. Measured
+    /// slope vs Stockfish's static eval was 0.49 (the net's range is ~2x
+    /// compressed), which puts every centipawn margin in the search off by the
+    /// same factor. Dense table over |raw| < CAL_MAX, sign restored on read, so
+    /// eval symmetry is preserved exactly. None = identity (champion default).
+    cal: Option<Vec<i32>>,
+    /// Slope used beyond the table's last entry (linear tail extrapolation).
+    cal_slope: f32,
     pub model_hash: u64,
     pub is_ranker: bool,
     pub ranker_w1: Vec<f32>,
@@ -282,6 +291,8 @@ impl Nnue {
             cvs_w2,
             b2,
             scale,
+            cal: None,
+            cal_slope: 1.0,
             model_hash,
             is_ranker,
             ranker_w1,
@@ -477,7 +488,7 @@ impl Nnue {
             for j in 0..ch {
                 out += self.cvs_w2[j] * cvs_side[j].clamp(0.0, 1.0);
             }
-            (out * self.scale).round() as i32
+            self.finish(out)
         } else if self.cvs {
             let mut ids: Vec<u32> = Vec::with_capacity(32);
             if self.is_core {
@@ -508,17 +519,82 @@ impl Nnue {
             for j in 0..h {
                 out += self.w2[j] * side[j].clamp(0.0, 1.0);
             }
-            (out * self.scale).round() as i32
+            self.finish(out)
         } else {
             let mut out = self.b2;
             for j in 0..h {
                 out += self.w2[j] * base[j].clamp(0.0, 1.0);
             }
-            (out * self.scale).round() as i32
+            self.finish(out)
         }
     }
 
     /// Centipawns from the side to move's perspective.
+    /// Dense-table bound for the calibration curve (|raw| >= this extrapolates).
+    const CAL_MAX: usize = 4096;
+
+    /// Install an output calibration curve fitted on oracle labels: `points` are
+    /// (|raw cp|, |calibrated cp|) pairs, sorted, starting at (0, 0). The curve is
+    /// applied to |raw| with the sign restored, so the eval stays exactly
+    /// antisymmetric. Also folds the curve into `model_hash` so two nets that
+    /// differ only by calibration are distinct artifacts.
+    pub fn set_calibration(&mut self, points: &[(f64, f64)]) {
+        if points.len() < 2 {
+            return;
+        }
+        let interp = |x: f64| -> f64 {
+            let pts = points;
+            if x <= pts[0].0 {
+                return pts[0].1;
+            }
+            for i in 1..pts.len() {
+                let (x0, y0) = pts[i - 1];
+                let (x1, y1) = pts[i];
+                if x <= x1 {
+                    let t = if x1 > x0 { (x - x0) / (x1 - x0) } else { 0.0 };
+                    return y0 + t * (y1 - y0);
+                }
+            }
+            let (x0, y0) = pts[pts.len() - 2];
+            let (x1, y1) = pts[pts.len() - 1];
+            let slope = if x1 > x0 { (y1 - y0) / (x1 - x0) } else { 1.0 };
+            y1 + slope * (x - x1)
+        };
+        let mut table = vec![0i32; Self::CAL_MAX + 1];
+        for (a, slot) in table.iter_mut().enumerate() {
+            *slot = interp(a as f64).round() as i32;
+        }
+        let (x0, y0) = points[points.len() - 2];
+        let (x1, y1) = points[points.len() - 1];
+        self.cal_slope = if x1 > x0 { ((y1 - y0) / (x1 - x0)) as f32 } else { 1.0 };
+        let mut h = self.model_hash;
+        for v in &table {
+            h = h.wrapping_mul(31).wrapping_add(*v as u64);
+        }
+        self.model_hash = h;
+        self.cal = Some(table);
+    }
+
+    /// Net output -> evaluated centipawns, applying the optional calibration.
+    #[inline]
+    fn finish(&self, out: f32) -> i32 {
+        let raw = (out * self.scale).round() as i32;
+        let Some(table) = &self.cal else {
+            return raw;
+        };
+        let a = raw.unsigned_abs() as usize;
+        let v = if a < table.len() {
+            table[a]
+        } else {
+            table[table.len() - 1] + ((a - (table.len() - 1)) as f32 * self.cal_slope).round() as i32
+        };
+        if raw < 0 {
+            -v
+        } else {
+            v
+        }
+    }
+
     pub fn eval_stm(&self, pos: &Position) -> i32 {
         debug_assert!(self.hidden <= 512);
         let mut acc = [0f32; 512];
@@ -610,7 +686,7 @@ impl Nnue {
                 out += self.w2[j] * acc[j].clamp(0.0, 1.0);
             }
         }
-        (out * self.scale).round() as i32
+        self.finish(out)
     }
 
     pub fn eval_ranker_raw(&self, sparse_buf: &[u32], dense_buf: &[f32; 32]) -> f32 {

@@ -361,8 +361,14 @@ fn main() {
         || std::env::var("CVS_RUST_ALLOW_UNVERIFIED")
             .map(|v| v.trim() == "1")
             .unwrap_or(false);
-    let nnue: Option<Nnue> =
-        get("--nnue").map(|p| Nnue::load(&p, allow_unverified).expect("load nnue"));
+    let eval_cal = get("--nnue-cal").map(|p| load_eval_cal(&p));
+    let nnue: Option<Nnue> = get("--nnue").map(|p| {
+        let mut n = Nnue::load(&p, allow_unverified).expect("load nnue");
+        if let Some(c) = &eval_cal {
+            n.set_calibration(c);
+        }
+        n
+    });
     let helper_nnue: Option<Nnue> =
         get("--helper-nnue").map(|p| Nnue::load(&p, allow_unverified).expect("load helper nnue"));
     let syzygy_path = get("--syzygy");
@@ -1024,4 +1030,25 @@ fn main() {
             println!("{}", analyze_one(fen));
         }
     }
+}
+
+
+/// (--nnue-cal) Load an oracle-fitted output calibration curve:
+/// {"points": [[|raw|, |calibrated|], ...]} sorted, starting at 0.
+fn load_eval_cal(path: &str) -> Vec<(f64, f64)> {
+    let text = std::fs::read_to_string(path).unwrap_or_else(|e| panic!("read {path}: {e}"));
+    let v: serde_json::Value =
+        serde_json::from_str(&text).unwrap_or_else(|e| panic!("parse {path}: {e}"));
+    let pts = v["points"]
+        .as_array()
+        .unwrap_or_else(|| panic!("{path}: missing points"));
+    let mut out: Vec<(f64, f64)> = pts
+        .iter()
+        .filter_map(|p| {
+            let a = p.as_array()?;
+            Some((a.first()?.as_f64()?, a.get(1)?.as_f64()?))
+        })
+        .collect();
+    out.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
+    out
 }

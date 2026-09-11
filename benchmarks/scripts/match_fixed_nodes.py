@@ -47,6 +47,10 @@ N0_HELPER = str(REPO / "target-cvs/matrix-residual.json")
 N0_BASE_W = "f:/Github/chess-vision-studio/arena/out/value-weights-mixed.json"
 N0_RUNG2_W = "f:/Github/chess-vision-studio/arena/out/rung2-weights-mixed.json"
 N0_FLAGS = ["--futility", "--rfp", "--tt-prune-store", "--qtt", "--histmalus", "--histlmr", "--lmp"]
+# INV-1 promotion 2026-09-11: eval output calibration crossed the upper SPRT bound
+# at 1000 games (479-375-146, LLR +2.971, no-adjudication gate because the two
+# engines report scores on different scales) -> benchmarks/results/nnuecal-gate-20260911/.
+N0_FLAGS += ["--nnue-cal", str(REPO / "target-cvs/eval-cal-20260911.json")]
 # Tablebases are part of the deployed flagship config (the live bot passes --syzygy), so
 # the gate's baseline and candidate both carry them. Override/disable with CVS_SYZYGY_PATH
 # (set it to an empty string to run tablebase-free).
@@ -73,7 +77,11 @@ def engine_args(name: str, exe: str, net: str, helper: str | None, flags: list[s
 
 def build_cutechess_cmd(cand: dict, base: dict, games: int, pgnout: str,
                         openings: str = OPENINGS, concurrency: int = 1,
-                        maxmoves: int = 200, cutechess: str = CUTECHESS) -> list[str]:
+                        maxmoves: int = 200, cutechess: str = CUTECHESS,
+                        adjudicate: bool = True) -> list[str]:
+    """`adjudicate=False` drops -draw/-resign. Required when the two engines report
+    scores on different scales (e.g. an eval-calibration gate): the cp thresholds
+    would then fire asymmetrically and bias the verdict."""
     """Full cutechess-cli argv. -repeat pairs colors; draw/resign adjudication bounds
     runaway games; sequential openings keep the pairing reproducible."""
     return (
@@ -86,8 +94,8 @@ def build_cutechess_cmd(cand: dict, base: dict, games: int, pgnout: str,
            "-games", str(games), "-repeat",
            "-concurrency", str(concurrency),
            "-openings", f"file={openings}", "format=epd", "order=sequential",
-           "-draw", "movenumber=40", "movecount=8", "score=10",
-           "-resign", "movecount=4", "score=900",
+           *(["-draw", "movenumber=40", "movecount=8", "score=10",
+              "-resign", "movecount=4", "score=900"] if adjudicate else []),
            "-maxmoves", str(maxmoves),
            "-pgnout", pgnout]
     )
