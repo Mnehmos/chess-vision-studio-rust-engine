@@ -41,7 +41,7 @@ impl Searcher {
             if legal.is_empty() {
                 return -MATE_SCORE + ply as i32;
             }
-            return self.quiesce_moves(pos, legal, true, alpha_in, beta, ply, q_depth);
+            return self.quiesce_moves(pos, legal, true, alpha_in, beta, ply, q_depth, alpha_in);
         }
 
         // --qtt: q-nodes are 55-62% of the tree and were table-blind. Probe
@@ -160,7 +160,7 @@ impl Searcher {
                 noisy.push(quiet_checks.get(i));
             }
         }
-        let score = self.quiesce_moves(pos, noisy, false, alpha, beta, ply, q_depth);
+        let score = self.quiesce_moves(pos, noisy, false, alpha, beta, ply, q_depth, stand);
         if self.opts.qsearch_tt && self.opts.use_tt && !self.aborted && score.abs() < MATE_THRESHOLD
         {
             let flag = if score >= beta {
@@ -185,13 +185,61 @@ impl Searcher {
         beta: i32,
         ply: u32,
         q_depth: u32,
+        stand: i32,
     ) -> i32 {
         let mut alpha = alpha_in;
         Self::sort_by_key_desc(moves.as_mut_slice(), |m| self.capture_order(pos, *m));
 
+        // --sfqs: SF's qsearch move budget. After two moves only checks and
+        // promotions are searched; the first two are filtered by SF's qsearch
+        // futility (`standP at + 306` SF units -> +147 cp) and the SEE-vs-alpha
+        // test. A recapture on the opponent's last destination is exempt from the
+        // budget (SF's `move.to_sq() != prevSq` guard).
+        let sf_fut_base = stand + 147;
+        let prev_to = self
+            .prev_moves
+            .get(ply as usize)
+            .copied()
+            .flatten()
+            .map(|m| m.to);
         let mut best = if checked { -INF } else { alpha };
         for i in 0..moves.len() {
             let mv = moves.get(i);
+            if self.opts.sfqs && !checked {
+                let promo = mv.flag.promo_piece().is_some();
+                let gc = gives_check(pos, mv);
+                if !gc && !promo {
+                    let is_recapture = prev_to == Some(mv.to);
+                    if i >= 2 && !is_recapture {
+                        self.tel.pruned_moves += 1;
+                        continue;
+                    }
+                    let victim = if mv.flag == MoveFlag::EnPassant {
+                        SEE_VALUE[Piece::Pawn.index()]
+                    } else if mv.flag.is_capture() {
+                        pos.piece_at(mv.to)
+                            .map(|(_, p)| SEE_VALUE[p.index()])
+                            .unwrap_or(SEE_VALUE[Piece::Pawn.index()])
+                    } else {
+                        0
+                    };
+                    if sf_fut_base + victim <= alpha {
+                        self.tel.pruned_moves += 1;
+                        continue;
+                    }
+                    if see(pos, mv.from, mv.to) < alpha - sf_fut_base {
+                        self.tel.pruned_moves += 1;
+                        continue;
+                    }
+                    // Non-captures beyond this point are only kept when they give
+                    // check (handled above); the quiet-check window's entries are
+                    // checks by construction.
+                    if !mv.flag.is_capture() && !gc {
+                        self.tel.pruned_moves += 1;
+                        continue;
+                    }
+                }
+            }
             if mv.flag.is_capture() {
                 self.tel.q_capture_nodes += 1;
             }

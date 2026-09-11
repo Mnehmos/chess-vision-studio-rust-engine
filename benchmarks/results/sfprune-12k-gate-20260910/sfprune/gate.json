@@ -1,0 +1,65 @@
+{
+  "gate": "sfprune",
+  "what": "SF frontier bundle: SF-constant RFP/futility/SEE margins + (3+d^2)/2 movecount budget at every depth",
+  "kind": "flag",
+  "games": 578,
+  "wins": 216,
+  "losses": 300,
+  "draws": 62,
+  "llr": -2.9445,
+  "boundary": "lower",
+  "decision": "reject",
+  "elapsedSec": 152.9,
+  "cappedAt": null,
+  "bookExhausted": false,
+  "positionsUsed": 300,
+  "book": "openings-inv1-20260910.epd",
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 41,
+      "losses": 68,
+      "draws": 11,
+      "llr": -0.9059,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 89,
+      "losses": 123,
+      "draws": 28,
+      "llr": -1.2045,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 137,
+      "losses": 181,
+      "draws": 42,
+      "llr": -1.5806,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 480,
+      "wins": 180,
+      "losses": 243,
+      "draws": 57,
+      "llr": -2.2515,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 578,
+      "wins": 216,
+      "losses": 300,
+      "draws": 62,
+      "llr": -2.9445,
+      "boundary": "lower"
+    }
+  ],
+  "record": "benchmarks/results/sfprune-12k-gate-20260910/sfprune/sprt.json"
+}

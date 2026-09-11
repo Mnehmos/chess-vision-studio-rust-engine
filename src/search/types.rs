@@ -93,6 +93,39 @@ pub struct SearchOptions {
     /// BUG1: ply-adjust mate scores on TT store/probe so a mate score stored at one
     /// ply reads correctly when probed at another (node-intrinsic TT mate distance).
     pub matett: bool,
+    /// Depth cap for reverse futility pruning (default 4). SF scales RFP to every
+    /// depth; the cap was lowered 6->4 in 2026-06 for a hard-100 miss.
+    pub rfp_depth: i32,
+    /// Depth cap for futility pruning (default 3).
+    pub fut_depth: i32,
+    /// Depth cap for late-move pruning (default 4).
+    pub lmp_depth: i32,
+    /// ProbCut beta margin in centipawns (default 120).
+    pub probcut_margin: i32,
+    /// Aspiration window half-width in centipawns at the first try (default 50).
+    pub asp_window: i32,
+    /// First move index that can receive an LMR reduction (default 3).
+    pub lmr_min_index: usize,
+    /// SF-shaped LMR (--lmr2): reduce from the SECOND move (SF: moveCount > 1)
+    /// instead of the fourth, and buy PV nodes one ply back (SF's `+ PvNode` in
+    /// `d = max(1, min(newDepth - r/1024, newDepth + 2)) + PvNode`). The first
+    /// three moves currently search at full depth at every node — the single
+    /// largest remaining node-count difference from Stockfish at equal depth.
+    pub lmr2: bool,
+    /// Ply bonus added to every LMR reduction, before the cap (default 0).
+    pub lmr_bonus: i32,
+    /// Hard cap on the LMR reduction (default 6).
+    pub lmr_max: i32,
+    /// LMP budget = lmp_base + lmp_sq * depth^2 / 100 (defaults 8 and 200, i.e.
+    /// the historical 8 + 2*d^2 — which at depth 6 is move 80 of ~39 legal moves,
+    /// so LMP never fired above depth 3-4).
+    pub lmp_base: i32,
+    pub lmp_sq: i32,
+    /// RFP margin = rfp_scale * depth (default 90).
+    pub rfp_scale: i32,
+    /// Futility margin = fut_base + fut_scale * depth (defaults 120 and 150).
+    pub fut_base: i32,
+    pub fut_scale: i32,
     /// Razoring: a shallow non-PV node far below alpha is verified in quiescence.
     pub razoring: bool,
     /// ProbCut: a good capture searched at reduced depth with raised beta may cut.
@@ -111,6 +144,36 @@ pub struct SearchOptions {
     pub hist_malus: bool,
     pub hist_lmr: bool,
     pub caphist: bool,
+    /// Second continuation history (--conthist2): the move TWO plies back keys a
+    /// second ordering term, matching SF's `contHist[1]` in the quiet statScore.
+    /// Targets the measured internal-node ordering gap (SF's best move sits past
+    /// rank 10 in our ordering in ~1/3 of positions) — the prerequisite for
+    /// every movecount pruning decision.
+    pub conthist2: bool,
+    /// Internal iterative reduction (--iir): at a cut node of depth >= 6 with no
+    /// TT move, search one ply shallower (SF's IIR) instead of paying a full IID
+    /// re-search. Cheap ordering fix for the ~70% of probes with no entry.
+    pub iir: bool,
+    /// SF frontier bundle (--sfprune): Stockfish's pruning *structure* with its
+    /// published constants converted to centipawns (x100/208) — extended RFP,
+    /// quiet futility, SF's SEE margins, capture futility, and the (3+d^2)/2
+    /// movecount budget applied at every depth. Our rejected variants were
+    /// harsh-but-shallow; SF is mild-but-everywhere.
+    pub sfprune: bool,
+    /// SF-shaped null move (--sfnull): SF's graded condition
+    /// (`eval + 365 >= beta - 13*depth`, SF units) and depth-scaled reduction
+    /// `R = 7 + depth/3 + max((eval-beta)/256, 0)` instead of our flat R = 2/3.
+    pub sfnull: bool,
+    /// SF-shaped quiescence (--sfqs): after two moves only checks and promotions
+    /// are searched, and the first two are filtered by SF's qsearch futility and
+    /// SEE-vs-alpha tests. Our qsearch is table-wide by comparison and is ~40% of
+    /// the tree; SF's q-tree barely branches.
+    pub sfqs: bool,
+    /// Sub-toggle of --sfprune: the quiet-move SEE pruning (`see < -23*lmrDepth^2`).
+    /// It is the only bundle member that needs an SEE/attack query at EVERY quiet
+    /// move, and it is what costs the bundle its nodes-per-second (measured 1.8x
+    /// before the unattacked fast path, 1.3x after). Off = "sfprune-lite".
+    pub sf_quiet_see: bool,
     pub tt2: bool,
     pub improving: bool,
     pub king_activity: bool,
@@ -167,6 +230,20 @@ impl Default for SearchOptions {
             // over 540 distinct book positions — benchmarks/results/loglmr-gate-20260909b/.
             loglmr: true,
             lmr_div: 2.25,
+            rfp_depth: 4,
+            fut_depth: 3,
+            lmp_depth: 4,
+            probcut_margin: 120,
+            asp_window: 50,
+            lmr_min_index: 3,
+            lmr2: false,
+            lmr_bonus: 0,
+            lmr_max: 6,
+            lmp_base: 8,
+            lmp_sq: 200,
+            rfp_scale: 90,
+            fut_base: 120,
+            fut_scale: 150,
             razoring: false,
             probcut: false,
             recapture: false,
@@ -195,6 +272,14 @@ impl Default for SearchOptions {
             // caphist held (+0.411) at the high-power re-gate -> retained; tt2 and
             // improving crossed the LOWER bound there -> off.
             caphist: true,
+            // Search-efficiency campaign (2026-09-10): off until each clears the
+            // fixed-node SPRT gate.
+            conthist2: false,
+            iir: false,
+            sfprune: false,
+            sfnull: false,
+            sfqs: false,
+            sf_quiet_see: true,
             tt2: false,
             improving: false,
             threads: 1,
@@ -239,6 +324,27 @@ impl SearchOptions {
         self.lmp = toggle("--lmp", "--no-lmp", self.lmp);
         self.matett = toggle("--matett", "--no-matett", self.matett);
         self.loglmr = toggle("--loglmr", "--no-loglmr", self.loglmr);
+        self.lmr2 = toggle("--lmr2", "--no-lmr2", self.lmr2);
+        let num = |flag: &str| -> Option<i32> {
+            args.iter()
+                .position(|a| a == flag)
+                .and_then(|i| args.get(i + 1))
+                .and_then(|s| s.parse::<i32>().ok())
+                .filter(|v| *v >= 0)
+        };
+        if let Some(v) = num("--rfp-depth") { self.rfp_depth = v; }
+        if let Some(v) = num("--fut-depth") { self.fut_depth = v; }
+        if let Some(v) = num("--lmp-depth") { self.lmp_depth = v; }
+        if let Some(v) = num("--probcut-margin") { self.probcut_margin = v; }
+        if let Some(v) = num("--lmp-base") { self.lmp_base = v; }
+        if let Some(v) = num("--lmp-sq") { self.lmp_sq = v; }
+        if let Some(v) = num("--rfp-scale") { self.rfp_scale = v; }
+        if let Some(v) = num("--fut-base") { self.fut_base = v; }
+        if let Some(v) = num("--fut-scale") { self.fut_scale = v; }
+        if let Some(v) = num("--lmr-min-index") { self.lmr_min_index = v as usize; }
+        if let Some(v) = num("--lmr-bonus") { self.lmr_bonus = v; }
+        if let Some(v) = num("--lmr-max") { self.lmr_max = v; }
+        if let Some(v) = num("--asp-window") { self.asp_window = v; }
         self.razoring = toggle("--razoring", "--no-razoring", self.razoring);
         self.probcut = toggle("--probcut", "--no-probcut", self.probcut);
         self.recapture = toggle("--recapture", "--no-recapture", self.recapture);
@@ -254,6 +360,12 @@ impl SearchOptions {
         self.delta_prune = toggle("--delta", "--no-delta", self.delta_prune);
         self.countermove = toggle("--countermove", "--no-countermove", self.countermove);
         self.conthist = toggle("--conthist", "--no-conthist", self.conthist);
+        self.conthist2 = toggle("--conthist2", "--no-conthist2", self.conthist2);
+        self.iir = toggle("--iir", "--no-iir", self.iir);
+        self.sfprune = toggle("--sfprune", "--no-sfprune", self.sfprune);
+        self.sfnull = toggle("--sfnull", "--no-sfnull", self.sfnull);
+        self.sfqs = toggle("--sfqs", "--no-sfqs", self.sfqs);
+        self.sf_quiet_see = toggle("--sfquietsee", "--no-sfquietsee", self.sf_quiet_see);
         self.tt_prune_store = toggle(
             "--tt-prune-store",
             "--no-tt-prune-store",

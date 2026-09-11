@@ -207,6 +207,15 @@ impl Searcher {
             }
         }
 
+        // IIR (--iir): SF's internal iterative reduction. A cut node of depth >= 6
+        // with no TT move has no ordering hint; the expensive alternative was a full
+        // IID re-search (--iid), this just searches one ply shallower. The shadowed
+        // `depth` feeds every pruning decision and child call below.
+        let mut depth = depth;
+        if self.opts.iir && depth >= 6 && tt_move.is_none() && beta_in - alpha_in <= 1 {
+            depth -= 1;
+        }
+
         // 1. Syzygy Tablebase WDL Probe
         if self.opts.syzygy {
             if let Some(tb) = &self.tb {
@@ -318,7 +327,7 @@ impl Searcher {
             && beta > -MATE_THRESHOLD
         {
             self.tel.probcut_attempts += 1;
-            let pc_beta = beta + 120;
+            let pc_beta = beta + self.opts.probcut_margin;
             let mut cut: Option<i32> = None;
             for i in 0..legal.len() {
                 let mv = legal.get(i);
@@ -366,6 +375,29 @@ impl Searcher {
             true
         };
 
+        // SF Step 9 extended (--sfprune): the same node cut at SF's published
+        // margin min(45 + 4*depth, 85) per ply (SF internal units -> x100/208 cp),
+        // active to depth 19. SF's TT guard applies: a QUIET TT move blocks the
+        // cut (the hint suggests the position has a quiet refutation).
+        if self.opts.sfprune
+            && !is_pv
+            && !checked
+            && depth <= 19
+            && beta.abs() < MATE_THRESHOLD
+            && !tt_move.is_some_and(|m| !m.flag.is_capture() && m.flag.promo_piece().is_none())
+        {
+            self.tel.rfp_attempts += 1;
+            let mult = (45 + 4 * depth).min(85);
+            let margin = mult * depth * 48 / 100;
+            if static_eval!() - margin >= beta {
+                self.tel.rfp_cutoffs += 1;
+                if self.opts.tt_prune_store && self.opts.use_tt {
+                    self.store(self.tt_key(pos), depth, beta, Flag::Lower, None, ply as i32);
+                }
+                return beta;
+            }
+        }
+
         // Reverse futility pruning (Search Patch 7): at a shallow non-PV node
         // whose static eval beats beta by a depth-scaled margin, a quiet
         // continuation is overwhelmingly likely to hold — cut without moving.
@@ -373,9 +405,9 @@ impl Searcher {
         // rfp-v2 (2026-06-11): depth cap 6->4 after hard-100 exposed a
         // mate-scale miss at deeper cuts (pos 64, +9259cp) — forcing lines
         // can hide below a d5/d6 static cut even with a calibrated eval.
-        if self.opts.rfp && !is_pv && !checked && depth <= 4 && beta.abs() < MATE_THRESHOLD {
+        if self.opts.rfp && !is_pv && !checked && depth <= self.opts.rfp_depth && beta.abs() < MATE_THRESHOLD {
             self.tel.rfp_attempts += 1;
-            if static_eval!() - 90 * depth >= beta {
+            if static_eval!() - self.opts.rfp_scale * depth >= beta {
                 self.tel.rfp_cutoffs += 1;
                 // --tt-prune-store: an RFP cut is a position-only fail-high
                 // (static eval, no path dependence — unlike null) so it is a
@@ -398,16 +430,31 @@ impl Searcher {
         // filter (a major piece, or at least two minors). R scales with depth.
         // The cutoff is fail-hard beta and deliberately NOT stored in the TT
         // (null results are window/path-dependent).
+        // --sfnull: SF's graded null condition (`eval + 365 >= beta - 13*depth`, SF
+        // units -> x100/208 cp) admits nulls when the eval sits slightly BELOW beta,
+        // which our strict `eval >= beta` never did, and the reduction is depth-scaled
+        // (`7 + depth/3 + max((eval-beta)/256, 0)` plies) instead of a flat 2-3.
+        let null_threshold_ok = if self.opts.sfnull {
+            static_eval!() + 175 >= beta - 6 * depth
+        } else {
+            static_eval!() >= beta
+        };
         if allow_null
             && self.opts.null_move
             && !checked
             && depth >= 3
             && beta.abs() < MATE_THRESHOLD
             && Self::null_material_ok(pos)
-            && static_eval!() >= beta
+            && null_threshold_ok
         {
             self.tel.null_attempts += 1;
-            let null_r = if depth >= 6 { 3 } else { 2 };
+            let null_r = if self.opts.sfnull {
+                7 + depth / 3 + (static_eval!() - beta).max(0) / 129
+            } else if depth >= 6 {
+                3
+            } else {
+                2
+            };
             let undo = pos.make_null();
             if let Some(slot) = self.prev_moves.get_mut((ply + 1) as usize) {
                 *slot = None; // null subtrees must not key counters on a stale move
@@ -472,16 +519,16 @@ impl Searcher {
         let futile = self.opts.futility
             && !is_pv
             && !checked
-            && depth <= 3
+            && depth <= self.opts.fut_depth
             && alpha.abs() < MATE_THRESHOLD
-            && static_eval!() + 120 + 150 * depth <= alpha;
+            && static_eval!() + self.opts.fut_base + self.opts.fut_scale * depth <= alpha;
         // Late-move pruning budget (Patch 7): after ordering has surfaced the
         // TT move, killers, and history leaders, the quiet tail at shallow
         // depth is almost never the refutation.
         // v2 budget (v1 = 4+d² screened RED 37.5% while skipping 83% of
         // attempted quiets — standard budgets assume 85-95% first-move
         // cutoffs; ours is ~35%, so the tail still matters): doubled.
-        let lmp_budget = (8 + 2 * depth * depth) as usize;
+        let lmp_budget = (self.opts.lmp_base + self.opts.lmp_sq * depth * depth / 100).max(1) as usize;
         // --histmalus: quiets actually searched at this node, so a quiet
         // cutoff can penalize everything ordered (wrongly) ahead of it.
         let mut tried_quiets = MoveList::new();
@@ -491,6 +538,57 @@ impl Searcher {
             if Some(mv) == self.excluded_move {
                 continue;
             }
+            // Lazy gives-check cache: LMR, futility, and the sfprune bundle all ask
+            // the same question about this move (make -> attack query -> unmake);
+            // answer it at most once per iteration.
+            let mut gc_opt: Option<bool> = None;
+            // Late-move reductions (Search Patch 3, conservative tier): with
+            // good ordering, late quiet non-checking moves rarely matter —
+            // search them shallower first, and re-search at full depth only
+            // if the reduced probe beats alpha. Never reduce: captures,
+            // promotions, checks (given or escaped), the TT move, killers,
+            // or the first three moves.
+            let reduce = self.opts.lmr
+                && depth >= 3
+                && move_index >= if self.opts.lmr2 { 1 } else { self.opts.lmr_min_index }
+                && !checked
+                && !mv.flag.is_capture()
+                && mv.flag.promo_piece().is_none()
+                && Some(mv) != tt_move
+                && !killer_pair.contains(&Some(mv))
+                && !*gc_opt.get_or_insert_with(|| gives_check(pos, mv));
+            // --histlmr (research 2026-06-12): the history table is consumed,
+            // not just sorted on — strong-history quiets escape the reduction,
+            // proven-bad ones (negative entries exist only under --histmalus)
+            // are reduced an extra ply. SF: r -= statScore*445/4096.
+            let mut lmr_r: i32 = if reduce {
+                let base = if self.opts.loglmr {
+                    super::log_lmr_reduction(depth, move_index, self.opts.lmr_div)
+                } else {
+                    1
+                };
+                (base + self.opts.lmr_bonus).clamp(1, self.opts.lmr_max.max(1))
+            } else {
+                0
+            };
+            if reduce && self.opts.hist_lmr {
+                let h = self.history[Self::history_idx(side, mv)];
+                if h > 2048 {
+                    lmr_r = 0;
+                } else if h < -2048 {
+                    lmr_r = 2;
+                }
+            }
+            // --improving: a non-improving node is going the wrong way, so its
+            // late quiets are even less likely to matter — reduce one more ply.
+            if reduce && self.opts.improving && !improving && lmr_r > 0 {
+                lmr_r += 1;
+            }
+            // SF's PV compensation: PV nodes search one ply deeper than the raw
+            // reduction implies (`+ PvNode` in SF's reduced-depth computation).
+            if reduce && self.opts.lmr2 && is_pv && lmr_r > 1 {
+                lmr_r -= 1;
+            }
             // Patch 7 skips. All require one searched move already (best is
             // real, so a pruned node still returns a legal score), never fire
             // in check, and exempt the TT move and killers.
@@ -498,7 +596,7 @@ impl Searcher {
                 let quiet = !mv.flag.is_capture() && mv.flag.promo_piece().is_none();
                 let exempt = Some(mv) == tt_move || killer_pair.contains(&Some(mv));
                 if quiet && !exempt {
-                    if self.opts.lmp && depth <= 4 {
+                    if self.opts.lmp && depth <= self.opts.lmp_depth {
                         self.tel.lmp_attempts += 1;
                         if move_index >= lmp_budget {
                             self.tel.lmp_skips += 1;
@@ -508,7 +606,7 @@ impl Searcher {
                     }
                     if futile {
                         self.tel.futility_attempts += 1;
-                        if !gives_check(pos, mv) {
+                        if !*gc_opt.get_or_insert_with(|| gives_check(pos, mv)) {
                             self.tel.futility_skips += 1;
                             self.tel.pruned_moves += 1;
                             continue;
@@ -527,46 +625,91 @@ impl Searcher {
                     }
                 }
             }
-            // Late-move reductions (Search Patch 3, conservative tier): with
-            // good ordering, late quiet non-checking moves rarely matter —
-            // search them shallower first, and re-search at full depth only
-            // if the reduced probe beats alpha. Never reduce: captures,
-            // promotions, checks (given or escaped), the TT move, killers,
-            // or the first three moves.
-            let reduce = self.opts.lmr
-                && depth >= 3
-                && move_index >= 3
-                && !checked
-                && !mv.flag.is_capture()
-                && mv.flag.promo_piece().is_none()
-                && Some(mv) != tt_move
-                && !killer_pair.contains(&Some(mv))
-                && !gives_check(pos, mv);
-            // --histlmr (research 2026-06-12): the history table is consumed,
-            // not just sorted on — strong-history quiets escape the reduction,
-            // proven-bad ones (negative entries exist only under --histmalus)
-            // are reduced an extra ply. SF: r -= statScore*445/4096.
-            let mut lmr_r: i32 = if reduce {
-                if self.opts.loglmr {
-                    super::log_lmr_reduction(depth, move_index, self.opts.lmr_div).max(1)
-                } else {
-                    1
+            // SF frontier bundle (--sfprune): Stockfish's move-level pruning at its
+            // published margins (SF internal units x100/208 cp), applied at EVERY
+            // depth — our rejected variants were harsh-but-shallow, this is the
+            // mild-but-everywhere structure that thins SF's deep tree. `lmr_depth`
+            // is the depth this move will actually be searched at after LMR.
+            if self.opts.sfprune && best > -INF && !checked && alpha.abs() < MATE_THRESHOLD {
+                let quiet = !mv.flag.is_capture() && mv.flag.promo_piece().is_none();
+                let exempt = Some(mv) == tt_move || killer_pair.contains(&Some(mv));
+                let lmr_depth = (depth - 1 - lmr_r).max(0);
+                let se = static_eval!();
+                if quiet && !exempt {
+                    // Movecount budget (SF step 15, improving=0 form): (3 + d^2)/2.
+                    if depth <= 12 && move_index >= ((3 + depth * depth) / 2).max(1) as usize {
+                        self.tel.lmp_attempts += 1;
+                        self.tel.lmp_skips += 1;
+                        self.tel.pruned_moves += 1;
+                        continue;
+                    }
+                    if !*gc_opt.get_or_insert_with(|| gives_check(pos, mv)) {
+                        // Futility (SF: eval + 119*lmrDepth + 90*(eval>alpha) + 164).
+                        if lmr_depth < 12
+                            && se + 57 * lmr_depth + 43 * (se > alpha) as i32 + 79 <= alpha
+                        {
+                            self.tel.futility_attempts += 1;
+                            self.tel.futility_skips += 1;
+                            self.tel.pruned_moves += 1;
+                            continue;
+                        }
+                        // SEE pruning of quiets (SF: -23 * lmrDepth^2). Fast path:
+                        // a quiet whose destination the opponent does not attack has
+                        // SEE >= 0 > -margin, so the (expensive) SEE call is skipped
+                        // whenever a single attackers_of query comes back empty.
+                        let attacked = self.opts.sf_quiet_see
+                            && crate::attacks::attackers_of(
+                                &pos.pieces,
+                                mv.to,
+                                pos.stm.flip(),
+                                pos.all,
+                            ) != 0;
+                        if self.opts.sf_quiet_see
+                            && attacked
+                            && see(pos, mv.from, mv.to) < -(11 * lmr_depth * lmr_depth)
+                        {
+                            self.tel.see_prune_attempts += 1;
+                            self.tel.see_prune_skips += 1;
+                            self.tel.pruned_moves += 1;
+                            continue;
+                        }
+                    }
+                } else if mv.flag.is_capture() && mv.flag.promo_piece().is_none() {
+                    // Capture futility (SF: eval + 234 + 247*lmrDepth + victim).
+                    let victim = pos
+                        .piece_at(mv.to)
+                        .map(|(_, p)| SEE_VALUE[p.index()])
+                        .unwrap_or(SEE_VALUE[Piece::Pawn.index()]);
+                    if !gives_check(pos, mv)
+                        && lmr_depth < 8
+                        && se + 112 + 119 * lmr_depth + victim <= alpha
+                    {
+                        self.tel.futility_attempts += 1;
+                        self.tel.futility_skips += 1;
+                        self.tel.pruned_moves += 1;
+                        continue;
+                    }
+                    // SEE pruning of captures (SF: -177 * depth), with SF's
+                    // last-piece guard so a sacrifice of our only non-pawn piece
+                    // (stalemate resource) is still searched.
+                    let our_nonpawn = (pos.pieces[side][Piece::Knight.index()]
+                        | pos.pieces[side][Piece::Bishop.index()]
+                        | pos.pieces[side][Piece::Rook.index()]
+                        | pos.pieces[side][Piece::Queen.index()])
+                        .count_ones();
+                    let mover_nonpawn = matches!(
+                        pos.piece_at(mv.from).map(|(_, p)| p),
+                        Some(Piece::Knight | Piece::Bishop | Piece::Rook | Piece::Queen)
+                    );
+                    if (alpha >= 0 || !(our_nonpawn == 1 && mover_nonpawn))
+                        && see(pos, mv.from, mv.to) < -(85 * depth)
+                    {
+                        self.tel.see_prune_attempts += 1;
+                        self.tel.see_prune_skips += 1;
+                        self.tel.pruned_moves += 1;
+                        continue;
+                    }
                 }
-            } else {
-                0
-            };
-            if reduce && self.opts.hist_lmr {
-                let h = self.history[Self::history_idx(side, mv)];
-                if h > 2048 {
-                    lmr_r = 0;
-                } else if h < -2048 {
-                    lmr_r = 2;
-                }
-            }
-            // --improving: a non-improving node is going the wrong way, so its
-            // late quiets are even less likely to matter — reduce one more ply.
-            if reduce && self.opts.improving && !improving && lmr_r > 0 {
-                lmr_r += 1;
             }
             self.acc_make(pos, mv);
             self.tel.searched_moves += 1;

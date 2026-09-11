@@ -103,6 +103,17 @@ def main(argv=None) -> int:
     ap.add_argument("--out-dir", default="benchmarks/results/anchor-20260910")
     args = ap.parse_args(argv)
     args.flags = args.flags.split()
+    # cutechess resolves engine args against its OWN cwd, so any relative
+    # artifact path inside `arg=` silently kills the engine process
+    # ("Could not initialize player"). Resolve everything up front.
+    from pathlib import Path as _P
+    args.exe = str(_P(args.exe).resolve())
+    args.net = str(_P(args.net).resolve())
+    args.helper = str(_P(args.helper).resolve()) if args.helper else None
+    args.book = str(_P(args.book).resolve())
+    args.flags = [
+        str(_P(a).resolve()) if _P(a).suffix == ".json" else a for a in args.flags
+    ]
     out = Path(args.out_dir)
     out.mkdir(parents=True, exist_ok=True)
 

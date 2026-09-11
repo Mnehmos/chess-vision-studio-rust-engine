@@ -1,0 +1,96 @@
+{
+  "campaign": "search efficiency: SF-constant selectivity port",
+  "date": "2026-09-10",
+  "exe": "target-sf/release/uci.exe, target-sf2, target-sf3 (all flags OFF by default: champion behavior unchanged)",
+  "flags_implemented": {
+    "--sfprune": "SF pruning structure with SF's published constants (cp = SF internal units x100/208): RFP to depth 19 at margin min(45+4d,85)*d, quiet futility 119*lmrDepth+90+164, SEE margins 177*d (captures) / 23*lmrDepth^2 (quiets), capture futility, (3+d^2)/2 movecount budget at every depth",
+    "--sfnull": "SF null condition (eval+365 >= beta-13*depth) + depth-scaled R = 7+depth/3+max((eval-beta)/256,0)",
+    "--sfqs": "SF qsearch move budget (after two moves only checks/promotions)",
+    "--lmr2": "SF-shaped LMR: reduce from the second move, PV nodes 1 ply rebate",
+    "--iir": "SF internal iterative reduction (depth-1 at depth>=6 with no TT move)",
+    "--conthist2": "second continuation history keyed by the move two plies back (SF contHist[1])"
+  },
+  "kpi_measured": {
+    "champion_depth_at_40k": 6.08,
+    "sfprune_depth_at_40k": 9.08,
+    "sfprune_sfnull_depth_at_40k": 8.8,
+    "stockfish_depth_at_40k": 13.83,
+    "champion_depth_at_100ms": 5.7,
+    "sfprune_sfnull_depth_at_100ms": 8.7,
+    "champion_branch_searched": 3.05,
+    "sfprune_branch_searched": 1.39,
+    "champion_first_move_cutoff_pct": 44.9,
+    "sfprune_first_move_cutoff_pct": 59.4,
+    "champion_qnode_pct": 53.8,
+    "sfprune_qnode_pct": 39.1,
+    "sfprune_sfnull_nps": 556000,
+    "champion_nps": 687000
+  },
+  "fixed_node_gate": {
+    "verdict": "HOLD (no per-node gain)",
+    "last_line": "[sfprune]  1920g  835-820-265  llr -0.396  [-2.94,2.94]  none",
+    "book": "openings-inv1-20260910.epd (4910 distinct positions)",
+    "nodes": 40000,
+    "games_stopped_at": 1680
+  },
+  "equal_time_referee": {
+    "verdict": "REJECT",
+    "tc": "3+0.03",
+    "cand": "--sfprune --sfnull",
+    "games": 359,
+    "wins": 117,
+    "losses": 205,
+    "draws": 37,
+    "llr": -2.9727,
+    "boundary": "lower",
+    "score_pct": 37.7
+  },
+  "ordering_diagnostic": {
+    "what": "rank of native Stockfish's deep best move inside our 40k-node root ordering",
+    "positions": 30,
+    "rank_le_10": "19/30",
+    "median_rank": 6,
+    "max_rank": 32,
+    "self_reference": "our own 1.5M-node best move is rank 1 in 13/24 positions, rank >10 in 4/24",
+    "reading": "any movecount/SEE pruning at depth cuts the engine's own eventual best move about a third of the time"
+  },
+  "conclusion": "Selectivity buys +3 nominal plies at 40k nodes and is strength-neutral PER NODE at 40k, but strength-NEGATIVE at the budgets the engine plays at (12k nodes: -51 Elo, LLR -2.945; equal time 3+0.03: -95 Elo, LLR -2.958) -- the smaller the node budget the worse it gets. Root cause measured: move ordering (SF's deep best move sits past rank 10 in ~1/3 of positions; first-move cutoff 45% vs SF ~90%) and eval accuracy (~172cp static MAE vs SF), so every movecount/SEE/eval cut discards the engine's own best move. Depth-per-node is not a strength currency for this engine: the lever is eval + ordering, not selectivity.",
+  "tools_added": [
+    "benchmarks/scripts/diag_nodes.py (node split + search shape)",
+    "benchmarks/scripts/diag_order_rank.py (ordering rank vs a reference)",
+    "benchmarks/scripts/match_timed.py (equal-time referee; fixed-node gate cannot see nps tradeoffs)"
+  ],
+  "fixed_node_gate_12k": {
+    "verdict": "REJECT",
+    "nodes": 12000,
+    "games": 578,
+    "wins": 216,
+    "losses": 300,
+    "draws": 62,
+    "llr": -2.945,
+    "boundary": "lower",
+    "where": "benchmarks/results/sfprune-12k-gate-20260910/"
+  },
+  "equal_time_referee_idle": {
+    "verdict": "REJECT",
+    "tc": "3+0.03",
+    "games": 335,
+    "wins": 108,
+    "losses": 197,
+    "draws": 30,
+    "llr": -2.958,
+    "boundary": "lower",
+    "where": "benchmarks/results/sfprune-tc2-20260910/",
+    "note": "first run was CPU-contended; idle re-run confirms the loss"
+  },
+  "equal_time_referee_contended": {
+    "verdict": "REJECT",
+    "tc": "3+0.03",
+    "games": 359,
+    "wins": 117,
+    "losses": 205,
+    "draws": 37,
+    "llr": -2.973,
+    "boundary": "lower"
+  }
+}

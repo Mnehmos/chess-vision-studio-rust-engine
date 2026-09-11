@@ -171,6 +171,9 @@ pub struct Searcher {
     /// depth²-weighted quiet-cutoff counts for the move PAIR — the table that
     /// usually closes the first-move-cutoff gap butterfly history can't.
     conthist: Vec<i32>, // 6*64*6*64
+    /// Second continuation history (--conthist2): same shape, keyed by the move
+    /// TWO plies back (SF's contHist[1]).
+    conthist2: Vec<i32>, // 6*64*6*64
     /// Capture history (--caphist): [side][piece][to][victim] gravity-weighted
     /// capture-cutoff counts. Pure ordering — captures were MVV-LVA only, so
     /// cutoffs taught nothing. Sharpens hit quality with no reduction tradeoff.
@@ -234,6 +237,7 @@ impl Searcher {
             history: vec![0; 2 * 64 * 64],
             counters: vec![None; 2 * 6 * 64],
             conthist: vec![0; 6 * 64 * 6 * 64],
+            conthist2: vec![0; 6 * 64 * 6 * 64],
             caphist: vec![0; 2 * 6 * 64 * 6],
             prev_moves: vec![None; MAX_KILLER_PLY],
             eval_stack: vec![i32::MIN; MAX_KILLER_PLY + 2],
@@ -424,10 +428,16 @@ impl Searcher {
             // Aspiration windows (Patch 5): start from a tight window around
             // the previous iteration's score; on any fail, re-search at full
             // width (one-step widen — simple and safe).
-            const ASPIRATION_CP: i32 = 50;
+            // Aspiration windows (Patch 5, progressive since 2026-09-10): start from a
+            // tight window around the previous score; on a fail, re-anchor at the returned
+            // score and widen by 1.5x instead of jumping straight to full width (a
+            // full-width re-search is the most expensive kind and the old code paid it on
+            // every failed aspiration).
+            let asp = self.opts.asp_window.max(1);
+            let mut asp_delta = asp;
             let (mut a, mut b) = match prev_score {
                 Some(p) if self.opts.pvs && depth >= 3 && p.abs() < MATE_THRESHOLD => {
-                    (p - ASPIRATION_CP, p + ASPIRATION_CP)
+                    (p - asp, p + asp)
                 }
                 _ => (-INF, INF),
             };
@@ -438,12 +448,14 @@ impl Searcher {
                 }
                 if sc <= a && a > -INF {
                     self.tel.aspiration_researches += 1;
-                    (a, b) = (-INF, INF);
+                    asp_delta = (asp_delta + asp_delta / 2).min(4000);
+                    a = (sc - asp_delta).max(-INF);
                     continue;
                 }
                 if sc >= b && b < INF {
                     self.tel.aspiration_researches += 1;
-                    (a, b) = (-INF, INF);
+                    asp_delta = (asp_delta + asp_delta / 2).min(4000);
+                    b = (sc + asp_delta).min(INF);
                     continue;
                 }
                 break (sc, bm);

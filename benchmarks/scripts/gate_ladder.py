@@ -59,6 +59,21 @@ BASE_FLAGS = list(M.N0_FLAGS)
 # `flag` gates toggle one runtime flag; `exe` gates compare two builds of the same source
 # tree differing by one commit.
 LADDER: dict[str, dict] = {
+    "nnuecal":     {"kind": "flag", "add": ["--nnue-cal", str(M.REPO / "target-cvs/eval-cal-20260911.json")],
+                    "no_adjudication": True,
+                    "what": "oracle-fitted eval output calibration (MAE 126->85 vs SF static); no-adjudication gate (score scales differ)"},
+    "nnuecal-sfprune": {"kind": "flag",
+                    "add": ["--nnue-cal", str(M.REPO / "target-cvs/eval-cal-20260911.json"), "--sfprune", "--sfnull"],
+                    "no_adjudication": True,
+                    "what": "calibrated eval + the SF frontier bundle (re-test now that eval margins are in the right units)"},
+    "sfprune":     {"kind": "flag", "add": ["--sfprune"],
+                    "what": "SF frontier bundle: SF-constant RFP/futility/SEE margins + (3+d^2)/2 movecount budget at every depth"},
+    "sfprune-ch2": {"kind": "flag", "add": ["--sfprune", "--conthist2"],
+                    "what": "SF frontier bundle + second continuation history (SF contHist[1])"},
+    "conthist2":   {"kind": "flag", "add": ["--conthist2"],
+                    "what": "second continuation history, keyed by the move two plies back"},
+    "iir":         {"kind": "flag", "add": ["--iir"],
+                    "what": "internal iterative reduction (SF IIR): depth-1 at cut nodes with no TT move"},
     "conthist":    {"kind": "flag", "add": ["--conthist"],
                     "what": "continuation history in quiet move ordering"},
     "countermove": {"kind": "flag", "add": ["--countermove"],
@@ -196,7 +211,8 @@ def play_batch(gate_id: str, spec: dict, out: Path, args, batch_games: int, batc
     base = {"name": "base", "exe": spec.get("base_exe", args.exe), "net": args.net,
             "helper": M.N0_HELPER, "flags": base_flags, "nodes": args.nodes}
     cmd = M.build_cutechess_cmd(cand, base, batch_games, str(pgn),
-                                openings=str(openings), concurrency=args.concurrency)
+                                openings=str(openings), concurrency=args.concurrency,
+                                adjudicate=not spec.get("no_adjudication", False))
     if args.dry_run:
         print(" ".join(cmd))
         return []

@@ -111,6 +111,23 @@ impl Searcher {
                 }
             }
         }
+        if self.opts.conthist2 {
+            // Grandparent continuation (SF's contHist[1]): the move two plies back
+            // keys a second pair counter, so an ordering signal survives even when
+            // the immediate predecessor move was never seen in this context.
+            let prev2 = p.checked_sub(1).and_then(|i| self.prev_moves.get(i)).copied().flatten();
+            if let Some(prev2) = prev2 {
+                if let (Some((_, gp)), Some((_, cp))) =
+                    (pos.piece_at(prev2.to), pos.piece_at(mv.from))
+                {
+                    let ci = Self::conthist_idx(gp, prev2.to, cp, mv.to);
+                    const D: i32 = 8192;
+                    let bonus = (150 * depth).min(1500);
+                    let e = &mut self.conthist2[ci];
+                    *e += bonus - *e * bonus.abs() / D;
+                }
+            }
+        }
         if self.opts.hist_malus {
             // Gravity update (research 2026-06-12, SF/Ethereal): capped LINEAR
             // bonus — depth² uncapped lets a few deep nodes saturate entries —
@@ -352,6 +369,15 @@ impl Searcher {
             if let Some((pp, pt)) = ch_key {
                 if let Some((_, cp)) = pos.piece_at(m.from) {
                     s += self.conthist[Self::conthist_idx(pp, pt, cp, m.to)];
+                }
+            }
+            if self.opts.conthist2 && ply >= 2 {
+                if let Some(gp) = self.prev_moves.get(ply as usize - 1).copied().flatten() {
+                    if let (Some((_, gpp)), Some((_, cp))) =
+                        (pos.piece_at(gp.to), pos.piece_at(m.from))
+                    {
+                        s += self.conthist2[Self::conthist_idx(gpp, gp.to, cp, m.to)];
+                    }
                 }
             }
             if ply == 0 && self.opts.cvs_bonus {
