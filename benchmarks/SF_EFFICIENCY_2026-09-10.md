@@ -83,3 +83,29 @@ searches deeper than its evaluation can use.
 
 Records: `benchmarks/results/sfprune-gate-20260910/`, `.../sfprune-12k-gate-20260910/`,
 `.../sfprune-tc2-20260910/`, and `benchmarks/SF_EFFICIENCY_2026-09-10.json`.
+
+
+## Addendum 2026-09-11 — re-tested on the calibrated eval
+
+The eval calibration (`benchmarks/EVAL_CALIBRATION_2026-09-11.md`, +36 Elo fixed-node,
++74 Elo anchored) put the centipawn margins into the units the SF constants assume, so the
+bundle's rejection was re-tested: `nnuecal-sfprune` = calibrated eval + `--sfprune --sfnull`
+at 40k nodes, 1500 games, **HOLD** (643-641-216, LLR −0.630, point estimate ≈ −5 Elo).
+
+| configuration | depth@40k | 40k-node gate | 12k-node gate | equal time |
+|---|---:|---|---|---|
+| sfprune (uncalibrated eval) | 9.08 | HOLD (−0.12) | **REJECT** (−2.945) | **REJECT** (−2.958) |
+| sfprune (calibrated eval) | 9.17 | HOLD (−0.63) | not run (see note) | not run (see note) |
+
+Reading: the calibration removed the *soundness* failure (the same bundle went from clearly
+harmful at playable budgets to neutral at 40k), which confirms the diagnosis that a compressed
+eval scale was corrupting every cp-based decision. It did **not** turn selectivity into a gain,
+because the remaining blocker is move ordering, not eval scale: SF's deep best move still sits
+past rank 10 in our ordering in about a third of positions, so the pruned tail still contains
+the move. The 12k/equal-time gates were not re-run: per node the bundle is now merely neutral
+while it still costs 1.2-1.3x nodes per second, so the outcome is determined by the 40k result
+plus the measured nps cost.
+
+Next lever for the KPI: ordering (contHist[1], TT-move availability, pawn history) and further
+eval accuracy — the calibrated net is still at MAE ~85 vs Stockfish's static eval, and its
+residual errors are concentrated in the middlegame/endgame (~93-95 MAE vs ~70 in the opening).

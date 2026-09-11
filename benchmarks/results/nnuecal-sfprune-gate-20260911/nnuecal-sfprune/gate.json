@@ -1,0 +1,137 @@
+{
+  "gate": "nnuecal-sfprune",
+  "what": "calibrated eval + the SF frontier bundle (re-test now that eval margins are in the right units)",
+  "kind": "flag",
+  "games": 1500,
+  "wins": 643,
+  "losses": 641,
+  "draws": 216,
+  "llr": -0.6301,
+  "boundary": "none",
+  "decision": "hold_for_more_data",
+  "elapsedSec": 1264.9,
+  "cappedAt": 1500,
+  "bookExhausted": false,
+  "positionsUsed": 750,
+  "book": "openings-inv1-20260910.epd",
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 55,
+      "losses": 47,
+      "draws": 18,
+      "llr": 0.2091,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 108,
+      "losses": 96,
+      "draws": 36,
+      "llr": 0.2856,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 156,
+      "losses": 143,
+      "draws": 61,
+      "llr": 0.2683,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 480,
+      "wins": 207,
+      "losses": 197,
+      "draws": 76,
+      "llr": 0.1089,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 600,
+      "wins": 258,
+      "losses": 252,
+      "draws": 90,
+      "llr": -0.0807,
+      "boundary": "none"
+    },
+    {
+      "batch": 6,
+      "games": 720,
+      "wins": 311,
+      "losses": 301,
+      "draws": 108,
+      "llr": -0.0042,
+      "boundary": "none"
+    },
+    {
+      "batch": 7,
+      "games": 840,
+      "wins": 362,
+      "losses": 351,
+      "draws": 127,
+      "llr": -0.0269,
+      "boundary": "none"
+    },
+    {
+      "batch": 8,
+      "games": 960,
+      "wins": 414,
+      "losses": 401,
+      "draws": 145,
+      "llr": -0.0165,
+      "boundary": "none"
+    },
+    {
+      "batch": 9,
+      "games": 1080,
+      "wins": 467,
+      "losses": 454,
+      "draws": 159,
+      "llr": -0.0728,
+      "boundary": "none"
+    },
+    {
+      "batch": 10,
+      "games": 1200,
+      "wins": 521,
+      "losses": 505,
+      "draws": 174,
+      "llr": -0.0298,
+      "boundary": "none"
+    },
+    {
+      "batch": 11,
+      "games": 1320,
+      "wins": 567,
+      "losses": 557,
+      "draws": 196,
+      "llr": -0.2835,
+      "boundary": "none"
+    },
+    {
+      "batch": 12,
+      "games": 1440,
+      "wins": 621,
+      "losses": 611,
+      "draws": 208,
+      "llr": -0.3389,
+      "boundary": "none"
+    },
+    {
+      "batch": 13,
+      "games": 1500,
+      "wins": 643,
+      "losses": 641,
+      "draws": 216,
+      "llr": -0.6301,
+      "boundary": "none"
+    }
+  ],
+  "record": "benchmarks/results/nnuecal-sfprune-gate-20260911/nnuecal-sfprune/sprt.json"
+}
