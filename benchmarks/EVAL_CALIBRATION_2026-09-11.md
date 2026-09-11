@@ -86,4 +86,7 @@ time), but the calibrated eval is the fair test bed for selectivity, so
 - Studio `.env`: `CVS_RUST_NNUE_CAL=...` and `arena/engine-backend/rust-backend.ts` maps it to
   `--nnue-cal` (default-off; unset = raw net output).
 - Rebuilt the deployed `target/release` binary and restarted the Lichess bot on it.
-- Anchor vs native Stockfish (10+0.1) re-run: `benchmarks/results/anchor-nnuecal-20260911/`.
+- Anchor vs native Stockfish (10+0.1) re-run: **~2594 Elo** (previous ~2520, same method,
+  uncalibrated) = **+74 Elo** on the anchor instrument, consistent with the gate.
+  See `benchmarks/ANCHOR_2026-09-11.md`; raw PGNs under
+  `benchmarks/results/anchor-nnuecal-20260911/`.

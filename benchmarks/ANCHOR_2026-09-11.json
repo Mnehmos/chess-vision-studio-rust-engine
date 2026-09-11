@@ -1,0 +1,74 @@
+{
+  "anchor": "2026-09-11",
+  "engine": "target-sf3/release/uci.exe (calibrated eval), 1 thread",
+  "flags": "--futility --rfp --tt-prune-store --qtt --histmalus --histlmr --lmp --smarttime --nnue-cal target-cvs/eval-cal-20260911.json",
+  "net": "target-cvs/matrix-raw.json + helper matrix-residual.json",
+  "opponent": "local native Stockfish (AVX2), UCI_LimitStrength, UCI_Elo=<anchor>",
+  "method": "200 games/anchor over 100 distinct positions (openings-inv1-20260910.epd, sequential), colour-paired, tc=10+0.1, draw/resign adjudication, conc 10",
+  "anchors": [
+    {
+      "sf": 2000,
+      "w": 158,
+      "l": 33,
+      "d": 9,
+      "games": 200,
+      "score_pct": 81.2,
+      "elo_diff": 255,
+      "ci": [
+        193,
+        316
+      ],
+      "implied": 2255
+    },
+    {
+      "sf": 2200,
+      "w": 147,
+      "l": 40,
+      "d": 13,
+      "games": 200,
+      "score_pct": 76.8,
+      "elo_diff": 207,
+      "ci": [
+        151,
+        264
+      ],
+      "implied": 2407
+    },
+    {
+      "sf": 2400,
+      "w": 122,
+      "l": 59,
+      "d": 19,
+      "games": 200,
+      "score_pct": 65.8,
+      "elo_diff": 113,
+      "ci": [
+        63,
+        164
+      ],
+      "implied": 2513
+    },
+    {
+      "sf": 2600,
+      "w": 89,
+      "l": 91,
+      "d": 20,
+      "games": 200,
+      "score_pct": 49.5,
+      "elo_diff": -3,
+      "ci": [
+        -51,
+        45
+      ],
+      "implied": 2597
+    }
+  ],
+  "estimated_strength": 2594,
+  "previous_anchor": {
+    "date": "2026-09-10",
+    "estimated_strength": 2520,
+    "note": "same method, uncalibrated eval"
+  },
+  "delta_elo": 74,
+  "note": "The anchor moves +74 Elo with the eval calibration, consistent with (larger than) the fixed-node SPRT (+36 Elo point estimate, LLR +2.971). Anchor cohorts are \u00b135-60 Elo each, so the two instruments agree within their intervals."
+}
