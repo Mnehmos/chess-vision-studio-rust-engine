@@ -170,13 +170,15 @@ impl Default for SearchOptions {
             razoring: false,
             probcut: false,
             recapture: false,
-            // Promoted 2026-09-09 on records that are now SUPERSEDED: the ladder
-            // replayed one 12-position book, so its SPRT counted dependent repeats
-            // (benchmarks/INV1_GATE_INTEGRITY_2026-09-09.md). The combined set was
-            // re-measured on 1000 distinct positions: LLR +0.269, HOLD (+6 Elo point
-            // estimate). Flags are retained (no evidence of harm) pending individual
-            // re-gates; they are NOT established promotions.
-            see_prune: true,
+            // 2026-09-10 high-power re-gates (4910 distinct positions) settled the
+            // 2026-09-09 batch that was promoted on superseded records
+            // (benchmarks/INV1_GATE_INTEGRITY_2026-09-09.md):
+            //   seeprune  REJECT lower (LLR -2.958, 2748g) -> OFF
+            //   improving REJECT lower (LLR -2.974, 2784g) -> OFF
+            //   tt2       REJECT lower (LLR -2.945, 1214g) -> OFF
+            //   caphist   HOLD +0.411 (4000g)              -> retained
+            //   kingact   HOLD +0.370 (4000g)              -> retained
+            see_prune: false,
             see_verify: false,
             delta_prune: false,
             countermove: false,
@@ -190,11 +192,11 @@ impl Default for SearchOptions {
             qsearch_tt: true,
             hist_malus: true,
             hist_lmr: true,
-            // Same superseded 2026-09-09 promotion batch as see_prune/king_activity
-            // above (caphist, tt2, improving); retained pending individual re-gates.
+            // caphist held (+0.411) at the high-power re-gate -> retained; tt2 and
+            // improving crossed the LOWER bound there -> off.
             caphist: true,
-            tt2: true,
-            improving: true,
+            tt2: false,
+            improving: false,
             threads: 1,
             cvs_trace: false,
             cvs_core_trace: false,

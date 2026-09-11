@@ -21,10 +21,12 @@ fn champion_defaults_keep_rejected_experiments_off() {
     // retained, but their ladder/kingact records are SUPERSEDED — the ladder replayed
     // one 12-position book and counted dependent repeats. Re-measured on 1000 distinct
     // positions the combined set held at LLR +0.269 (benchmarks/INV1_GATE_INTEGRITY_2026-09-09.md).
-    assert!(options.see_prune);
+    // 2026-09-10 high-power re-gates: seeprune/improving/tt2 crossed the LOWER bound
+    // (they hurt) and are off; caphist/kingact held and are retained.
+    assert!(!options.see_prune);
     assert!(options.caphist);
-    assert!(options.improving);
-    assert!(options.tt2);
+    assert!(!options.improving);
+    assert!(!options.tt2);
 
     // INV-1 promotions on the fixed harness (independent positions, no repeats):
     // loglmr crossed upper at 1030 games (LLR +2.965); conthist at 1781 games on the
