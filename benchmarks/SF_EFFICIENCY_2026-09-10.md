@@ -109,3 +109,12 @@ plus the measured nps cost.
 Next lever for the KPI: ordering (contHist[1], TT-move availability, pawn history) and further
 eval accuracy — the calibrated net is still at MAE ~85 vs Stockfish's static eval, and its
 residual errors are concentrated in the middlegame/endgame (~93-95 MAE vs ~70 in the opening).
+
+## Ordering candidates measured on the calibrated champion (2026-09-11)
+
+| candidate | instrument | result |
+|---|---|---|
+| `--conthist2` (SF contHist[1]) | depth@40k +0.09 plies, fmc +1.8pt | **HOLD** — 2000 games, 863-829-308, LLR +0.196 (≈+2 Elo) |
+| `--histbal` (bonus = malus magnitude, SF-style) | fmc 43.5→44.2%, depth@40k 6.33→6.00 | dropped before gating (no signal) |
+
+Neither moves the ordering bottleneck enough to matter: the first-move cutoff rate stays ~44% where Stockfish is ~90%, so ordering remains the gate on selectivity (see SF_EFFICIENCY_2026-09-10.md). Records: `benchmarks/results/conthist2-gate-20260911/`.
