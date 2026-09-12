@@ -1,0 +1,119 @@
+{
+  "gate": "pawnhist",
+  "what": "pawn-structure-keyed quiet history (SF pawn_entry) with gravity bonus+malus",
+  "kind": "flag",
+  "games": 1236,
+  "wins": 481,
+  "losses": 552,
+  "draws": 203,
+  "llr": -2.96,
+  "boundary": "lower",
+  "decision": "reject",
+  "elapsedSec": 1343.9,
+  "cappedAt": null,
+  "bookExhausted": false,
+  "positionsUsed": 660,
+  "book": "openings-inv1-20260910.epd",
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 41,
+      "losses": 58,
+      "draws": 21,
+      "llr": -0.6332,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 91,
+      "losses": 107,
+      "draws": 42,
+      "llr": -0.6546,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 133,
+      "losses": 162,
+      "draws": 65,
+      "llr": -1.1566,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 480,
+      "wins": 187,
+      "losses": 212,
+      "draws": 81,
+      "llr": -1.067,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 600,
+      "wins": 235,
+      "losses": 265,
+      "draws": 100,
+      "llr": -1.2895,
+      "boundary": "none"
+    },
+    {
+      "batch": 6,
+      "games": 720,
+      "wins": 277,
+      "losses": 324,
+      "draws": 119,
+      "llr": -1.9152,
+      "boundary": "none"
+    },
+    {
+      "batch": 7,
+      "games": 840,
+      "wins": 327,
+      "losses": 368,
+      "draws": 145,
+      "llr": -1.78,
+      "boundary": "none"
+    },
+    {
+      "batch": 8,
+      "games": 960,
+      "wins": 378,
+      "losses": 420,
+      "draws": 162,
+      "llr": -1.8646,
+      "boundary": "none"
+    },
+    {
+      "batch": 9,
+      "games": 1080,
+      "wins": 420,
+      "losses": 478,
+      "draws": 182,
+      "llr": -2.4592,
+      "boundary": "none"
+    },
+    {
+      "batch": 10,
+      "games": 1200,
+      "wins": 471,
+      "losses": 529,
+      "draws": 200,
+      "llr": -2.5118,
+      "boundary": "none"
+    },
+    {
+      "batch": 11,
+      "games": 1236,
+      "wins": 481,
+      "losses": 552,
+      "draws": 203,
+      "llr": -2.96,
+      "boundary": "lower"
+    }
+  ],
+  "record": "benchmarks/results/pawnhist-gate-20260912/pawnhist/sprt.json"
+}
