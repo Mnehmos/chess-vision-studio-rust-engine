@@ -105,6 +105,30 @@ Measured status of the two paths (2026-09-11):
   score (which `--nnue-cal` inverts); a linear target collapses to the mean under every
   init/LR/embedding-scale variant tried.
 
+## Linear centipawn target: solved the *training*, not yet the *accuracy* (2026-09-12)
+
+The collapse was a **cold-start** problem, and it is now understood and worked around
+without any engine change:
+
+* warm-starting from an already-trained net and fitting **only a linear output head**
+  trains immediately (`--init-from ... --freeze-features`): slope 0.65, MAE 114 raw --
+  usable centipawns, **no calibration curve needed**;
+* joint fine-tuning with **discriminative LRs** (head 2e-3, features 1e-4) improves it
+  further: r 0.871 -> 0.881, MAE 114 -> 110, slope 0.69;
+* a second round on the full 4.1M corpus is flat (r 0.881, MAE 110): converged.
+
+Mechanism: with a linear target the initial output already equals the target mean, so the
+output layer gets no coherent gradient while the hidden layer is still position-independent;
+the shared-LR joint run destabilises (114 -> 262) because the head must move ~10x faster
+than the features it reads.
+
+So a **linear-centipawn evaluator is now trainable** -- `target-cvs/gen10-linear-r2.json`
+is such a net (`outputScaleCp=400`, linear semantics, no calibration) -- but it is still
+*less accurate* than the shipped compressed net + curve (r 0.881 / MAE 110 vs 0.920 / 93).
+The remaining gap is **feature quality**, not the target encoding: the features were trained
+for the compressed objective, and closing the gap needs new features (wider/deeper) and new
+data, i.e. the project described above.
+
 So the next evaluator attempt needs *new* position generation (self-play over the
 distinct-opening book + live games) labelled with search scores, not another pass over
 the existing corpus.

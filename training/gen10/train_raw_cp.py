@@ -69,6 +69,7 @@ class RawNet(nn.Module):
         # that output ~0 regardless of position). Matches the proven recipe.
         nn.init.normal_(self.embed.weight, std=embed_init)
         self.b1 = nn.Parameter(torch.full((hidden,), b1_init))
+        self.center = False
         self.out = nn.Linear(hidden, 1)
         nn.init.normal_(self.out.weight, std=out_init)
         nn.init.zeros_(self.out.bias)
@@ -76,6 +77,8 @@ class RawNet(nn.Module):
     def forward(self, idx, offsets):
         acc = self.embed(idx, offsets) + self.b1
         h = acc.clamp(0.0, 1.0)
+        if self.center:
+            h = h - 0.5
         return self.out(h).squeeze(-1)
 
 
@@ -114,6 +117,25 @@ def main(argv=None) -> int:
                     help="hidden bias init; ~0.5 keeps clamp(acc,0,1) units responsive at "
                          "t=0, which is what a linear (unbounded-range) target needs")
     ap.add_argument("--out-init", type=float, default=0.05, help="std for the output layer init")
+    ap.add_argument("--init-from", default=None,
+                    help="warm-start the model from an exported net (first layer + head), "
+                         "then optionally freeze the feature layer (--freeze-features) to fit "
+                         "only a linear output head. A linear cp target has zero gradient at "
+                         "init (the output already equals the target mean); fitting the head "
+                         "on top of good frozen features is a well-posed regression instead.")
+    ap.add_argument("--feature-lr-scale", type=float, default=1.0,
+                    help="feature-layer LR as a fraction of the head's. Joint fine-tuning of a "
+                         "well-fit head with a shared LR destabilises it (observed: 114 -> 262 "
+                         "MAE); the head needs to move ~10x faster than the features it reads")
+    ap.add_argument("--freeze-features", action="store_true",
+                    help="train only the output layer (w2/b2)")
+    ap.add_argument("--center-hidden", action="store_true",
+                    help="use h = clamp(acc,0,1) - 0.5 (signed hidden features). The export "
+                         "folds -0.5*sum(w2) into b2, so the engine's CURRENT inference "
+                         "reproduces it exactly -- no engine change needed. Rationale: with "
+                         "unsigned features the output layer sees no position-varying signal "
+                         "while units sit at the clamp floor, which is what makes a linear "
+                         "centipawn target collapse to the mean.")
     ap.add_argument("--label-field", default="cp", choices=("cp", "cpStatic"),
                     help="which corpus field is the training label (cpStatic = SF's static eval)")
     ap.add_argument("--stride", type=int, default=1,
@@ -183,7 +205,26 @@ def main(argv=None) -> int:
     tr_t = ~ho_t
 
     net = RawNet(a.hidden, a.b1_init, a.out_init, a.embed_init).to(dev)
-    opt = torch.optim.Adam(net.parameters(), lr=a.lr)
+    if a.init_from:
+        import json as _json
+        src = _json.load(open(a.init_from, encoding="utf-8"))
+        w1s = torch.tensor(src["w1"], dtype=torch.float32)
+        net.embed.weight.data.copy_(w1s)
+        net.b1.data.copy_(torch.tensor(src["b1"], dtype=torch.float32))
+        net.out.weight.data.copy_(torch.tensor(src["w2"], dtype=torch.float32).unsqueeze(0))
+        net.out.bias.data.fill_(float(src["b2"]))
+        print(f"warm-started from {a.init_from} (hidden {src.get('hidden')})")
+    if a.freeze_features:
+        for q in (net.embed.weight, net.b1):
+            q.requires_grad_(False)
+        print("feature layer frozen: fitting the output head only")
+    net.center = a.center_hidden
+    feat = [net.embed.weight, net.b1]
+    head = [net.out.weight, net.out.bias]
+    groups = [{"params": head, "lr": a.lr}]
+    if not a.freeze_features:
+        groups.append({"params": feat, "lr": a.lr * a.feature_lr_scale})
+    opt = torch.optim.Adam(groups)
     lossf = nn.HuberLoss(delta=a.huber_delta)
 
     def idx_for(mask):
@@ -237,7 +278,8 @@ def main(argv=None) -> int:
         "w1": [[round(float(v), 6) for v in row] for row in w1],
         "b1": [round(float(v), 6) for v in net.b1.detach().cpu().numpy()],
         "w2": [round(float(v), 6) for v in net.out.weight.detach().cpu().numpy()[0]],
-        "b2": float(net.out.bias.detach().cpu().numpy()[0]),
+        "b2": float(net.out.bias.detach().cpu().numpy()[0]
+                     - (0.5 * sum(net.out.weight.detach().cpu().numpy()[0]) if a.center_hidden else 0.0)),
     }, open(out, "w", encoding="utf-8"), separators=(",", ":"))
     print(f"wrote {out}")
     return 0

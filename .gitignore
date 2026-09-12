@@ -22,3 +22,6 @@ training/gen8/runs/
 
 # local screenshots
 Codex Image*.gif
+
+# gen10 corpora (regenerable; too large for git)
+training/gen10/corpus*/
