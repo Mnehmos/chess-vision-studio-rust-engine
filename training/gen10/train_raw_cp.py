@@ -255,7 +255,9 @@ def main(argv=None) -> int:
     groups = [{"params": head, "lr": a.lr}]
     if not a.freeze_features:
         groups.append({"params": feat, "lr": a.lr * a.feature_lr_scale})
-    opt = torch.optim.Adam(groups)
+    # foreach=False: torch's multi-tensor Adam path faults with an illegal memory
+    # access on this box (CUDA error inside _multi_tensor_adam / _foreach_lerp_).
+    opt = torch.optim.Adam(groups, foreach=False)
     lossf = nn.HuberLoss(delta=a.huber_delta)
 
     def idx_for(mask):

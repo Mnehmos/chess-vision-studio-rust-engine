@@ -139,6 +139,10 @@ Ranking the two candidate causes, with numbers:
 | linear head on frozen good features (no calibration needed) | r 0.871, MAE 114 |
 | + joint fine-tuning with discriminative LRs | r 0.881, MAE 110 |
 | + second head layer (capacity) | r 0.886, MAE 109.5 |
+| feature width 256 -> 512 (same data, same target) | holdout MAE 214.7 -> 218.4 -- no gain |
+
+Every architectural knob is flat; only data moves the needle. The evaluator thread's
+conclusion is therefore: **new positions with search labels, or nothing.**
 
 Data dominates; capacity barely moves it; so the next evaluator attempt needs **new
 positions and search labels** (feature width is the other knob: 256 -> 512 hidden doubles
