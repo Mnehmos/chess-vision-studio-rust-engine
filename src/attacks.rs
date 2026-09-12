@@ -169,3 +169,39 @@ pub fn attackers_to_color(pos: &Position, sq: u8, by: Color, occ: u64) -> u64 {
 pub fn is_square_attacked(pos: &Position, sq: u8, by: Color, occ: u64) -> bool {
     attackers_of(&pos.pieces, sq, by, occ) != 0
 }
+
+/// Squares strictly between `a` and `b` on their shared rank/file/diagonal (0 if
+/// not aligned). Uses the attack tables: bishop_attacks(a, just_b) reaches every
+/// diagonal square from a up to b (b blocks), and the same from b — their AND is
+/// exactly the between squares. Same for rook lines.
+
+/// Squares strictly between `a` and `b` on their shared rank, file, or diagonal.
+/// Returns 0 if the squares are not aligned. The "attack intersection trick"
+/// (`attacks(a, blocker=b) & attacks(b, blocker=a)`) works ONLY when a and b are
+/// actually aligned — for non-aligned pairs the intersection can be nonzero due
+/// to crossing rays, producing false "pinned" pieces and perft failures.
+pub fn between_mask(a: u8, b: u8) -> u64 {
+    let af = (a % 8) as i32;
+    let ar = (a / 8) as i32;
+    let bf = (b % 8) as i32;
+    let br = (b / 8) as i32;
+    let df = bf - af;
+    let dr = br - ar;
+    // Must share a rank, file, or diagonal
+    if df != 0 && dr != 0 && df.abs() != dr.abs() { return 0; }
+    if a == b { return 0; }
+    // Step direction
+    let sf = if df > 0 { 1i32 } else if df < 0 { -1i32 } else { 0 };
+    let sr = if dr > 0 { 1i32 } else if dr < 0 { -1i32 } else { 0 };
+    // Walk from a toward b, collecting squares strictly between
+    let mut result = 0u64;
+    let mut f = af + sf;
+    let mut r = ar + sr;
+    while (f, r) != (bf, br) {
+        result |= 1u64 << ((r * 8 + f) as u8);
+        f += sf;
+        r += sr;
+    }
+    result
+}
+

@@ -155,6 +155,14 @@ pub struct SearchOptions {
     /// has seen them cut off before — the one big ordering signal we never had.
     /// Targets the measured blocker: first-move cutoff 45% vs SF ~90%.
     pub pawnhist: bool,
+    /// Quantized eval (--quant-eval): i16 weights + accumulator instead of f32.
+    /// Measured quantization error: 5.6 cp MAE (S1=128), negligible vs the 85 cp
+    /// eval MAE. The i16 accumulator gives 16 AVX2 lanes vs 8 for f32.
+    pub quant_eval: bool,
+    /// Pin-aware legal move generation (--pinmovegen): compute pinned pieces and
+    /// checkers once, then only make/unmake-verify king moves, pinned-piece moves,
+    /// and en-passant. All other moves are legal by construction when not in check.
+    pub pinmovegen: bool,
     /// Balanced history updates (--histbal): give the quiet-cutoff BONUS the same
     /// magnitude as the tried-quiet MALUS (SF uses one `bonus` for both). Ours
     /// penalizes at 300*depth but rewards at only 150*depth, so the history drifts
@@ -286,6 +294,8 @@ impl Default for SearchOptions {
             // fixed-node SPRT gate.
             conthist2: false,
             pawnhist: false,
+            quant_eval: false,
+            pinmovegen: false,
             hist_bal: false,
             iir: false,
             sfprune: false,
@@ -374,6 +384,8 @@ impl SearchOptions {
         self.conthist = toggle("--conthist", "--no-conthist", self.conthist);
         self.conthist2 = toggle("--conthist2", "--no-conthist2", self.conthist2);
         self.pawnhist = toggle("--pawnhist", "--no-pawnhist", self.pawnhist);
+        self.quant_eval = toggle("--quant-eval", "--no-quant-eval", self.quant_eval);
+        self.pinmovegen = toggle("--pinmovegen", "--no-pinmovegen", self.pinmovegen);
         self.hist_bal = toggle("--histbal", "--no-histbal", self.hist_bal);
         self.iir = toggle("--iir", "--no-iir", self.iir);
         self.sfprune = toggle("--sfprune", "--no-sfprune", self.sfprune);

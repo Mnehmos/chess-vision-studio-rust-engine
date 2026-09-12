@@ -107,6 +107,12 @@ impl Searcher {
 
     pub(super) fn static_eval(&self, pos: &mut Position) -> i32 {
         if let Some(n) = &self.nnue {
+            if self.opts.quant_eval && n.is_quantized() && !n.cvs {
+                return self.king_activity(
+                    pos,
+                    self.rule50_scale(pos, n.eval_stm_q(pos)),
+                );
+            }
             if self.acc_top != usize::MAX {
                 return self.king_activity(
                     pos,
@@ -134,6 +140,12 @@ impl Searcher {
             return 0;
         }
         if let Some(n) = &self.nnue {
+            if self.opts.quant_eval && n.is_quantized() && !n.cvs {
+                return self.king_activity(
+                    pos,
+                    self.rule50_scale(pos, n.eval_stm_q(pos)),
+                );
+            }
             if self.acc_top != usize::MAX {
                 return self.king_activity(
                     pos,

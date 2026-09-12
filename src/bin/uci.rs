@@ -126,10 +126,14 @@ fn main() {
             .map(|v| v.trim() == "1")
             .unwrap_or(false);
     let eval_cal = get("--nnue-cal").map(|p| load_eval_cal(&p));
+    let quant = args.iter().any(|a| a == "--quant-eval");
     let nnue: Option<Nnue> = get("--nnue").map(|p| {
         let mut n = Nnue::load(&p, allow_unverified).expect("load nnue");
         if let Some(c) = &eval_cal {
             n.set_calibration(c);
+        }
+        if quant {
+            n.quantize();
         }
         n
     });
