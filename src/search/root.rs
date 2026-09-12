@@ -806,6 +806,9 @@ impl Searcher {
                             .map(|i| tried_quiets.get(i))
                             .collect();
                         self.punish_tried_quiets(side, &tried, mv, depth);
+                        if self.opts.pawnhist {
+                            self.punish_tried_quiets_pawnhist(self.pawn_key(pos), pos, &tried, mv);
+                        }
                     }
                 } else if self.opts.caphist && mv.flag.is_capture() {
                     // Capture cutoff: reward the cutter, penalize captures tried

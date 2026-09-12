@@ -150,6 +150,16 @@ pub struct SearchOptions {
     /// rank 10 in our ordering in ~1/3 of positions) — the prerequisite for
     /// every movecount pruning decision.
     pub conthist2: bool,
+    /// Pawn history (--pawnhist): a pawn-structure-keyed quiet history, SF's
+    /// `sharedHistory.pawn_entry`. Quiets get a bonus when the SAME pawn skeleton
+    /// has seen them cut off before — the one big ordering signal we never had.
+    /// Targets the measured blocker: first-move cutoff 45% vs SF ~90%.
+    pub pawnhist: bool,
+    /// Balanced history updates (--histbal): give the quiet-cutoff BONUS the same
+    /// magnitude as the tried-quiet MALUS (SF uses one `bonus` for both). Ours
+    /// penalizes at 300*depth but rewards at only 150*depth, so the history drifts
+    /// net-negative and the ordering signal compresses toward the floor.
+    pub hist_bal: bool,
     /// Internal iterative reduction (--iir): at a cut node of depth >= 6 with no
     /// TT move, search one ply shallower (SF's IIR) instead of paying a full IID
     /// re-search. Cheap ordering fix for the ~70% of probes with no entry.
@@ -275,6 +285,8 @@ impl Default for SearchOptions {
             // Search-efficiency campaign (2026-09-10): off until each clears the
             // fixed-node SPRT gate.
             conthist2: false,
+            pawnhist: false,
+            hist_bal: false,
             iir: false,
             sfprune: false,
             sfnull: false,
@@ -361,6 +373,8 @@ impl SearchOptions {
         self.countermove = toggle("--countermove", "--no-countermove", self.countermove);
         self.conthist = toggle("--conthist", "--no-conthist", self.conthist);
         self.conthist2 = toggle("--conthist2", "--no-conthist2", self.conthist2);
+        self.pawnhist = toggle("--pawnhist", "--no-pawnhist", self.pawnhist);
+        self.hist_bal = toggle("--histbal", "--no-histbal", self.hist_bal);
         self.iir = toggle("--iir", "--no-iir", self.iir);
         self.sfprune = toggle("--sfprune", "--no-sfprune", self.sfprune);
         self.sfnull = toggle("--sfnull", "--no-sfnull", self.sfnull);

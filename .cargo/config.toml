@@ -1,0 +1,5 @@
+[build]
+# ~2x nps measured (154k -> 297k under load; depth@100ms +0.13): the eval hot path
+# vectorizes with native SIMD. Binary is machine-specific, which is fine -- everything
+# runs on this box.
+rustflags = ["-C", "target-cpu=native"]

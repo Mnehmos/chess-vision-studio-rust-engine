@@ -39,6 +39,34 @@ impl Searcher {
         self.caphist[i] += delta - self.caphist[i] * delta.abs() / D;
     }
 
+    /// Pawn-skeleton key: XOR of a fixed random per (color, square) over both sides'
+    /// pawns. ~16 XORs per node -- far cheaper than the eval, and it changes only when
+    /// a pawn moves or is captured, which is exactly the structure SF keys on.
+    pub(super) fn pawn_key(&self, pos: &Position) -> usize {
+        let mut key = 0u64;
+        for c in 0..2usize {
+            let mut bb = pos.pieces[c][Piece::Pawn.index()];
+            while bb != 0 {
+                let sq = bb.trailing_zeros() as usize;
+                bb &= bb - 1;
+                key ^= self.pawn_key_randoms[c * 64 + sq];
+            }
+        }
+        (key as usize) & (Self::PAWNHIST_SLOTS - 1)
+    }
+
+    #[inline]
+    pub(super) fn pawnhist_idx(key: usize, piece: Piece, to: u8) -> usize {
+        (key * 6 + piece as usize) * 64 + to as usize
+    }
+
+    /// Pawn-history gravity update for one (pawn skeleton, piece, to).
+    pub(super) fn pawnhist_update(&mut self, key: usize, piece: Piece, to: u8, delta: i32) {
+        const D: i32 = 8192;
+        let e = &mut self.pawnhist[Self::pawnhist_idx(key, piece, to)];
+        *e += delta - *e * delta.abs() / D;
+    }
+
     /// Gravity-form history update: entry += delta − entry·|delta|/D, which
     /// self-limits to ±D and lets recent evidence dominate stale counts.
     #[inline]
@@ -63,6 +91,27 @@ impl Searcher {
         for &q in tried {
             if q != cutter {
                 self.hist_gravity(side, q, -malus);
+            }
+        }
+    }
+
+    /// Pawn-history malus for the quiets tried before the cutoff, at the node's pawn
+    /// skeleton. Without it the bonus-only update saturates positive (the exact drift
+    /// that flattened butterfly history before --histmalus).
+    pub(super) fn punish_tried_quiets_pawnhist(
+        &mut self,
+        key: usize,
+        pos: &Position,
+        tried: &[Move],
+        cutter: Move,
+    ) {
+        let malus: i32 = 2200;
+        for &q in tried {
+            if q == cutter {
+                continue;
+            }
+            if let Some((_, p)) = pos.piece_at(q.from) {
+                self.pawnhist_update(key, p, q.to, -malus);
             }
         }
     }
@@ -105,10 +154,23 @@ impl Searcher {
                     // the malus that drives the first-move-cutoff rate) and made
                     // --conthist a net regression.
                     const D: i32 = 8192;
-                    let bonus = (150 * depth).min(1500);
+                    let bonus = if self.opts.hist_bal {
+                        (300 * depth).min(2200)
+                    } else {
+                        (150 * depth).min(1500)
+                    };
                     let e = &mut self.conthist[ci];
                     *e += bonus - *e * bonus.abs() / D;
                 }
+            }
+        }
+        if self.opts.pawnhist {
+            if let Some((_, cp)) = pos.piece_at(mv.from) {
+                let key = self.pawn_key(pos);
+                const D: i32 = 8192;
+                let bonus = (150 * depth).min(1500);
+                let e = &mut self.pawnhist[Self::pawnhist_idx(key, cp, mv.to)];
+                *e += bonus - *e * bonus.abs() / D;
             }
         }
         if self.opts.conthist2 {
@@ -122,7 +184,11 @@ impl Searcher {
                 {
                     let ci = Self::conthist_idx(gp, prev2.to, cp, mv.to);
                     const D: i32 = 8192;
-                    let bonus = (150 * depth).min(1500);
+                    let bonus = if self.opts.hist_bal {
+                        (300 * depth).min(2200)
+                    } else {
+                        (150 * depth).min(1500)
+                    };
                     let e = &mut self.conthist2[ci];
                     *e += bonus - *e * bonus.abs() / D;
                 }
@@ -132,7 +198,11 @@ impl Searcher {
             // Gravity update (research 2026-06-12, SF/Ethereal): capped LINEAR
             // bonus — depth² uncapped lets a few deep nodes saturate entries —
             // and the entry self-limits to ±HIST_GRAVITY_D.
-            let bonus = (150 * depth).min(1500);
+            let bonus = if self.opts.hist_bal {
+                        (300 * depth).min(2200)
+                    } else {
+                        (150 * depth).min(1500)
+                    };
             self.hist_gravity(side, mv, bonus);
         } else {
             let idx = Self::history_idx(side, mv);
@@ -297,6 +367,7 @@ impl Searcher {
         }
 
         let side = pos.stm.index();
+        let pkey = if self.opts.pawnhist { self.pawn_key(pos) } else { 0 };
         let killers = self.killers.get(ply as usize).copied().unwrap_or([None; 2]);
         // Countermove: the stored refutation of the opponent's previous move,
         // ordered just below the killers (killers carry sibling-position
@@ -369,6 +440,11 @@ impl Searcher {
             if let Some((pp, pt)) = ch_key {
                 if let Some((_, cp)) = pos.piece_at(m.from) {
                     s += self.conthist[Self::conthist_idx(pp, pt, cp, m.to)];
+                }
+            }
+            if self.opts.pawnhist {
+                if let Some((_, mp)) = pos.piece_at(m.from) {
+                    s += self.pawnhist[Self::pawnhist_idx(pkey, mp, m.to)];
                 }
             }
             if self.opts.conthist2 && ply >= 2 {

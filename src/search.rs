@@ -138,6 +138,26 @@ const MAX_KILLER_PLY: usize = 128;
 /// experience dominant without ever overflowing into capture territory.
 const HISTORY_CAP: i32 = 1 << 14;
 
+impl Searcher {
+    /// Pawn-history table size (power of two for mask indexing).
+    pub(crate) const PAWNHIST_SLOTS: usize = 1024;
+
+    fn make_pawn_key_randoms() -> Vec<u64> {
+        // SplitMix64 over a fixed seed: deterministic across runs (reproducible
+        // search), no dependency on a RNG crate.
+        let mut state = 0x9E37_79B9_7F4A_7C15u64;
+        let mut out = vec![0u64; 128];
+        for slot in out.iter_mut() {
+            state = state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+            let mut z = state;
+            z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+            z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+            *slot = z ^ (z >> 31);
+        }
+        out
+    }
+}
+
 pub struct Searcher {
     pub root_scope: RootScope,
     weights: ValueWeights,
@@ -174,6 +194,11 @@ pub struct Searcher {
     /// Second continuation history (--conthist2): same shape, keyed by the move
     /// TWO plies back (SF's contHist[1]).
     conthist2: Vec<i32>, // 6*64*6*64
+    /// Pawn history (--pawnhist): [pawn_key & PAWNHIST_MASK][piece][to]. Keyed by the
+    /// full pawn skeleton of both sides, the way SF's shared pawn history is.
+    pawnhist: Vec<i32>, // 4096*6*64
+    /// Zobrist-style randoms for the pawn key, seeded once per process.
+    pawn_key_randoms: Vec<u64>, // [2][64]
     /// Capture history (--caphist): [side][piece][to][victim] gravity-weighted
     /// capture-cutoff counts. Pure ordering — captures were MVV-LVA only, so
     /// cutoffs taught nothing. Sharpens hit quality with no reduction tradeoff.
@@ -238,6 +263,8 @@ impl Searcher {
             counters: vec![None; 2 * 6 * 64],
             conthist: vec![0; 6 * 64 * 6 * 64],
             conthist2: vec![0; 6 * 64 * 6 * 64],
+            pawnhist: vec![0; Self::PAWNHIST_SLOTS * 6 * 64],
+            pawn_key_randoms: Self::make_pawn_key_randoms(),
             caphist: vec![0; 2 * 6 * 64 * 6],
             prev_moves: vec![None; MAX_KILLER_PLY],
             eval_stack: vec![i32::MIN; MAX_KILLER_PLY + 2],
