@@ -61,7 +61,7 @@ def encode_ps(fen: str) -> list[int]:
 
 class RawNet(nn.Module):
     def __init__(self, hidden: int, b1_init: float = 0.0, out_init: float = 0.05,
-                 embed_init: float = 0.05):
+                 embed_init: float = 0.05, head2: int = 0):
         super().__init__()
         self.embed = nn.EmbeddingBag(PS_INPUTS, hidden, mode='sum', include_last_offset=False)
         # Symmetry-breaking init: with a zeroed embedding every input feature is
@@ -70,6 +70,15 @@ class RawNet(nn.Module):
         nn.init.normal_(self.embed.weight, std=embed_init)
         self.b1 = nn.Parameter(torch.full((hidden,), b1_init))
         self.center = False
+        # Optional second head layer: features -> h1 -> h2 -> out. Extra capacity is what
+        # a LINEAR centipawn target needs to rival the compressed target's accuracy.
+        self.head2 = head2
+        self.hidden_dim = hidden
+        if head2:
+            self.h2w = nn.Parameter(torch.randn(head2, hidden) * (1.0 / hidden ** 0.5))
+            self.h2b = nn.Parameter(torch.zeros(head2))
+            self.h2out = nn.Parameter(torch.randn(1, head2) * (1.0 / head2 ** 0.5))
+            self.h2out_b = nn.Parameter(torch.zeros(1))
         self.out = nn.Linear(hidden, 1)
         nn.init.normal_(self.out.weight, std=out_init)
         nn.init.zeros_(self.out.bias)
@@ -79,6 +88,9 @@ class RawNet(nn.Module):
         h = acc.clamp(0.0, 1.0)
         if self.center:
             h = h - 0.5
+        if self.head2:
+            z = torch.nn.functional.linear(h, self.h2w, self.h2b).clamp(0.0, 1.0)
+            return torch.nn.functional.linear(z, self.h2out, self.h2out_b).squeeze(-1)
         return self.out(h).squeeze(-1)
 
 
@@ -127,6 +139,11 @@ def main(argv=None) -> int:
                     help="feature-layer LR as a fraction of the head's. Joint fine-tuning of a "
                          "well-fit head with a shared LR destabilises it (observed: 114 -> 262 "
                          "MAE); the head needs to move ~10x faster than the features it reads")
+    ap.add_argument("--head2", type=int, default=0,
+                    help="second head layer width (0 = the shipped single-layer head). A linear "
+                         "centipawn target needs more head capacity than 256->1 to match a "
+                         "compressed target's accuracy; this tests that in the trainer before "
+                         "any engine inference change")
     ap.add_argument("--freeze-features", action="store_true",
                     help="train only the output layer (w2/b2)")
     ap.add_argument("--center-hidden", action="store_true",
@@ -204,7 +221,7 @@ def main(argv=None) -> int:
     ho_t = torch.tensor(ho)
     tr_t = ~ho_t
 
-    net = RawNet(a.hidden, a.b1_init, a.out_init, a.embed_init).to(dev)
+    net = RawNet(a.hidden, a.b1_init, a.out_init, a.embed_init, a.head2).to(dev)
     if a.init_from:
         import json as _json
         src = _json.load(open(a.init_from, encoding="utf-8"))
@@ -213,6 +230,20 @@ def main(argv=None) -> int:
         net.b1.data.copy_(torch.tensor(src["b1"], dtype=torch.float32))
         net.out.weight.data.copy_(torch.tensor(src["w2"], dtype=torch.float32).unsqueeze(0))
         net.out.bias.data.fill_(float(src["b2"]))
+        if a.head2:
+            # Identity init for the extra layer: h2 = clamp(h1) and h2out = w2 means the
+            # deeper net STARTS as exactly the warm-started net, then grows capacity from
+            # there. A randomly initialised extra layer re-triggers the cold-start collapse
+            # (the new head sees no coherent gradient and the net sits at the target mean).
+            h2 = a.head2
+            if h2 != net.hidden_dim:
+                raise SystemExit("--head2 must equal --hidden for the identity init")
+            with torch.no_grad():
+                net.h2w.zero_(); net.h2w[:, :] = torch.eye(h2, net.hidden_dim)
+                net.h2b.zero_()
+                net.h2out.zero_(); net.h2out[0, :net.hidden_dim] = net.out.weight[0]
+                net.h2out_b.fill_(float(net.out.bias[0]))
+            print(f"two-layer head identity-initialised from the warm-start head (h2={h2})")
         print(f"warm-started from {a.init_from} (hidden {src.get('hidden')})")
     if a.freeze_features:
         for q in (net.embed.weight, net.b1):

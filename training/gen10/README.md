@@ -125,9 +125,29 @@ than the features it reads.
 So a **linear-centipawn evaluator is now trainable** -- `target-cvs/gen10-linear-r2.json`
 is such a net (`outputScaleCp=400`, linear semantics, no calibration) -- but it is still
 *less accurate* than the shipped compressed net + curve (r 0.881 / MAE 110 vs 0.920 / 93).
-The remaining gap is **feature quality**, not the target encoding: the features were trained
-for the compressed objective, and closing the gap needs new features (wider/deeper) and new
-data, i.e. the project described above.
+The remaining gap is **feature quality**, not the target encoding -- and not head capacity
+either: adding a second head layer (256 -> 256 -> 1, identity-initialised from the trained
+head so the deeper net STARTS at the known-good solution) buys r 0.881 -> 0.886 and MAE
+110 -> 109.5 on the held-out instrument. That is a rounding error, so the two-layer
+inference path in the engine is NOT needed and was not built.
+
+Ranking the two candidate causes, with numbers:
+
+| lever | measured effect |
+|---|---|
+| more data of the same kind (113k -> 4.1M static labels) | r 0.748 -> 0.872 |
+| linear head on frozen good features (no calibration needed) | r 0.871, MAE 114 |
+| + joint fine-tuning with discriminative LRs | r 0.881, MAE 110 |
+| + second head layer (capacity) | r 0.886, MAE 109.5 |
+
+Data dominates; capacity barely moves it; so the next evaluator attempt needs **new
+positions and search labels** (feature width is the other knob: 256 -> 512 hidden doubles
+the feature layer's parameters and is a one-line trainer change + an engine `hidden` field
+that already exists).
+
+Also note: the trainer's holdout MAE is NOT comparable across target modes -- the corpus
+contains labels far beyond the training clamp (+-1500cp), which inflates it (a healthy
+net reads ~261 there and ~110 on the instrument). Score candidates on the instrument.
 
 So the next evaluator attempt needs *new* position generation (self-play over the
 distinct-opening book + live games) labelled with search scores, not another pass over
