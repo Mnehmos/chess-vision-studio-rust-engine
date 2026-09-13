@@ -22,7 +22,6 @@ COPY --from=builder /build/target/release/selfplay /app/selfplay
 COPY --from=builder /build/target/release/analyze /app/analyze
 COPY --from=builder /build/src/facts /app/src/facts
 COPY training/gen10/build_corpus.py /app/build_corpus.py
-COPY training/gen10/extract_features.py /app/extract_features.py
 COPY training/gen10/run_generation.py /app/run_generation.py
 
 WORKDIR /app
