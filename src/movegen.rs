@@ -413,8 +413,31 @@ pub fn generate_legal_list(pos: &mut Position) -> MoveList {
     let us = pos.stm;
     let them = us.flip();
     let mut legal = MoveList::new();
+
+    // Pin-aware fast path (--pinmovegen): compute checkers + pinned pieces once,
+    // then only verify king moves, pinned-piece moves, and en-passant with the
+    // expensive make/unmake. All other moves are legal by construction when the
+    // side to move is not in check. This eliminates ~25 make/unmake + attack
+    // queries per node for the typical case.
+    let king_sq = pos.king_sq(us);
+    let in_check = is_square_attacked(pos, king_sq, them, pos.all);
+
+    let pinned = if in_check {
+        0 // when in check, all moves need verification
+    } else {
+        pinned_pieces(pos, king_sq, us, them)
+    };
+
     for i in 0..pseudo.len() {
         let mv = pseudo.get(i);
+        if !in_check
+            && mv.from != king_sq
+            && (pinned & (1u64 << mv.from)) == 0
+            && mv.flag != MoveFlag::EnPassant
+        {
+            legal.push(mv);
+            continue;
+        }
         pos.make(mv);
         let ksq = pos.king_sq(us);
         if !is_square_attacked(pos, ksq, them, pos.all) {
@@ -423,6 +446,46 @@ pub fn generate_legal_list(pos: &mut Position) -> MoveList {
         pos.unmake();
     }
     legal
+}
+
+/// Bitboard of OUR pieces that are pinned to their king by an enemy slider.
+/// A piece is pinned when exactly one of our pieces lies between our king and an
+/// enemy slider that would attack the king if that piece moved. Uses the
+/// `between_mask` intersection trick: two attack lookups per potential pinner.
+fn pinned_pieces(pos: &Position, king_sq: u8, us: Color, them: Color) -> u64 {
+    let ki = king_sq;
+    let ui = us.index();
+    let ti = them.index();
+
+    // Potential pinners: enemy sliders on the king's lines. These are found with
+    // X-RAY attacks (empty-board attacks from the king square), which see THROUGH
+    // all pieces. The between_mask + count check below then identifies which of our
+    // pieces (if any) are the sole blockers on each line.
+    // (The earlier occ_no_king approach was wrong: removing the king from the
+    // occupancy doesn't change attacks FROM the king square, so pieces between
+    // the king and a slider blocked the pinner detection itself — perft caught it.)
+    let diag_sliders = pos.pieces[ti][Piece::Bishop.index()] | pos.pieces[ti][Piece::Queen.index()];
+    let orth_sliders = pos.pieces[ti][Piece::Rook.index()] | pos.pieces[ti][Piece::Queen.index()];
+
+    let xray_diag = bishop_attacks(ki, 0);
+    let xray_orth = rook_attacks(ki, 0);
+
+    let diag_pinners = xray_diag & diag_sliders;
+    let orth_pinners = xray_orth & orth_sliders;
+
+    let mut pinned = 0u64;
+    for pinners in [diag_pinners, orth_pinners] {
+        let mut bb = pinners;
+        while bb != 0 {
+            let sq = bb.trailing_zeros() as u8;
+            bb &= bb - 1;
+            let between = crate::attacks::between_mask(sq, ki) & pos.all;
+            if between.count_ones() == 1 && between & pos.occ[ui] != 0 {
+                pinned |= between;
+            }
+        }
+    }
+    pinned
 }
 
 /// Is the side to move currently in check?

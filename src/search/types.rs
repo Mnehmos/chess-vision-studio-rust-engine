@@ -295,7 +295,7 @@ impl Default for SearchOptions {
             conthist2: false,
             pawnhist: false,
             quant_eval: false,
-            pinmovegen: false,
+            pinmovegen: true,
             hist_bal: false,
             iir: false,
             sfprune: false,
