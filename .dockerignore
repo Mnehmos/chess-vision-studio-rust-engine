@@ -1,0 +1,10 @@
+target/
+target-*/
+training/gen9/
+training/gen10/corpus*/
+training/gen8/
+benchmarks/results/
+benchmarks/artifacts/
+*.pgn
+*.log
+*.exe

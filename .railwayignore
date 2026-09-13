@@ -1,0 +1,17 @@
+target/
+target-sf/
+target-sf2/
+target-sf3/
+target-sf4/
+target-native/
+target-test/
+target-cvs/
+training/gen9/
+training/gen10/corpus*/
+training/gen10/corpus-lich/
+training/gen8/
+benchmarks/results/
+benchmarks/artifacts/
+*.pgn
+*.log
+*.exe
