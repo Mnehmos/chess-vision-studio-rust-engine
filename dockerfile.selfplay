@@ -8,7 +8,7 @@
 # The container runs until the target game count is reached, then exits.
 # Output is written to /data/training-*.jsonl (mount a Railway volume at /data).
 
-FROM rust:1.83-bookworm AS builder
+FROM rust:1.96-bookworm AS builder
 WORKDIR /build
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
