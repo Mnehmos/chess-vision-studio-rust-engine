@@ -1,0 +1,29 @@
+# Self-play training data generator for Chess Vision Studio.
+# Builds the Rust engine from source (Linux x86_64), runs self-play games
+# against the inv1 opening book, extracts CVS geometry features, and
+# outputs training rows in the gen9 shard format.
+#
+# Deploy:  railway up  (or docker build + run locally)
+#
+# The container runs until the target game count is reached, then exits.
+# Output is written to /data/training-*.jsonl (mount a Railway volume at /data).
+
+FROM rust:1.83-bookworm AS builder
+WORKDIR /build
+COPY Cargo.toml Cargo.lock ./
+COPY src ./src
+RUN cargo build --release --bin selfplay --bin analyze
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y python3 python3-pip && \
+    pip3 install --break-system-packages chess zstandard && \
+    apt-get clean
+COPY --from=builder /build/target/release/selfplay /app/selfplay
+COPY --from=builder /build/target/release/analyze /app/analyze
+COPY --from=builder /build/src/facts /app/src/facts
+COPY training/gen10/build_corpus.py /app/build_corpus.py
+COPY training/gen10/extract_features.py /app/extract_features.py
+COPY training/gen10/run_generation.py /app/run_generation.py
+
+WORKDIR /app
+ENTRYPOINT ["python3", "run_generation.py"]
