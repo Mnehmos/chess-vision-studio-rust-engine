@@ -7,13 +7,19 @@
 //!
 //!   selfplay --games N --depth D --out file.jsonl [--threads T] [--seed S]
 //!            [--base w.json --rung2 r.json]
+//!            [--nnue net.json --nnue-cal cal.json --helper-nnue h.json]
+//!
+//! With --nnue the games are played by the NNUE-backed searcher (champion
+//! net + calibration + helper), so both the play strength and the emitted
+//! cp labels come from the net instead of the classical eval. The labels
+//! are still play-depth scores; relabel deeper downstream if needed.
 //!
 //! Opening: 8 random legal plies, rejected unless |eval| < 300cp at the end
 //! (keeps openings playable). Adjudication: resign when |score| > 900cp for 4
 //! consecutive plies, draw on 3-fold / 50-move / insufficient material /
 //! 250-ply cap. Positions in check and the random opening plies are skipped
 //! on output.
-use cvs_bitboard_core::eval::{Rung2Weights, ValueWeights};
+use cvs_bitboard_core::eval::{Nnue, Rung2Weights, ValueWeights};
 use cvs_bitboard_core::movegen::{generate_legal, in_check};
 use cvs_bitboard_core::search::{SearchOptions, Searcher, MATE_THRESHOLD};
 use cvs_bitboard_core::{Color, Position};
@@ -60,6 +66,20 @@ fn main() {
     let rung2: Option<Rung2Weights> = get("--rung2").map(|p| {
         serde_json::from_str(&std::fs::read_to_string(p).expect("rung2")).expect("parse rung2")
     });
+    let allow_unverified = args.iter().any(|a| a == "--allow-unverified-net")
+        || std::env::var("CVS_RUST_ALLOW_UNVERIFIED")
+            .map(|v| v.trim() == "1")
+            .unwrap_or(false);
+    let eval_cal = get("--nnue-cal").map(|p| load_eval_cal(&p));
+    let nnue: Option<Nnue> = get("--nnue").map(|p| {
+        let mut n = Nnue::load(&p, allow_unverified).expect("load nnue");
+        if let Some(c) = &eval_cal {
+            n.set_calibration(c);
+        }
+        n
+    });
+    let helper_nnue: Option<Nnue> =
+        get("--helper-nnue").map(|p| Nnue::load(&p, allow_unverified).expect("load helper nnue"));
 
     let file = Mutex::new(std::io::BufWriter::new(
         std::fs::File::create(&out_path).expect("create out"),
@@ -69,13 +89,21 @@ fn main() {
     let started = std::time::Instant::now();
 
     std::thread::scope(|scope| {
+        let nnue = &nnue;
+        let helper_nnue = &helper_nnue;
         for t in 0..threads {
             let file = &file;
             let played = &played;
             let positions = &positions;
             scope.spawn(move || {
                 let mut rng = Rng(seed ^ (t as u64).wrapping_mul(0x9E37_79B9));
-                let mut searcher = Searcher::new(base, rung2);
+                let mut searcher = match nnue {
+                    Some(n) => Searcher::with_nnue(base, rung2, n.clone()),
+                    None => Searcher::new(base, rung2),
+                };
+                if let Some(h) = helper_nnue {
+                    searcher.set_helper_nnue(Some(h.clone()));
+                }
                 loop {
                     let g = played.fetch_add(1, Ordering::Relaxed);
                     if g >= games {
@@ -196,4 +224,23 @@ fn play_one(searcher: &mut Searcher, rng: &mut Rng, depth: u32) -> Option<(Strin
         n_rows += 1;
     }
     Some((rows, n_rows))
+}
+
+/// Load the eval calibration piecewise map (same format as analyze --nnue-cal).
+fn load_eval_cal(path: &str) -> Vec<(f64, f64)> {
+    let text = std::fs::read_to_string(path).unwrap_or_else(|e| panic!("read {path}: {e}"));
+    let v: serde_json::Value =
+        serde_json::from_str(&text).unwrap_or_else(|e| panic!("parse {path}: {e}"));
+    let pts = v["points"]
+        .as_array()
+        .unwrap_or_else(|| panic!("{path}: missing points"));
+    let mut out: Vec<(f64, f64)> = pts
+        .iter()
+        .filter_map(|p| {
+            let a = p.as_array()?;
+            Some((a.first()?.as_f64()?, a.get(1)?.as_f64()?))
+        })
+        .collect();
+    out.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
+    out
 }
