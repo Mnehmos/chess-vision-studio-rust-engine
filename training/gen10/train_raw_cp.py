@@ -63,7 +63,7 @@ class RawNet(nn.Module):
     def __init__(self, hidden: int, b1_init: float = 0.0, out_init: float = 0.05,
                  embed_init: float = 0.05, head2: int = 0):
         super().__init__()
-        self.embed = nn.EmbeddingBag(PS_INPUTS, hidden, mode='sum', include_last_offset=False)
+        self.embed = nn.Embedding(PS_INPUTS + 1, hidden, padding_idx=PS_INPUTS)
         # Symmetry-breaking init: with a zeroed embedding every input feature is
         # identical and the net can only ever learn a constant (observed: a net
         # that output ~0 regardless of position). Matches the proven recipe.
@@ -83,8 +83,8 @@ class RawNet(nn.Module):
         nn.init.normal_(self.out.weight, std=out_init)
         nn.init.zeros_(self.out.bias)
 
-    def forward(self, idx, offsets):
-        acc = self.embed(idx, offsets) + self.b1
+    def forward(self, idx):
+        acc = self.embed(idx).sum(dim=1) + self.b1
         h = acc.clamp(0.0, 1.0)
         if self.center:
             h = h - 0.5
@@ -164,147 +164,124 @@ def main(argv=None) -> int:
 
     t0 = time.time()
     import glob as _glob
+    import math as _math
+    import numpy as _np
+
+    PAD = PS_INPUTS  # embedding index for padding (zeroed)
+
     files = sorted(_glob.glob(a.files)) if a.files else [a.data]
-    from array import array
-    idx_list, off_list, targets = array('i'), array('q'), array('f')
-    off = 0
+    rows = []  # list of (features: list[int], target: float)
     kept = seen = 0
     for f in files:
         with open(f, encoding="utf-8") as fd:
             for line in fd:
                 seen += 1
-                if seen % a.stride:
+                if a.stride > 1 and seen % a.stride:
                     continue
                 j = json.loads(line)
                 cp = j.get(a.label_field)
                 if cp is None or abs(cp) > a.clamp:
                     continue
-                # Labels are stored WHITE POV; the input encoding is side-to-move
-                # relative, so the target must be flipped for black-to-move rows
-                # (exactly as training/gen9/scripts/train_matrix.py's loader does).
-                # Without this the net sees half its targets sign-flipped and can
-                # only learn the mean -- measured r 0.12-0.56 vs the incumbent 0.92.
                 if j["fen"].split()[1] == "b":
                     cp = -cp
-                ii = encode_ps(j["fen"])
-                idx_list.extend(ii)
-                off_list.append(off)
-                off += len(ii)
                 if a.target_mode == "sigmoid-mid":
-                    # The shipped pipeline's effective target in ENGINE-EVAL space is
-                    #   1024 * (sigmoid(cp/256) - 0.5)
-                    # (its training puts sigmoid(net/K) in the loss, which runs in the
-                    # sigmoid's linear region, and the engine then multiplies by
-                    # outputScaleCp=400). Reproducing that here means the candidate and
-                    # the incumbent can be decoded by the same calibration curve, so an
-                    # instrument comparison is apples to apples.
-                    import math as _m
-                    targets.append(2.56 * (1.0 / (1.0 + _m.exp(-cp / a.sigmoid_k)) - 0.5))
+                    target = 2.56 * (1.0 / (1.0 + _math.exp(-cp / a.sigmoid_k)) - 0.5)
                 elif a.target_mode == "sigmoid":
-                    import math as _m
-                    targets.append(1.0 / (1.0 + _m.exp(-cp / a.sigmoid_k)))
+                    target = 1.0 / (1.0 + _math.exp(-cp / a.sigmoid_k))
                 else:
-                    targets.append(cp / a.target_scale)
+                    target = cp / a.target_scale
+                feat = encode_ps(j["fen"])
+                if len(feat) > 32:
+                    continue  # malformed FEN with >32 pieces
+                rows.append((feat, target))
                 kept += 1
-    print(f"kept {kept} of {seen} rows from {len(files)} file(s) in {time.time()-t0:.0f}s")
-    fens = None
-    import numpy as _np
-    import numpy as _np2
-    idx = torch.from_numpy(_np2.frombuffer(idx_list, dtype=_np2.int32).copy())
-    offsets = torch.from_numpy(_np2.frombuffer(off_list, dtype=_np2.int64).copy())
-    target = torch.from_numpy(_np2.frombuffer(targets, dtype=_np2.float32).copy())
-    n = kept
-    dev = 'cuda' if torch.cuda.is_available() else 'cpu'
 
+    print(f"kept {kept} of {seen} rows in {time.time()-t0:.0f}s")
+
+    N = len(rows)
+    idx = torch.full((N, 32), PAD, dtype=torch.long)
+    target = torch.zeros(N, dtype=torch.float32)
+    for i, (feat, tgt) in enumerate(rows):
+        for j, v in enumerate(feat):
+            idx[i, j] = v
+        target[i] = tgt
+    del rows
+    print(f"built dense tensor [{N}, 32] in {time.time()-t0:.0f}s")
+
+    dev = 'cuda' if torch.cuda.is_available() else 'cpu'
     rng = np.random.default_rng(a.seed)
-    ho = rng.random(n) < a.holdout_frac
-    ho_t = torch.tensor(ho)
-    tr_t = ~ho_t
+    ho_mask = torch.from_numpy(rng.random(N) < a.holdout_frac)
+    tr_mask = ~ho_mask
 
     net = RawNet(a.hidden, a.b1_init, a.out_init, a.embed_init, a.head2).to(dev)
     if a.init_from:
-        import json as _json
-        src = _json.load(open(a.init_from, encoding="utf-8"))
-        w1s = torch.tensor(src["w1"], dtype=torch.float32)
-        net.embed.weight.data.copy_(w1s)
-        net.b1.data.copy_(torch.tensor(src["b1"], dtype=torch.float32))
-        net.out.weight.data.copy_(torch.tensor(src["w2"], dtype=torch.float32).unsqueeze(0))
-        net.out.bias.data.fill_(float(src["b2"]))
+        src = json.load(open(a.init_from, encoding="utf-8"))
+        with torch.no_grad():
+            net.embed.weight[:PS_INPUTS].copy_(
+                torch.tensor(src["w1"], dtype=torch.float32).reshape(PS_INPUTS, a.hidden))
+            net.embed.weight[PS_INPUTS:].zero_()
+            net.b1.copy_(torch.tensor(src["b1"], dtype=torch.float32))
+            net.out.weight.copy_(torch.tensor(src["w2"], dtype=torch.float32).unsqueeze(0))
+            net.out.bias.fill_(float(src["b2"]))
         if a.head2:
-            # Identity init for the extra layer: h2 = clamp(h1) and h2out = w2 means the
-            # deeper net STARTS as exactly the warm-started net, then grows capacity from
-            # there. A randomly initialised extra layer re-triggers the cold-start collapse
-            # (the new head sees no coherent gradient and the net sits at the target mean).
             h2 = a.head2
-            if h2 != net.hidden_dim:
+            if h2 != a.hidden:
                 raise SystemExit("--head2 must equal --hidden for the identity init")
             with torch.no_grad():
-                net.h2w.zero_(); net.h2w[:, :] = torch.eye(h2, net.hidden_dim)
+                net.h2w.zero_(); net.h2w[:, :a.hidden] = torch.eye(h2, a.hidden)
                 net.h2b.zero_()
-                net.h2out.zero_(); net.h2out[0, :net.hidden_dim] = net.out.weight[0]
+                net.h2out.zero_(); net.h2out[0, :a.hidden] = net.out.weight[0]
                 net.h2out_b.fill_(float(net.out.bias[0]))
-            print(f"two-layer head identity-initialised from the warm-start head (h2={h2})")
         print(f"warm-started from {a.init_from} (hidden {src.get('hidden')})")
     if a.freeze_features:
         for q in (net.embed.weight, net.b1):
             q.requires_grad_(False)
         print("feature layer frozen: fitting the output head only")
     net.center = a.center_hidden
-    feat = [net.embed.weight, net.b1]
-    head = [net.out.weight, net.out.bias]
-    groups = [{"params": head, "lr": a.lr}]
+
+    feat_params = [net.embed.weight, net.b1]
+    head_params = [net.out.weight, net.out.bias]
+    groups = [{"params": head_params, "lr": a.lr}]
     if not a.freeze_features:
-        groups.append({"params": feat, "lr": a.lr * a.feature_lr_scale})
-    # foreach=False: torch's multi-tensor Adam path faults with an illegal memory
-    # access on this box (CUDA error inside _multi_tensor_adam / _foreach_lerp_).
+        groups.append({"params": feat_params, "lr": a.lr * a.feature_lr_scale})
     opt = torch.optim.Adam(groups, foreach=False)
     lossf = nn.HuberLoss(delta=a.huber_delta)
 
-    def idx_for(mask):
-        return offsets[mask].to(dev), idx.long().to(dev), target[mask].to(dev)
-
-    tr_off, tr_idx, tr_y = idx_for(tr_t)
-    ho_off, ho_idx, ho_y = idx_for(ho_t)
+    tr_idx = idx[tr_mask].to(dev)
+    tr_y = target[tr_mask].to(dev)
+    ho_idx = idx[ho_mask].to(dev)
+    ho_y = target[ho_mask].to(dev)
     print(f"device {dev}  train {tr_y.numel()}  holdout {ho_y.numel()}")
 
-    def evaluate(off_, idx_, y_):
+    def evaluate(ix, yy):
         net.eval()
         errs = []
         with torch.no_grad():
-            for s in range(0, len(off_), 65536):
-                e = min(s + 65536, len(off_))
-                off_b = off_[s:e].cpu()
-                cnt = (off_b[1:] - off_b[:-1]) if e - s > 1 else None
-                # rebuild a contiguous index slice for this batch
-                lo = off_[s].item()
-                hi = (off_[e].item() if e < len(off_) else idx_.numel())
-                pred = net(idx_.cpu()[lo:hi].to(dev), off_b.to(dev) - lo)
-                errs.append((pred.cpu() - y_[s:e].cpu()).abs() * a.target_scale)
+            for s in range(0, ix.shape[0], 65536):
+                e = min(s + 65536, ix.shape[0])
+                pred = net(ix[s:e])
+                errs.append((pred.cpu() - yy[s:e].cpu()).abs() * a.target_scale)
         net.train()
         return torch.cat(errs).mean().item()
 
-    nb = max(1, len(tr_off) // a.batch)
+    nb = max(1, tr_idx.shape[0] // a.batch)
     for ep in range(1, a.epochs + 1):
-        perm = torch.randperm(len(tr_off))
+        perm = torch.randperm(tr_idx.shape[0])
         tot = 0.0
         for b in range(nb):
-            # EmbeddingBag needs strictly increasing offsets into the sliced input,
-            # so the sampled rows must be sorted before slicing the flat index array.
-            sel, _ = torch.sort(perm[b * a.batch:(b + 1) * a.batch])
-            batch_off = tr_off[sel].to(dev)
-            lo = batch_off[0].item()
-            hi = (tr_off[sel[-1]].item() + 1) if sel[-1].item() + 1 < len(tr_off) else idx.numel()
-            pred = net(tr_idx[lo:hi].to(dev), batch_off - lo)
-            loss = lossf(pred, tr_y[sel].to(dev))
+            sel = perm[b * a.batch:(b + 1) * a.batch]
+            batch_idx = tr_idx[sel]
+            pred = net(batch_idx)
+            loss = lossf(pred, tr_y[sel])
             opt.zero_grad(); loss.backward(); opt.step()
             tot += loss.item()
         if ep % 2 == 0 or ep == a.epochs:
-            print(f"epoch {ep:3d} | train huber {tot/nb:.5f} | holdout MAE {evaluate(ho_off, ho_idx, ho_y):6.1f}cp "
+            print(f"epoch {ep:3d} | train huber {tot/nb:.5f} | holdout MAE {evaluate(ho_idx, ho_y):6.1f}cp "
                   f"({time.time()-t0:.0f}s)", flush=True)
 
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    w1 = net.embed.weight.detach().cpu().numpy()
+    w1 = net.embed.weight.detach().cpu().numpy()[:PS_INPUTS]
     json.dump({
         "modelKind": "nnue", "arch": f"{PS_INPUTS}x{a.hidden}cReLU-1(cp)",
         "psInputs": PS_INPUTS, "hidden": a.hidden, "outputScaleCp": float(a.target_scale),
@@ -315,6 +292,7 @@ def main(argv=None) -> int:
                      - (0.5 * sum(net.out.weight.detach().cpu().numpy()[0]) if a.center_hidden else 0.0)),
     }, open(out, "w", encoding="utf-8"), separators=(",", ":"))
     print(f"wrote {out}")
+    return 0
     return 0
 
 
