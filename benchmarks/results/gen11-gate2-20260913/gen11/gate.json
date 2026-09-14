@@ -1,0 +1,83 @@
+{
+  "gate": "gen11",
+  "what": "gen11 eval: 6M Lichess d16 search labels, warm-started, sigmoid-mid target, no calibration needed",
+  "kind": "net",
+  "games": 820,
+  "wins": 367,
+  "losses": 350,
+  "draws": 103,
+  "llr": 0.1745,
+  "boundary": "none",
+  "decision": "hold_for_more_data",
+  "elapsedSec": 536.5,
+  "cappedAt": 6000,
+  "bookExhausted": true,
+  "positionsUsed": 410,
+  "book": "openings-inv1-20260910.epd",
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 54,
+      "losses": 50,
+      "draws": 16,
+      "llr": 0.0752,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 109,
+      "losses": 98,
+      "draws": 33,
+      "llr": 0.2493,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 165,
+      "losses": 147,
+      "draws": 48,
+      "llr": 0.4214,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 480,
+      "wins": 218,
+      "losses": 203,
+      "draws": 59,
+      "llr": 0.265,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 600,
+      "wins": 270,
+      "losses": 254,
+      "draws": 76,
+      "llr": 0.2434,
+      "boundary": "none"
+    },
+    {
+      "batch": 6,
+      "games": 720,
+      "wins": 324,
+      "losses": 306,
+      "draws": 90,
+      "llr": 0.2526,
+      "boundary": "none"
+    },
+    {
+      "batch": 7,
+      "games": 820,
+      "wins": 367,
+      "losses": 350,
+      "draws": 103,
+      "llr": 0.1745,
+      "boundary": "none"
+    }
+  ],
+  "record": "benchmarks/results/gen11-gate2-20260913/gen11/sprt.json"
+}

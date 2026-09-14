@@ -1,0 +1,236 @@
+{
+  "gate": "gen11",
+  "what": "gen11 eval: 6M Lichess d16 search labels, warm-started, sigmoid-mid target, no calibration needed",
+  "kind": "net",
+  "games": 2820,
+  "wins": 1264,
+  "losses": 1213,
+  "draws": 343,
+  "llr": 0.3559,
+  "boundary": "none",
+  "decision": "hold_for_more_data",
+  "elapsedSec": 2129.4,
+  "cappedAt": 4000,
+  "bookExhausted": true,
+  "positionsUsed": 1410,
+  "book": "openings-inv1-20260910.epd",
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 50,
+      "losses": 55,
+      "draws": 15,
+      "llr": -0.217,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 108,
+      "losses": 107,
+      "draws": 25,
+      "llr": -0.0768,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 163,
+      "losses": 157,
+      "draws": 40,
+      "llr": 0.0283,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 480,
+      "wins": 216,
+      "losses": 215,
+      "draws": 49,
+      "llr": -0.1851,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 600,
+      "wins": 268,
+      "losses": 270,
+      "draws": 62,
+      "llr": -0.3348,
+      "boundary": "none"
+    },
+    {
+      "batch": 6,
+      "games": 720,
+      "wins": 311,
+      "losses": 331,
+      "draws": 78,
+      "llr": -0.9647,
+      "boundary": "none"
+    },
+    {
+      "batch": 7,
+      "games": 840,
+      "wins": 365,
+      "losses": 379,
+      "draws": 96,
+      "llr": -0.8316,
+      "boundary": "none"
+    },
+    {
+      "batch": 8,
+      "games": 960,
+      "wins": 423,
+      "losses": 428,
+      "draws": 109,
+      "llr": -0.5973,
+      "boundary": "none"
+    },
+    {
+      "batch": 9,
+      "games": 1080,
+      "wins": 484,
+      "losses": 476,
+      "draws": 120,
+      "llr": -0.235,
+      "boundary": "none"
+    },
+    {
+      "batch": 10,
+      "games": 1200,
+      "wins": 540,
+      "losses": 524,
+      "draws": 136,
+      "llr": -0.0335,
+      "boundary": "none"
+    },
+    {
+      "batch": 11,
+      "games": 1320,
+      "wins": 590,
+      "losses": 580,
+      "draws": 150,
+      "llr": -0.2804,
+      "boundary": "none"
+    },
+    {
+      "batch": 12,
+      "games": 1440,
+      "wins": 638,
+      "losses": 641,
+      "draws": 161,
+      "llr": -0.7508,
+      "boundary": "none"
+    },
+    {
+      "batch": 13,
+      "games": 1560,
+      "wins": 691,
+      "losses": 684,
+      "draws": 185,
+      "llr": -0.4872,
+      "boundary": "none"
+    },
+    {
+      "batch": 14,
+      "games": 1680,
+      "wins": 749,
+      "losses": 733,
+      "draws": 198,
+      "llr": -0.2522,
+      "boundary": "none"
+    },
+    {
+      "batch": 15,
+      "games": 1800,
+      "wins": 800,
+      "losses": 785,
+      "draws": 215,
+      "llr": -0.3393,
+      "boundary": "none"
+    },
+    {
+      "batch": 16,
+      "games": 1920,
+      "wins": 853,
+      "losses": 836,
+      "draws": 231,
+      "llr": -0.3298,
+      "boundary": "none"
+    },
+    {
+      "batch": 17,
+      "games": 2040,
+      "wins": 913,
+      "losses": 880,
+      "draws": 247,
+      "llr": 0.1315,
+      "boundary": "none"
+    },
+    {
+      "batch": 18,
+      "games": 2160,
+      "wins": 970,
+      "losses": 931,
+      "draws": 259,
+      "llr": 0.2697,
+      "boundary": "none"
+    },
+    {
+      "batch": 19,
+      "games": 2280,
+      "wins": 1028,
+      "losses": 978,
+      "draws": 274,
+      "llr": 0.5696,
+      "boundary": "none"
+    },
+    {
+      "batch": 20,
+      "games": 2400,
+      "wins": 1082,
+      "losses": 1027,
+      "draws": 291,
+      "llr": 0.6769,
+      "boundary": "none"
+    },
+    {
+      "batch": 21,
+      "games": 2520,
+      "wins": 1130,
+      "losses": 1083,
+      "draws": 307,
+      "llr": 0.3642,
+      "boundary": "none"
+    },
+    {
+      "batch": 22,
+      "games": 2640,
+      "wins": 1183,
+      "losses": 1135,
+      "draws": 322,
+      "llr": 0.3416,
+      "boundary": "none"
+    },
+    {
+      "batch": 23,
+      "games": 2760,
+      "wins": 1235,
+      "losses": 1190,
+      "draws": 335,
+      "llr": 0.1895,
+      "boundary": "none"
+    },
+    {
+      "batch": 24,
+      "games": 2820,
+      "wins": 1264,
+      "losses": 1213,
+      "draws": 343,
+      "llr": 0.3559,
+      "boundary": "none"
+    }
+  ],
+  "record": "benchmarks/results/gen11-gate-20260913/gen11/sprt.json"
+}

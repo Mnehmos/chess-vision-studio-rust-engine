@@ -1,0 +1,10 @@
+{
+  "games": 359,
+  "wins": 117,
+  "losses": 205,
+  "draws": 37,
+  "llr": -2.9727350073627994,
+  "boundary": "lower",
+  "lowerBound": -2.9444389791664403,
+  "upperBound": 2.9444389791664403
+}

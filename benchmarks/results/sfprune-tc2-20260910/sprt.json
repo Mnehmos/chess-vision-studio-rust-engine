@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "experimentId": "sfprune-tc2-20260910",
+  "baselineId": "champion",
+  "candidateId": "champion+--sfprune --sfnull",
+  "elo0": 0.0,
+  "elo1": 10.0,
+  "alpha": 0.05,
+  "beta": 0.05,
+  "games": 335,
+  "wins": 108,
+  "losses": 197,
+  "draws": 30,
+  "llr": -2.9583,
+  "lowerBound": -2.9444,
+  "upperBound": 2.9444,
+  "boundary": "lower",
+  "decision": "reject",
+  "pgnSha256": null,
+  "provenance": {
+    "engineSha": "5f84a8963b0b2eca",
+    "netSha": "b23c75b8e25d7480",
+    "candArgs": [
+      "--futility",
+      "--rfp",
+      "--tt-prune-store",
+      "--qtt",
+      "--histmalus",
+      "--histlmr",
+      "--lmp",
+      "--syzygy",
+      "F:/tablebases/syzygy345",
+      "--sfprune",
+      "--sfnull"
+    ],
+    "baseArgs": [
+      "--futility",
+      "--rfp",
+      "--tt-prune-store",
+      "--qtt",
+      "--histmalus",
+      "--histlmr",
+      "--lmp",
+      "--syzygy",
+      "F:/tablebases/syzygy345"
+    ],
+    "tc": "3+0.03",
+    "threads": 1,
+    "book": "openings-inv1-20260910.epd",
+    "bookOffset": 200
+  }
+}

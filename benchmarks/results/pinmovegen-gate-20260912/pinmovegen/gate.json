@@ -1,0 +1,327 @@
+{
+  "gate": "pinmovegen",
+  "what": "pin-aware legal movegen: compute pinned+checkers once, only verify king/pinned/ep moves",
+  "kind": "flag",
+  "games": 4000,
+  "wins": 1671,
+  "losses": 1671,
+  "draws": 658,
+  "llr": -1.8769,
+  "boundary": "none",
+  "decision": "promote_speed",
+  "elapsedSec": 3466.4,
+  "cappedAt": 4000,
+  "bookExhausted": false,
+  "positionsUsed": 2000,
+  "book": "openings-inv1-20260910.epd",
+  "trajectory": [
+    {
+      "batch": 1,
+      "games": 120,
+      "wins": 49,
+      "losses": 49,
+      "draws": 22,
+      "llr": -0.0568,
+      "boundary": "none"
+    },
+    {
+      "batch": 2,
+      "games": 240,
+      "wins": 94,
+      "losses": 94,
+      "draws": 52,
+      "llr": -0.1153,
+      "boundary": "none"
+    },
+    {
+      "batch": 3,
+      "games": 360,
+      "wins": 144,
+      "losses": 144,
+      "draws": 72,
+      "llr": -0.1718,
+      "boundary": "none"
+    },
+    {
+      "batch": 4,
+      "games": 480,
+      "wins": 195,
+      "losses": 195,
+      "draws": 90,
+      "llr": -0.2278,
+      "boundary": "none"
+    },
+    {
+      "batch": 5,
+      "games": 600,
+      "wins": 245,
+      "losses": 245,
+      "draws": 110,
+      "llr": -0.2842,
+      "boundary": "none"
+    },
+    {
+      "batch": 6,
+      "games": 720,
+      "wins": 300,
+      "losses": 300,
+      "draws": 120,
+      "llr": -0.3382,
+      "boundary": "none"
+    },
+    {
+      "batch": 7,
+      "games": 840,
+      "wins": 353,
+      "losses": 353,
+      "draws": 134,
+      "llr": -0.3931,
+      "boundary": "none"
+    },
+    {
+      "batch": 8,
+      "games": 960,
+      "wins": 403,
+      "losses": 403,
+      "draws": 154,
+      "llr": -0.4495,
+      "boundary": "none"
+    },
+    {
+      "batch": 9,
+      "games": 1080,
+      "wins": 451,
+      "losses": 451,
+      "draws": 178,
+      "llr": -0.5069,
+      "boundary": "none"
+    },
+    {
+      "batch": 10,
+      "games": 1200,
+      "wins": 503,
+      "losses": 503,
+      "draws": 194,
+      "llr": -0.5622,
+      "boundary": "none"
+    },
+    {
+      "batch": 11,
+      "games": 1320,
+      "wins": 551,
+      "losses": 551,
+      "draws": 218,
+      "llr": -0.6196,
+      "boundary": "none"
+    },
+    {
+      "batch": 12,
+      "games": 1440,
+      "wins": 603,
+      "losses": 603,
+      "draws": 234,
+      "llr": -0.675,
+      "boundary": "none"
+    },
+    {
+      "batch": 13,
+      "games": 1560,
+      "wins": 656,
+      "losses": 656,
+      "draws": 248,
+      "llr": -0.7299,
+      "boundary": "none"
+    },
+    {
+      "batch": 14,
+      "games": 1680,
+      "wins": 711,
+      "losses": 711,
+      "draws": 258,
+      "llr": -0.7837,
+      "boundary": "none"
+    },
+    {
+      "batch": 15,
+      "games": 1800,
+      "wins": 764,
+      "losses": 764,
+      "draws": 272,
+      "llr": -0.8385,
+      "boundary": "none"
+    },
+    {
+      "batch": 16,
+      "games": 1920,
+      "wins": 812,
+      "losses": 812,
+      "draws": 296,
+      "llr": -0.896,
+      "boundary": "none"
+    },
+    {
+      "batch": 17,
+      "games": 2040,
+      "wins": 860,
+      "losses": 860,
+      "draws": 320,
+      "llr": -0.9534,
+      "boundary": "none"
+    },
+    {
+      "batch": 18,
+      "games": 2160,
+      "wins": 909,
+      "losses": 909,
+      "draws": 342,
+      "llr": -1.0102,
+      "boundary": "none"
+    },
+    {
+      "batch": 19,
+      "games": 2280,
+      "wins": 965,
+      "losses": 965,
+      "draws": 350,
+      "llr": -1.0636,
+      "boundary": "none"
+    },
+    {
+      "batch": 20,
+      "games": 2400,
+      "wins": 1014,
+      "losses": 1014,
+      "draws": 372,
+      "llr": -1.1205,
+      "boundary": "none"
+    },
+    {
+      "batch": 21,
+      "games": 2520,
+      "wins": 1060,
+      "losses": 1060,
+      "draws": 400,
+      "llr": -1.1789,
+      "boundary": "none"
+    },
+    {
+      "batch": 22,
+      "games": 2640,
+      "wins": 1109,
+      "losses": 1109,
+      "draws": 422,
+      "llr": -1.2357,
+      "boundary": "none"
+    },
+    {
+      "batch": 23,
+      "games": 2760,
+      "wins": 1161,
+      "losses": 1161,
+      "draws": 438,
+      "llr": -1.2911,
+      "boundary": "none"
+    },
+    {
+      "batch": 24,
+      "games": 2880,
+      "wins": 1217,
+      "losses": 1217,
+      "draws": 446,
+      "llr": -1.3445,
+      "boundary": "none"
+    },
+    {
+      "batch": 25,
+      "games": 3000,
+      "wins": 1264,
+      "losses": 1264,
+      "draws": 472,
+      "llr": -1.4024,
+      "boundary": "none"
+    },
+    {
+      "batch": 26,
+      "games": 3120,
+      "wins": 1313,
+      "losses": 1313,
+      "draws": 494,
+      "llr": -1.4592,
+      "boundary": "none"
+    },
+    {
+      "batch": 27,
+      "games": 3240,
+      "wins": 1364,
+      "losses": 1364,
+      "draws": 512,
+      "llr": -1.5151,
+      "boundary": "none"
+    },
+    {
+      "batch": 28,
+      "games": 3360,
+      "wins": 1412,
+      "losses": 1412,
+      "draws": 536,
+      "llr": -1.5725,
+      "boundary": "none"
+    },
+    {
+      "batch": 29,
+      "games": 3480,
+      "wins": 1463,
+      "losses": 1463,
+      "draws": 554,
+      "llr": -1.6284,
+      "boundary": "none"
+    },
+    {
+      "batch": 30,
+      "games": 3600,
+      "wins": 1512,
+      "losses": 1512,
+      "draws": 576,
+      "llr": -1.6852,
+      "boundary": "none"
+    },
+    {
+      "batch": 31,
+      "games": 3720,
+      "wins": 1562,
+      "losses": 1562,
+      "draws": 596,
+      "llr": -1.7416,
+      "boundary": "none"
+    },
+    {
+      "batch": 32,
+      "games": 3840,
+      "wins": 1613,
+      "losses": 1613,
+      "draws": 614,
+      "llr": -1.7975,
+      "boundary": "none"
+    },
+    {
+      "batch": 33,
+      "games": 3960,
+      "wins": 1653,
+      "losses": 1653,
+      "draws": 654,
+      "llr": -1.8588,
+      "boundary": "none"
+    },
+    {
+      "batch": 34,
+      "games": 4000,
+      "wins": 1671,
+      "losses": 1671,
+      "draws": 658,
+      "llr": -1.8769,
+      "boundary": "none"
+    }
+  ],
+  "record": "benchmarks/results/pinmovegen-gate-20260912/pinmovegen/sprt.json",
+  "promote_note": "nps-only promotion: +52% measured idle, strength-neutral at 4000 games (LLR -1.877, no boundary crossed)"
+}
