@@ -1,0 +1,85 @@
+{
+  "funnelConfigVersion": 1,
+  "prioritizerVersion": "priority-v1",
+  "description": "Information-gain labeling funnel (#111). Tier 0 deterministic facts and Tier 1 shallow CVS search run on every sampled position; Tier 2 ranks them; Tier 3 deep CVS search and Tier 4 Stockfish run only on the selected subsets. Relative engine/data paths resolve against --artifact-root (default: repo root).",
+  "seed": 111,
+  "source": {
+    "shards": ["training/gen10/corpus-d20/shards/*.jsonl"],
+    "positions": 20000,
+    "outcomeField": "res"
+  },
+  "engine": {
+    "analyze": "target/release/analyze.exe",
+    "args": [
+      "--depth", "64",
+      "--nnue", "target-cvs/matrix-raw.json",
+      "--nnue-cal", "nets/eval-cal.json",
+      "--helper-nnue", "target-cvs/matrix-residual.json"
+    ],
+    "hashArtifacts": ["target-cvs/matrix-raw.json", "nets/eval-cal.json", "target-cvs/matrix-residual.json"]
+  },
+  "stockfish": {
+    "binary": "f:/tools/stockfish/stockfish/stockfish-windows-x86-64-avx2.exe",
+    "hashMb": 16
+  },
+  "tiers": {
+    "tier0": {
+      "workers": 4,
+      "includeMotifOpportunities": true
+    },
+    "tier1": {
+      "workers": 4,
+      "nodeBudgets": [2000, 16000],
+      "pvPlies": 8
+    },
+    "tier2": {
+      "deepFraction": 0.10,
+      "auditFraction": 0.02,
+      "holdoutFraction": 0.01,
+      "holdoutSeed": 20260914,
+      "weights": {
+        "scoreInstability": 3.0,
+        "bestMoveChange": 2.0,
+        "trajectoryUnstable": 1.5,
+        "pvDisagreement": 0.5,
+        "tacticalDensity": 1.0,
+        "rarity": 1.5,
+        "outcomeDisagreement": 1.0,
+        "selectivityEdge": 0.5,
+        "forcedness": 0.25
+      },
+      "caps": {
+        "scoreDeltaCp": 150,
+        "tacticalItems": 10,
+        "seePruneSkips": 4,
+        "forcedLegalMoves": 3,
+        "outcomeMarginCp": 100,
+        "outcomeScaleCp": 400
+      },
+      "coverage": {
+        "targetShare": 0.02,
+        "minTarget": 5,
+        "priorCountsPath": null
+      }
+    },
+    "tier3": {
+      "workers": 4,
+      "nodeBudget": 400000,
+      "pvPlies": 12
+    },
+    "tier4": {
+      "enabled": true,
+      "workers": 4,
+      "depth": 18,
+      "movetimeMs": 3000,
+      "priorityFraction": 0.02,
+      "uniformFraction": 0.02,
+      "auditFraction": 0.01,
+      "chunkSize": 20
+    }
+  },
+  "report": {
+    "informativeDeltaCp": 60,
+    "oracleDeltaCp": 80
+  }
+}
