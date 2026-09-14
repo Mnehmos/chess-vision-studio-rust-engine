@@ -1,5 +1,5 @@
 //! Tests for the heterogeneous / specialist-lane SMP design
-//! (CVS_HETEROGENEOUS_SMP.md).
+//! (docs/CVS_HETEROGENEOUS_SMP.md).
 //!
 //! Two tiers:
 //!   1. FOUNDATION invariants — testable today against the heterogeneous

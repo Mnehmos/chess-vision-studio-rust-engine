@@ -78,7 +78,7 @@ def test_router_tags_candidate_with_validated_motif():
 
 
 def test_registry_backs_every_detector_claim():
-    # Phase-8 guard (CLASSICAL_EVAL_EXPERIMENT.md): the taxonomy must not claim a
+    # Phase-8 guard (docs/CLASSICAL_EVAL_EXPERIMENT.md): the taxonomy must not claim a
     # facts::motifs/mate_patterns/pawn_structure detector the engine registry lacks.
     import subprocess
     res = subprocess.run(

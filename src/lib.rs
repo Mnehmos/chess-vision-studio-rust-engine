@@ -5,7 +5,7 @@
 //! alpha-beta search with a transposition table, and deterministic teaching-facts
 //! validators. Frontends: a UCI engine (`uci`) and a JSON-line analysis server
 //! (`analyze`) used by the app and arena harnesses. Search, SEE, eval, and facts
-//! have landed since the movegen-only seed — see PERFT_REPORT.md for the original
+//! have landed since the movegen-only seed — see docs/reports/PERFT_REPORT.md for the original
 //! perft anchor.
 //!
 //! Board convention: Little-Endian Rank-File (LERF). Square index `s = rank*8 + file`,

@@ -1,4 +1,4 @@
-//! Fixed-node diagnostic interface (CLASSICAL_EVAL_EXPERIMENT.md Phase 5 / #6).
+//! Fixed-node diagnostic interface (docs/CLASSICAL_EVAL_EXPERIMENT.md Phase 5 / #6).
 //!
 //! The experiment's decision gates rest on deterministic, cold, single-thread, fixed-node
 //! comparisons. These tests pin the serve contract that makes those comparisons trustworthy:

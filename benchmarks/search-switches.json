@@ -1,0 +1,1378 @@
+{
+  "schemaVersion": 1,
+  "generator": "benchmarks/scripts/build_switch_registry.py",
+  "sources": {
+    "typesRsSha256": "6ded35b7bb10b28810af65b20c8d8cf90eedd441d4ba25d8e52a5850fa2116f3",
+    "gateRecords": 53
+  },
+  "labStateMapping": {
+    "promote": "SUPPORTED",
+    "reject": "REJECTED",
+    "hold_for_more_data": "INCONCLUSIVE",
+    "(no record)": "PROPOSED"
+  },
+  "switches": [
+    {
+      "id": "book-enabled",
+      "kind": "toggle",
+      "field": "book",
+      "on": "--book-enabled",
+      "off": "--no-book",
+      "default": true,
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "caphist",
+      "kind": "toggle",
+      "field": "caphist",
+      "on": "--caphist",
+      "off": "--no-caphist",
+      "default": true,
+      "evidence": {
+        "current": {
+          "record": "benchmarks/results/caphist-regate-hp-20260910/caphist-regate/sprt.json",
+          "slug": "caphist",
+          "date": "20260910",
+          "games": 4000,
+          "llr": 0.411,
+          "boundary": "none",
+          "decision": "hold_for_more_data",
+          "labState": "INCONCLUSIVE",
+          "elo0": 0.0,
+          "elo1": 10.0
+        },
+        "history": [
+          {
+            "record": "benchmarks/results/caphist-regate-gate-20260909/caphist-regate/sprt.json",
+            "slug": "caphist",
+            "date": "20260909",
+            "games": 2000,
+            "llr": -1.1632,
+            "boundary": "none",
+            "decision": "hold_for_more_data",
+            "labState": "INCONCLUSIVE",
+            "elo0": 0.0,
+            "elo1": 10.0
+          },
+          {
+            "record": "benchmarks/results/inv1-ladder-20260909/caphist/sprt.json",
+            "slug": "caphist",
+            "date": "20260909",
+            "games": 293,
+            "llr": 2.9489,
+            "boundary": "upper",
+            "decision": "promote",
+            "labState": "SUPPORTED",
+            "elo0": 0.0,
+            "elo1": 10.0
+          }
+        ]
+      },
+      "labState": "INCONCLUSIVE",
+      "review": [
+        "default ON without an upper-bound record (retained/perf/correctness change)"
+      ]
+    },
+    {
+      "id": "conthist",
+      "kind": "toggle",
+      "field": "conthist",
+      "on": "--conthist",
+      "off": "--no-conthist",
+      "default": true,
+      "evidence": {
+        "current": {
+          "record": "benchmarks/results/conthist-big-gate-20260910/conthist/sprt.json",
+          "slug": "conthist",
+          "date": "20260910",
+          "games": 1781,
+          "llr": 2.9488,
+          "boundary": "upper",
+          "decision": "promote",
+          "labState": "SUPPORTED",
+          "elo0": 0.0,
+          "elo1": 10.0
+        },
+        "history": [
+          {
+            "record": "benchmarks/results/conthist-gate-20260909/conthist/sprt.json",
+            "slug": "conthist",
+            "date": "20260909",
+            "games": 2000,
+            "llr": 0.1269,
+            "boundary": "none",
+            "decision": "hold_for_more_data",
+            "labState": "INCONCLUSIVE",
+            "elo0": 0.0,
+            "elo1": 10.0
+          },
+          {
+            "record": "benchmarks/results/inv1-ladder-20260909/conthist/sprt.json",
+            "slug": "conthist",
+            "date": "20260909",
+            "games": 1389,
+            "llr": -2.976,
+            "boundary": "lower",
+            "decision": "reject",
+            "labState": "REJECTED",
+            "elo0": 0.0,
+            "elo1": 10.0
+          }
+        ]
+      },
+      "labState": "SUPPORTED"
+    },
+    {
+      "id": "conthist2",
+      "kind": "toggle",
+      "field": "conthist2",
+      "on": "--conthist2",
+      "off": "--no-conthist2",
+      "default": false,
+      "doc": "Second continuation history (--conthist2): the move TWO plies back keys a second ordering term, matching SF's `contHist[1]` in the quiet statScore. Targets the measured internal-node ordering gap (SF's best move sits past rank 10 in our ordering in ~1/3 of positions) \u2014 the prerequisite for every movecount pruning decision.",
+      "evidence": {
+        "current": {
+          "record": "benchmarks/results/conthist2-gate-20260911/conthist2/sprt.json",
+          "slug": "conthist2",
+          "date": "20260911",
+          "games": 2000,
+          "llr": 0.1961,
+          "boundary": "none",
+          "decision": "hold_for_more_data",
+          "labState": "INCONCLUSIVE",
+          "elo0": 0.0,
+          "elo1": 10.0
+        },
+        "history": []
+      },
+      "labState": "INCONCLUSIVE"
+    },
+    {
+      "id": "countermove",
+      "kind": "toggle",
+      "field": "countermove",
+      "on": "--countermove",
+      "off": "--no-countermove",
+      "default": false,
+      "evidence": {
+        "current": {
+          "record": "benchmarks/results/countermove-gate-20260909/countermove/sprt.json",
+          "slug": "countermove",
+          "date": "20260909",
+          "games": 2000,
+          "llr": -1.9038,
+          "boundary": "none",
+          "decision": "hold_for_more_data",
+          "labState": "INCONCLUSIVE",
+          "elo0": 0.0,
+          "elo1": 10.0
+        },
+        "history": [
+          {
+            "record": "benchmarks/results/inv1-ladder-20260909/countermove/sprt.json",
+            "slug": "countermove",
+            "date": "20260909",
+            "games": 517,
+            "llr": -2.9539,
+            "boundary": "lower",
+            "decision": "reject",
+            "labState": "REJECTED",
+            "elo0": 0.0,
+            "elo1": 10.0
+          }
+        ]
+      },
+      "labState": "INCONCLUSIVE"
+    },
+    {
+      "id": "cvs-bonus",
+      "kind": "toggle",
+      "field": "cvs_bonus",
+      "on": "--cvs-bonus",
+      "off": "--no-cvs-bonus",
+      "default": true,
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "delta",
+      "kind": "toggle",
+      "field": "delta_prune",
+      "on": "--delta",
+      "off": "--no-delta",
+      "default": false,
+      "evidence": {
+        "current": {
+          "record": "benchmarks/results/delta-big-gate-20260910/delta/sprt.json",
+          "slug": "delta",
+          "date": "20260910",
+          "games": 1201,
+          "llr": -2.964,
+          "boundary": "lower",
+          "decision": "reject",
+          "labState": "REJECTED",
+          "elo0": 0.0,
+          "elo1": 10.0
+        },
+        "history": [
+          {
+            "record": "benchmarks/results/delta-gate-20260909/delta/sprt.json",
+            "slug": "delta",
+            "date": "20260909",
+            "games": 2000,
+            "llr": 0.4904,
+            "boundary": "none",
+            "decision": "hold_for_more_data",
+            "labState": "INCONCLUSIVE",
+            "elo0": 0.0,
+            "elo1": 10.0
+          },
+          {
+            "record": "benchmarks/results/inv1-ladder-20260909/delta/sprt.json",
+            "slug": "delta",
+            "date": "20260909",
+            "games": 575,
+            "llr": -2.965,
+            "boundary": "lower",
+            "decision": "reject",
+            "labState": "REJECTED",
+            "elo0": 0.0,
+            "elo1": 10.0
+          }
+        ]
+      },
+      "labState": "REJECTED"
+    },
+    {
+      "id": "futility",
+      "kind": "toggle",
+      "field": "futility",
+      "on": "--futility",
+      "off": "--no-futility",
+      "default": true,
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "histbal",
+      "kind": "toggle",
+      "field": "hist_bal",
+      "on": "--histbal",
+      "off": "--no-histbal",
+      "default": false,
+      "doc": "Balanced history updates (--histbal): give the quiet-cutoff BONUS the same magnitude as the tried-quiet MALUS (SF uses one `bonus` for both). Ours penalizes at 300*depth but rewards at only 150*depth, so the history drifts net-negative and the ordering signal compresses toward the floor.",
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "histlmr",
+      "kind": "toggle",
+      "field": "hist_lmr",
+      "on": "--histlmr",
+      "off": "--no-histlmr",
+      "default": true,
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "histmalus",
+      "kind": "toggle",
+      "field": "hist_malus",
+      "on": "--histmalus",
+      "off": "--no-histmalus",
+      "default": true,
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "iid",
+      "kind": "toggle",
+      "field": "iid",
+      "on": "--iid",
+      "off": "--no-iid",
+      "default": false,
+      "doc": "Internal Iterative Deepening: at a node with no TT move hint, a reduced search populates the TT so move ordering has a real first move. Targets the audited move-ordering bottleneck (82% cold TT probes, ~35% first-cut).",
+      "evidence": {
+        "current": {
+          "record": "benchmarks/results/inv1-ladder-20260909/iid/sprt.json",
+          "slug": "iid",
+          "date": "20260909",
+          "games": 3000,
+          "llr": -1.4093,
+          "boundary": "none",
+          "decision": "hold_for_more_data",
+          "labState": "INCONCLUSIVE",
+          "elo0": 0.0,
+          "elo1": 10.0
+        },
+        "history": [
+          {
+            "record": "benchmarks/results/iid-gate-20260909/iid/sprt.json",
+            "slug": "iid",
+            "date": "20260909",
+            "games": 2000,
+            "llr": -0.7044,
+            "boundary": "none",
+            "decision": "hold_for_more_data",
+            "labState": "INCONCLUSIVE",
+            "elo0": 0.0,
+            "elo1": 10.0
+          }
+        ]
+      },
+      "labState": "INCONCLUSIVE"
+    },
+    {
+      "id": "iir",
+      "kind": "toggle",
+      "field": "iir",
+      "on": "--iir",
+      "off": "--no-iir",
+      "default": false,
+      "doc": "Internal iterative reduction (--iir): at a cut node of depth >= 6 with no TT move, search one ply shallower (SF's IIR) instead of paying a full IID re-search. Cheap ordering fix for the ~70% of probes with no entry.",
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "improving",
+      "kind": "toggle",
+      "field": "improving",
+      "on": "--improving",
+      "off": "--no-improving",
+      "default": false,
+      "evidence": {
+        "current": {
+          "record": "benchmarks/results/improving-regate-hp-20260910/improving-regate/sprt.json",
+          "slug": "improving",
+          "date": "20260910",
+          "games": 2784,
+          "llr": -2.9742,
+          "boundary": "lower",
+          "decision": "reject",
+          "labState": "REJECTED",
+          "elo0": 0.0,
+          "elo1": 10.0
+        },
+        "history": [
+          {
+            "record": "benchmarks/results/improving-regate-gate-20260909/improving-regate/sprt.json",
+            "slug": "improving",
+            "date": "20260909",
+            "games": 2000,
+            "llr": -0.9661,
+            "boundary": "none",
+            "decision": "hold_for_more_data",
+            "labState": "INCONCLUSIVE",
+            "elo0": 0.0,
+            "elo1": 10.0
+          },
+          {
+            "record": "benchmarks/results/inv1-ladder-20260909/improving/sprt.json",
+            "slug": "improving",
+            "date": "20260909",
+            "games": 396,
+            "llr": 2.9657,
+            "boundary": "upper",
+            "decision": "promote",
+            "labState": "SUPPORTED",
+            "elo0": 0.0,
+            "elo1": 10.0
+          }
+        ]
+      },
+      "labState": "REJECTED"
+    },
+    {
+      "id": "king-activity",
+      "kind": "toggle",
+      "field": "king_activity",
+      "on": "--king-activity",
+      "off": "--no-king-activity",
+      "default": true,
+      "evidence": {
+        "current": {
+          "record": "benchmarks/results/kingact-regate-hp-20260910/kingact-regate/sprt.json",
+          "slug": "kingact",
+          "date": "20260910",
+          "games": 4000,
+          "llr": 0.3699,
+          "boundary": "none",
+          "decision": "hold_for_more_data",
+          "labState": "INCONCLUSIVE",
+          "elo0": 0.0,
+          "elo1": 10.0
+        },
+        "history": [
+          {
+            "record": "benchmarks/results/kingact-regate-20260909/sprt.json",
+            "slug": "kingact",
+            "date": "20260909",
+            "games": 3569,
+            "llr": 2.9607,
+            "boundary": "upper",
+            "decision": "promote",
+            "labState": "SUPPORTED",
+            "elo0": 0.0,
+            "elo1": 10.0
+          },
+          {
+            "record": "benchmarks/results/inv1-ladder-20260909/kingact/sprt.json",
+            "slug": "kingact",
+            "date": "20260909",
+            "games": 3000,
+            "llr": 2.4559,
+            "boundary": "none",
+            "decision": "hold_for_more_data",
+            "labState": "INCONCLUSIVE",
+            "elo0": 0.0,
+            "elo1": 10.0
+          },
+          {
+            "record": "benchmarks/results/kingact-regate-gate-20260909/kingact-regate/sprt.json",
+            "slug": "kingact",
+            "date": "20260909",
+            "games": 2000,
+            "llr": 0.4697,
+            "boundary": "none",
+            "decision": "hold_for_more_data",
+            "labState": "INCONCLUSIVE",
+            "elo0": 0.0,
+            "elo1": 10.0
+          }
+        ]
+      },
+      "labState": "INCONCLUSIVE",
+      "review": [
+        "default ON without an upper-bound record (retained/perf/correctness change)"
+      ]
+    },
+    {
+      "id": "lmp",
+      "kind": "toggle",
+      "field": "lmp",
+      "on": "--lmp",
+      "off": "--no-lmp",
+      "default": true,
+      "evidence": {
+        "current": {
+          "record": "benchmarks/results/lmp-regate-hp-20260910/lmp-regate/sprt.json",
+          "slug": "lmp",
+          "date": "20260910",
+          "games": 515,
+          "llr": 2.948,
+          "boundary": "upper",
+          "decision": "promote",
+          "labState": "SUPPORTED",
+          "elo0": 0.0,
+          "elo1": 10.0
+        },
+        "history": []
+      },
+      "labState": "SUPPORTED"
+    },
+    {
+      "id": "lmr",
+      "kind": "toggle",
+      "field": "lmr",
+      "on": "--lmr",
+      "off": "--no-lmr",
+      "default": true,
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "lmr2",
+      "kind": "toggle",
+      "field": "lmr2",
+      "on": "--lmr2",
+      "off": "--no-lmr2",
+      "default": false,
+      "doc": "SF-shaped LMR (--lmr2): reduce from the SECOND move (SF: moveCount > 1) instead of the fourth, and buy PV nodes one ply back (SF's `+ PvNode` in `d = max(1, min(newDepth - r/1024, newDepth + 2)) + PvNode`). The first three moves currently search at full depth at every node \u2014 the single largest remaining node-count difference from Stockfish at equal depth.",
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "loglmr",
+      "kind": "toggle",
+      "field": "loglmr",
+      "on": "--loglmr",
+      "off": "--no-loglmr",
+      "default": true,
+      "doc": "Log-based LMR reduction (r \u2248 0.75 + ln(d)\u00b7ln(i)/lmr_div) vs the flat 1-ply tier.",
+      "evidence": {
+        "current": {
+          "record": "benchmarks/results/loglmr-gate-20260909b/loglmr/sprt.json",
+          "slug": "loglmr",
+          "date": "20260909",
+          "games": 1030,
+          "llr": 2.9645,
+          "boundary": "upper",
+          "decision": "promote",
+          "labState": "SUPPORTED",
+          "elo0": 0.0,
+          "elo1": 10.0
+        },
+        "history": []
+      },
+      "labState": "SUPPORTED"
+    },
+    {
+      "id": "matett",
+      "kind": "toggle",
+      "field": "matett",
+      "on": "--matett",
+      "off": "--no-matett",
+      "default": true,
+      "doc": "BUG1: ply-adjust mate scores on TT store/probe so a mate score stored at one ply reads correctly when probed at another (node-intrinsic TT mate distance).",
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "null",
+      "kind": "toggle",
+      "field": "null_move",
+      "on": "--null",
+      "off": "--no-null",
+      "default": true,
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "pawnhist",
+      "kind": "toggle",
+      "field": "pawnhist",
+      "on": "--pawnhist",
+      "off": "--no-pawnhist",
+      "default": false,
+      "doc": "Pawn history (--pawnhist): a pawn-structure-keyed quiet history, SF's `sharedHistory.pawn_entry`. Quiets get a bonus when the SAME pawn skeleton has seen them cut off before \u2014 the one big ordering signal we never had. Targets the measured blocker: first-move cutoff 45% vs SF ~90%.",
+      "evidence": {
+        "current": {
+          "record": "benchmarks/results/pawnhist-gate-20260912/pawnhist/sprt.json",
+          "slug": "pawnhist",
+          "date": "20260912",
+          "games": 1236,
+          "llr": -2.96,
+          "boundary": "lower",
+          "decision": "reject",
+          "labState": "REJECTED",
+          "elo0": 0.0,
+          "elo1": 10.0
+        },
+        "history": []
+      },
+      "labState": "REJECTED"
+    },
+    {
+      "id": "pinmovegen",
+      "kind": "toggle",
+      "field": "pinmovegen",
+      "on": "--pinmovegen",
+      "off": "--no-pinmovegen",
+      "default": true,
+      "doc": "Pin-aware legal move generation (--pinmovegen): compute pinned pieces and checkers once, then only make/unmake-verify king moves, pinned-piece moves, and en-passant. All other moves are legal by construction when not in check.",
+      "evidence": {
+        "current": {
+          "record": "benchmarks/results/pinmovegen-gate-20260912/pinmovegen/sprt.json",
+          "slug": "pinmovegen",
+          "date": "20260912",
+          "games": 4000,
+          "llr": -1.8769,
+          "boundary": "none",
+          "decision": "hold_for_more_data",
+          "labState": "INCONCLUSIVE",
+          "elo0": 0.0,
+          "elo1": 10.0
+        },
+        "history": []
+      },
+      "labState": "INCONCLUSIVE",
+      "review": [
+        "default ON without an upper-bound record (retained/perf/correctness change)"
+      ]
+    },
+    {
+      "id": "probcut",
+      "kind": "toggle",
+      "field": "probcut",
+      "on": "--probcut",
+      "off": "--no-probcut",
+      "default": false,
+      "doc": "ProbCut: a good capture searched at reduced depth with raised beta may cut.",
+      "evidence": {
+        "current": {
+          "record": "benchmarks/results/probcut-gate-20260910/probcut/sprt.json",
+          "slug": "probcut",
+          "date": "20260910",
+          "games": 2001,
+          "llr": -1.3654,
+          "boundary": "none",
+          "decision": "hold_for_more_data",
+          "labState": "INCONCLUSIVE",
+          "elo0": 0.0,
+          "elo1": 10.0
+        },
+        "history": []
+      },
+      "labState": "INCONCLUSIVE"
+    },
+    {
+      "id": "pvs",
+      "kind": "toggle",
+      "field": "pvs",
+      "on": "--pvs",
+      "off": "--no-pvs",
+      "default": true,
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "qtt",
+      "kind": "toggle",
+      "field": "qsearch_tt",
+      "on": "--qtt",
+      "off": "--no-qtt",
+      "default": true,
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "quant-eval",
+      "kind": "toggle",
+      "field": "quant_eval",
+      "on": "--quant-eval",
+      "off": "--no-quant-eval",
+      "default": false,
+      "doc": "Quantized eval (--quant-eval): i16 weights + accumulator instead of f32. Measured quantization error: 5.6 cp MAE (S1=128), negligible vs the 85 cp eval MAE. The i16 accumulator gives 16 AVX2 lanes vs 8 for f32.",
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "quiet-checks",
+      "kind": "toggle",
+      "field": "quiet_checks",
+      "on": "--quiet-checks",
+      "off": "--no-quiet-checks",
+      "default": true,
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "razoring",
+      "kind": "toggle",
+      "field": "razoring",
+      "on": "--razoring",
+      "off": "--no-razoring",
+      "default": false,
+      "doc": "Razoring: a shallow non-PV node far below alpha is verified in quiescence.",
+      "evidence": {
+        "current": {
+          "record": "benchmarks/results/razoring-gate-20260910/razoring/sprt.json",
+          "slug": "razoring",
+          "date": "20260910",
+          "games": 2000,
+          "llr": -0.4003,
+          "boundary": "none",
+          "decision": "hold_for_more_data",
+          "labState": "INCONCLUSIVE",
+          "elo0": 0.0,
+          "elo1": 10.0
+        },
+        "history": []
+      },
+      "labState": "INCONCLUSIVE"
+    },
+    {
+      "id": "recapture",
+      "kind": "toggle",
+      "field": "recapture",
+      "on": "--recapture",
+      "off": "--no-recapture",
+      "default": false,
+      "doc": "Recapture extension: extend a capture on the square the opponent just moved to.",
+      "evidence": {
+        "current": {
+          "record": "benchmarks/results/recapture-gate-20260910/recapture/sprt.json",
+          "slug": "recapture",
+          "date": "20260910",
+          "games": 2000,
+          "llr": -1.5898,
+          "boundary": "none",
+          "decision": "hold_for_more_data",
+          "labState": "INCONCLUSIVE",
+          "elo0": 0.0,
+          "elo1": 10.0
+        },
+        "history": []
+      },
+      "labState": "INCONCLUSIVE"
+    },
+    {
+      "id": "rfp",
+      "kind": "toggle",
+      "field": "rfp",
+      "on": "--rfp",
+      "off": "--no-rfp",
+      "default": true,
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "root-diagnostics",
+      "kind": "toggle",
+      "field": "root_diagnostics",
+      "on": "--root-diagnostics",
+      "off": "--no-root-diagnostics",
+      "default": false,
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "rootsafequiet",
+      "kind": "toggle",
+      "field": "root_safe_quiet",
+      "on": "--rootsafequiet",
+      "off": "--no-rootsafequiet",
+      "default": false,
+      "doc": "Root safe-quiet ordering (--rootsafequiet): at the root, boost quiet moves whose destination is NOT controlled by the opponent (a \"safe quiet\") so the calm, sound improvements CVS empirically skips get tried earlier among quiets. Ordering-only within the quiet band -> cannot change the alpha-beta value.",
+      "evidence": {
+        "current": {
+          "record": "benchmarks/results/rootsafequiet-gate-20260909/rootsafequiet/sprt.json",
+          "slug": "rootsafequiet",
+          "date": "20260909",
+          "games": 2000,
+          "llr": -0.7318,
+          "boundary": "none",
+          "decision": "hold_for_more_data",
+          "labState": "INCONCLUSIVE",
+          "elo0": 0.0,
+          "elo1": 10.0
+        },
+        "history": []
+      },
+      "labState": "INCONCLUSIVE"
+    },
+    {
+      "id": "rule50",
+      "kind": "toggle",
+      "field": "rule50_scale",
+      "on": "--rule50",
+      "off": "--no-rule50",
+      "default": false,
+      "evidence": {
+        "current": {
+          "record": "benchmarks/results/inv1-ladder-20260909/rule50/sprt.json",
+          "slug": "rule50",
+          "date": "20260909",
+          "games": 257,
+          "llr": -2.9704,
+          "boundary": "lower",
+          "decision": "reject",
+          "labState": "REJECTED",
+          "elo0": 0.0,
+          "elo1": 10.0
+        },
+        "history": []
+      },
+      "labState": "REJECTED"
+    },
+    {
+      "id": "seeprune",
+      "kind": "toggle",
+      "field": "see_prune",
+      "on": "--seeprune",
+      "off": "--no-seeprune",
+      "default": false,
+      "evidence": {
+        "current": {
+          "record": "benchmarks/results/seeprune-regate-hp-20260910/seeprune-regate/sprt.json",
+          "slug": "seeprune",
+          "date": "20260910",
+          "games": 2748,
+          "llr": -2.9585,
+          "boundary": "lower",
+          "decision": "reject",
+          "labState": "REJECTED",
+          "elo0": 0.0,
+          "elo1": 10.0
+        },
+        "history": [
+          {
+            "record": "benchmarks/results/seeprune-regate-gate-20260909/seeprune-regate/sprt.json",
+            "slug": "seeprune",
+            "date": "20260909",
+            "games": 2000,
+            "llr": 0.2906,
+            "boundary": "none",
+            "decision": "hold_for_more_data",
+            "labState": "INCONCLUSIVE",
+            "elo0": 0.0,
+            "elo1": 10.0
+          },
+          {
+            "record": "benchmarks/results/inv1-ladder-20260909/seeprune/sprt.json",
+            "slug": "seeprune",
+            "date": "20260909",
+            "games": 246,
+            "llr": 2.9468,
+            "boundary": "upper",
+            "decision": "promote",
+            "labState": "SUPPORTED",
+            "elo0": 0.0,
+            "elo1": 10.0
+          }
+        ]
+      },
+      "labState": "REJECTED"
+    },
+    {
+      "id": "seeverify",
+      "kind": "toggle",
+      "field": "see_verify",
+      "on": "--seeverify",
+      "off": "--no-seeverify",
+      "default": false,
+      "doc": "SEE-advisory verification (#3): when set, qsearch admits a negative-SEE capture/promo that fires a tactical-volatility trigger (gives check or is a promotion) instead of vetoing it on the static exchange alone. Default off => the plain SEE veto is unchanged.",
+      "evidence": {
+        "current": {
+          "record": "benchmarks/results/seeverify-gate-20260909/seeverify/sprt.json",
+          "slug": "seeverify",
+          "date": "20260909",
+          "games": 1644,
+          "llr": -2.958,
+          "boundary": "lower",
+          "decision": "reject",
+          "labState": "REJECTED",
+          "elo0": 0.0,
+          "elo1": 10.0
+        },
+        "history": []
+      },
+      "labState": "REJECTED"
+    },
+    {
+      "id": "sfnull",
+      "kind": "toggle",
+      "field": "sfnull",
+      "on": "--sfnull",
+      "off": "--no-sfnull",
+      "default": false,
+      "doc": "SF-shaped null move (--sfnull): SF's graded condition (`eval + 365 >= beta - 13*depth`, SF units) and depth-scaled reduction `R = 7 + depth/3 + max((eval-beta)/256, 0)` instead of our flat R = 2/3.",
+      "evidence": {
+        "current": {
+          "record": "benchmarks/results/sfprune-tc2-20260910/sprt.json",
+          "slug": "--sfprune --sfnull",
+          "date": "20260910",
+          "games": 335,
+          "llr": -2.9583,
+          "boundary": "lower",
+          "decision": "reject",
+          "labState": "REJECTED",
+          "elo0": 0.0,
+          "elo1": 10.0
+        },
+        "history": []
+      },
+      "labState": "REJECTED"
+    },
+    {
+      "id": "sfprune",
+      "kind": "toggle",
+      "field": "sfprune",
+      "on": "--sfprune",
+      "off": "--no-sfprune",
+      "default": false,
+      "doc": "SF frontier bundle (--sfprune): Stockfish's pruning *structure* with its published constants converted to centipawns (x100/208) \u2014 extended RFP, quiet futility, SF's SEE margins, capture futility, and the (3+d^2)/2 movecount budget applied at every depth. Our rejected variants were harsh-but-shallow; SF is mild-but-everywhere.",
+      "evidence": {
+        "current": {
+          "record": "benchmarks/results/sfprune-12k-gate-20260910/sfprune/sprt.json",
+          "slug": "sfprune",
+          "date": "20260910",
+          "games": 578,
+          "llr": -2.9445,
+          "boundary": "lower",
+          "decision": "reject",
+          "labState": "REJECTED",
+          "elo0": 0.0,
+          "elo1": 10.0
+        },
+        "history": [
+          {
+            "record": "benchmarks/results/sfprune-tc2-20260910/sprt.json",
+            "slug": "--sfprune --sfnull",
+            "date": "20260910",
+            "games": 335,
+            "llr": -2.9583,
+            "boundary": "lower",
+            "decision": "reject",
+            "labState": "REJECTED",
+            "elo0": 0.0,
+            "elo1": 10.0
+          }
+        ]
+      },
+      "labState": "REJECTED"
+    },
+    {
+      "id": "sfqs",
+      "kind": "toggle",
+      "field": "sfqs",
+      "on": "--sfqs",
+      "off": "--no-sfqs",
+      "default": false,
+      "doc": "SF-shaped quiescence (--sfqs): after two moves only checks and promotions are searched, and the first two are filtered by SF's qsearch futility and SEE-vs-alpha tests. Our qsearch is table-wide by comparison and is ~40% of the tree; SF's q-tree barely branches.",
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "sfquietsee",
+      "kind": "toggle",
+      "field": "sf_quiet_see",
+      "on": "--sfquietsee",
+      "off": "--no-sfquietsee",
+      "default": true,
+      "doc": "Sub-toggle of --sfprune: the quiet-move SEE pruning (`see < -23*lmrDepth^2`). It is the only bundle member that needs an SEE/attack query at EVERY quiet move, and it is what costs the bundle its nodes-per-second (measured 1.8x before the unattacked fast path, 1.3x after). Off = \"sfprune-lite\".",
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "shuffled-geometry",
+      "kind": "toggle",
+      "field": "shuffled_geometry",
+      "on": "--shuffled-geometry",
+      "off": "--no-shuffled-geometry",
+      "default": false,
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "singular",
+      "kind": "toggle",
+      "field": "singular",
+      "on": "--singular",
+      "off": "--no-singular",
+      "default": false,
+      "evidence": {
+        "current": {
+          "record": "benchmarks/results/inv1-ladder-20260909/singular/sprt.json",
+          "slug": "singular",
+          "date": "20260909",
+          "games": 3000,
+          "llr": 2.6723,
+          "boundary": "none",
+          "decision": "hold_for_more_data",
+          "labState": "INCONCLUSIVE",
+          "elo0": 0.0,
+          "elo1": 10.0
+        },
+        "history": [
+          {
+            "record": "benchmarks/results/singular-regate-20260909/singular/sprt.json",
+            "slug": "singular",
+            "date": "20260909",
+            "games": 2000,
+            "llr": -0.4014,
+            "boundary": "none",
+            "decision": "hold_for_more_data",
+            "labState": "INCONCLUSIVE",
+            "elo0": 0.0,
+            "elo1": 10.0
+          }
+        ]
+      },
+      "labState": "INCONCLUSIVE"
+    },
+    {
+      "id": "syzygy",
+      "kind": "toggle",
+      "field": "syzygy",
+      "on": "--syzygy",
+      "off": "--no-syzygy",
+      "default": true,
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "tt",
+      "kind": "toggle",
+      "field": "use_tt",
+      "on": "--tt",
+      "off": "--no-tt",
+      "default": true,
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "tt-prune-store",
+      "kind": "toggle",
+      "field": "tt_prune_store",
+      "on": "--tt-prune-store",
+      "off": "--no-tt-prune-store",
+      "default": true,
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "tt2",
+      "kind": "toggle",
+      "field": "tt2",
+      "on": "--tt2",
+      "off": "--no-tt2",
+      "default": false,
+      "evidence": {
+        "current": {
+          "record": "benchmarks/results/tt2-regate-hp-20260910/tt2-regate/sprt.json",
+          "slug": "tt2",
+          "date": "20260910",
+          "games": 1214,
+          "llr": -2.9452,
+          "boundary": "lower",
+          "decision": "reject",
+          "labState": "REJECTED",
+          "elo0": 0.0,
+          "elo1": 10.0
+        },
+        "history": [
+          {
+            "record": "benchmarks/results/tt2-regate-gate-20260909/tt2-regate/sprt.json",
+            "slug": "tt2",
+            "date": "20260909",
+            "games": 2000,
+            "llr": -0.4984,
+            "boundary": "none",
+            "decision": "hold_for_more_data",
+            "labState": "INCONCLUSIVE",
+            "elo0": 0.0,
+            "elo1": 10.0
+          },
+          {
+            "record": "benchmarks/results/inv1-ladder-20260909/tt2/sprt.json",
+            "slug": "tt2",
+            "date": "20260909",
+            "games": 430,
+            "llr": 2.9535,
+            "boundary": "upper",
+            "decision": "promote",
+            "labState": "SUPPORTED",
+            "elo0": 0.0,
+            "elo1": 10.0
+          }
+        ]
+      },
+      "labState": "REJECTED"
+    },
+    {
+      "id": "asp-window",
+      "kind": "value",
+      "field": "asp_window",
+      "flag": "--asp-window",
+      "default": "50",
+      "doc": "Aspiration window half-width in centipawns at the first try (default 50).",
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "fut-base",
+      "kind": "value",
+      "field": "fut_base",
+      "flag": "--fut-base",
+      "default": "120",
+      "doc": "Futility margin = fut_base + fut_scale * depth (defaults 120 and 150).",
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "fut-depth",
+      "kind": "value",
+      "field": "fut_depth",
+      "flag": "--fut-depth",
+      "default": "3",
+      "doc": "Depth cap for futility pruning (default 3).",
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "fut-scale",
+      "kind": "value",
+      "field": "fut_scale",
+      "flag": "--fut-scale",
+      "default": "150",
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "lmp-base",
+      "kind": "value",
+      "field": "lmp_base",
+      "flag": "--lmp-base",
+      "default": "8",
+      "doc": "LMP budget = lmp_base + lmp_sq * depth^2 / 100 (defaults 8 and 200, i.e. the historical 8 + 2*d^2 \u2014 which at depth 6 is move 80 of ~39 legal moves, so LMP never fired above depth 3-4).",
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "lmp-depth",
+      "kind": "value",
+      "field": "lmp_depth",
+      "flag": "--lmp-depth",
+      "default": "4",
+      "doc": "Depth cap for late-move pruning (default 4).",
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "lmp-sq",
+      "kind": "value",
+      "field": "lmp_sq",
+      "flag": "--lmp-sq",
+      "default": "200",
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "lmr-bonus",
+      "kind": "value",
+      "field": "lmr_bonus",
+      "flag": "--lmr-bonus",
+      "default": "0",
+      "doc": "Ply bonus added to every LMR reduction, before the cap (default 0).",
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "lmr-div",
+      "kind": "value",
+      "field": "lmr_div",
+      "flag": "--lmr-div",
+      "default": "2.25",
+      "doc": "Divisor in the log-LMR reduction formula: smaller = more aggressive reduction. Default 2.25 (the 2026-09-09 gated value); `--lmr-div <v>` tunes it.",
+      "evidence": {
+        "sweep": [
+          {
+            "record": "benchmarks/results/lmrdiv175-gate-20260910/lmrdiv175/sprt.json",
+            "slug": "lmrdiv175",
+            "date": "20260910",
+            "games": 1798,
+            "llr": -1.4219,
+            "boundary": "none",
+            "decision": "hold_for_more_data",
+            "labState": "INCONCLUSIVE",
+            "elo0": 0.0,
+            "elo1": 10.0
+          },
+          {
+            "record": "benchmarks/results/lmrdiv20-gate-20260910/lmrdiv20/sprt.json",
+            "slug": "lmrdiv20",
+            "date": "20260910",
+            "games": 1798,
+            "llr": -2.3279,
+            "boundary": "none",
+            "decision": "hold_for_more_data",
+            "labState": "INCONCLUSIVE",
+            "elo0": 0.0,
+            "elo1": 10.0
+          },
+          {
+            "record": "benchmarks/results/lmrdiv25-gate-20260910/lmrdiv25/sprt.json",
+            "slug": "lmrdiv25",
+            "date": "20260910",
+            "games": 1798,
+            "llr": -1.7725,
+            "boundary": "none",
+            "decision": "hold_for_more_data",
+            "labState": "INCONCLUSIVE",
+            "elo0": 0.0,
+            "elo1": 10.0
+          },
+          {
+            "record": "benchmarks/results/lmrdiv275-gate-20260910/lmrdiv275/sprt.json",
+            "slug": "lmrdiv275",
+            "date": "20260910",
+            "games": 1798,
+            "llr": 0.2879,
+            "boundary": "none",
+            "decision": "hold_for_more_data",
+            "labState": "INCONCLUSIVE",
+            "elo0": 0.0,
+            "elo1": 10.0
+          }
+        ]
+      },
+      "labState": "INCONCLUSIVE"
+    },
+    {
+      "id": "lmr-max",
+      "kind": "value",
+      "field": "lmr_max",
+      "flag": "--lmr-max",
+      "default": "6",
+      "doc": "Hard cap on the LMR reduction (default 6).",
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "lmr-min-index",
+      "kind": "value",
+      "field": "lmr_min_index",
+      "flag": "--lmr-min-index",
+      "default": "3",
+      "doc": "First move index that can receive an LMR reduction (default 3).",
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "probcut-margin",
+      "kind": "value",
+      "field": "probcut_margin",
+      "flag": "--probcut-margin",
+      "default": "120",
+      "doc": "ProbCut beta margin in centipawns (default 120).",
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "rfp-depth",
+      "kind": "value",
+      "field": "rfp_depth",
+      "flag": "--rfp-depth",
+      "default": "4",
+      "doc": "Depth cap for reverse futility pruning (default 4). SF scales RFP to every depth; the cap was lowered 6->4 in 2026-06 for a hard-100 miss.",
+      "labState": "PROPOSED"
+    },
+    {
+      "id": "rfp-scale",
+      "kind": "value",
+      "field": "rfp_scale",
+      "flag": "--rfp-scale",
+      "default": "90",
+      "doc": "RFP margin = rfp_scale * depth (default 90).",
+      "labState": "PROPOSED"
+    }
+  ],
+  "engineArgs": [
+    {
+      "arg": "--nnue FILE",
+      "category": "eval",
+      "meaning": "main NNUE net"
+    },
+    {
+      "arg": "--nnue-cal FILE",
+      "category": "eval",
+      "meaning": "piecewise eval output calibration (gate: nnuecal-gate-20260911, promote)"
+    },
+    {
+      "arg": "--helper-nnue FILE",
+      "category": "eval",
+      "meaning": "residual/ranker helper net (root quiet ordering only)"
+    },
+    {
+      "arg": "--base FILE / --rung2 FILE",
+      "category": "eval",
+      "meaning": "handcrafted value weights / rung2 tactical weights"
+    },
+    {
+      "arg": "--quant-eval",
+      "category": "eval",
+      "meaning": "quantized NNUE inference path"
+    },
+    {
+      "arg": "--syzygy DIR",
+      "category": "resource",
+      "meaning": "tablebase directory (the --syzygy toggle is inert without it)"
+    },
+    {
+      "arg": "--book FILE",
+      "category": "resource",
+      "meaning": "polyglot book (the --book-enabled toggle is inert without it)"
+    },
+    {
+      "arg": "--threads N",
+      "category": "resource",
+      "meaning": "search threads (gates run 1)"
+    },
+    {
+      "arg": "--cvs-helpers N",
+      "category": "resource",
+      "meaning": "specialist-lane helper threads"
+    },
+    {
+      "arg": "--lane NAME",
+      "category": "resource",
+      "meaning": "specialist lane: fast|king|see|tactics|defender|quietdef|pawn"
+    },
+    {
+      "arg": "--depth N / --movetime MS / nodeBudget",
+      "category": "budget",
+      "meaning": "search budget"
+    },
+    {
+      "arg": "--smarttime",
+      "category": "budget",
+      "meaning": "soft/hard clock split for timed searches"
+    }
+  ],
+  "unmatchedGateRecords": [
+    {
+      "record": "benchmarks/results/bundle-regate-20260909/bundle-inv1/sprt.json",
+      "slug": "bundle-inv1",
+      "date": "20260909",
+      "games": 2000,
+      "llr": 0.269,
+      "boundary": "none",
+      "decision": "hold_for_more_data",
+      "labState": "INCONCLUSIVE",
+      "elo0": 0.0,
+      "elo1": 10.0
+    },
+    {
+      "record": "benchmarks/results/gen11-gate-20260913/gen11/sprt.json",
+      "slug": "gen11",
+      "date": "20260913",
+      "games": 2820,
+      "llr": 0.3559,
+      "boundary": "none",
+      "decision": "hold_for_more_data",
+      "labState": "INCONCLUSIVE",
+      "elo0": 0.0,
+      "elo1": 10.0
+    },
+    {
+      "record": "benchmarks/results/gen11-gate2-20260913/gen11/sprt.json",
+      "slug": "gen11",
+      "date": "20260913",
+      "games": 820,
+      "llr": 0.1745,
+      "boundary": "none",
+      "decision": "hold_for_more_data",
+      "labState": "INCONCLUSIVE",
+      "elo0": 0.0,
+      "elo1": 10.0
+    },
+    {
+      "record": "benchmarks/results/inv1-ladder-20260909/futility-pv/sprt.json",
+      "slug": "futility-pv",
+      "date": "20260909",
+      "games": 3000,
+      "llr": -1.3367,
+      "boundary": "none",
+      "decision": "hold_for_more_data",
+      "labState": "INCONCLUSIVE",
+      "elo0": 0.0,
+      "elo1": 10.0
+    },
+    {
+      "record": "benchmarks/results/nnuecal-gate-20260911/nnuecal/sprt.json",
+      "slug": "nnuecal",
+      "date": "20260911",
+      "games": 1000,
+      "llr": 2.9709,
+      "boundary": "upper",
+      "decision": "promote",
+      "labState": "SUPPORTED",
+      "elo0": 0.0,
+      "elo1": 10.0
+    },
+    {
+      "record": "benchmarks/results/nnuecal-sfprune-gate-20260911/nnuecal-sfprune/sprt.json",
+      "slug": "nnuecal-sfprune",
+      "date": "20260911",
+      "games": 1500,
+      "llr": -0.6301,
+      "boundary": "none",
+      "decision": "hold_for_more_data",
+      "labState": "INCONCLUSIVE",
+      "elo0": 0.0,
+      "elo1": 10.0
+    },
+    {
+      "record": "benchmarks/results/promo-bundle-confirm-20260909/sprt.json",
+      "slug": "inv1-winners",
+      "date": "20260909",
+      "games": 801,
+      "llr": 2.9738,
+      "boundary": "upper",
+      "decision": "promote",
+      "labState": "SUPPORTED",
+      "elo0": 0.0,
+      "elo1": 10.0
+    },
+    {
+      "record": "benchmarks/results/smallpos-bundle-gate-20260910/smallpos-bundle/sprt.json",
+      "slug": "smallpos-bundle",
+      "date": "20260910",
+      "games": 1725,
+      "llr": 2.9545,
+      "boundary": "upper",
+      "decision": "promote",
+      "labState": "SUPPORTED",
+      "elo0": 0.0,
+      "elo1": 10.0
+    }
+  ]
+}

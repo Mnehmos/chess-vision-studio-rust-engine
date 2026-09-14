@@ -10,6 +10,27 @@ It is intentionally local-first right now: clone it beside
 `chess-vision-studio`, build it with Cargo, and the app's Vite dev server can
 launch `analyze --serve` as a localhost-only engine bridge.
 
+## Repository layout
+
+```text
+src/                 engine library: movegen, search (src/search/types.rs = every switch),
+                     eval/NNUE, teaching facts (src/facts/)
+src/bin/             analyze (serve/batch), uci, selfplay, perft, benches
+tests/               integration batteries (facts detectors, serve diagnostic contract, …)
+nets/                the shipped flagship nets + calibration (tracked)
+benchmarks/          gate tooling (scripts/), registries (engines.json, search-switches.json,
+                     N0-identity.json), suites/, data/ (motif taxonomy), results/ (every
+                     gate and anchor record, including rejects)
+training/            gen8/gen9/gen10 pipelines, funnel/ (information-gain labeling, #111),
+                     schemas/
+docs/                standing contracts and inventories; docs/reports/ = dated reports
+fixtures/            teaching-facts protocol fixtures
+Dockerfile, dockerfile.selfplay, railway.json   deployment
+```
+
+Untracked by design: `target*/` build dirs (including `target-cvs/` candidate nets),
+`training/gen10/corpus*/`, `training/funnel/runs/`, `tmp-test/`.
+
 ## Teaching Facts Protocol
 
 `analyze --serve` accepts a distinct `{"cmd":"facts", ...}` JSON request for
@@ -47,7 +68,7 @@ teaching compiler owns that. Validators live in `src/facts/`. See
   reproducible experiments.
 - Search telemetry for pruning, move ordering, TT, qsearch, and branching.
 - NNUE and CVS feature experiments behind explicit gates
-  (see `CLASSICAL_EVAL_EXPERIMENT.md` for the standing eval-experiment program).
+  (see `docs/CLASSICAL_EVAL_EXPERIMENT.md` for the standing eval-experiment program).
 
 ## Engine-development benchmarks (2026-06-12)
 
@@ -86,7 +107,7 @@ Selectivity doctrine: pruning validity is **conditional on eval calibration**
 (futility was −188 Elo on classical eval, positive on gen7). Recorded
 negatives kept behind flags: countermove, continuation-history, LMP, rule50
 eval-scaling, king-activity, two-bucket TT — each rejected with a measured
-reason in `RSI_LOOP_REPORT.md`. The TT diagnostic showed 82% of probe misses
+reason in `docs/reports/RSI_LOOP_REPORT.md`. The TT diagnostic showed 82% of probe misses
 are cold (under-filled, unique positions), so move-ordering — not table
 tricks — is the remaining search lever.
 
@@ -274,30 +295,65 @@ Treat this as a controlled engineering anchor, not a human rating claim.
 
 ## Documentation Map
 
+What exists, and what state it is in:
+
+- `docs/GENERATIONS.md` — every engine generation (g6–g11): eval, training signal,
+  artifacts, corpora, gate evidence.
+- `docs/SEARCH_SWITCHES.md` / `benchmarks/search-switches.json` — every search switch,
+  its source default and its latest gate, generated from source
+  (`python benchmarks/scripts/build_switch_registry.py --check`).
+- `docs/ENGINE_INVENTORY.md` — deployed flagship, baseline binaries, worktree builds.
+- `benchmarks/engines.json` + `benchmarks/GENERATION_STANDARD.md` — benchmarkable
+  identities and naming.
+- `benchmarks/N0-identity.json` — the pinned N0 reference identity.
+
 Contracts and engineering standards:
 
 - `docs/TEACHING_FACTS_PROTOCOL.md` — the facts contract (registry v23).
 - `docs/DETECTOR_SOUNDNESS.md` — detector guard patterns, the fuzz-found
   false-positive classes, and the verification protocol.
 - `docs/RESPONSIBILITIES.md` — module ownership and change checklists.
-- `CLASSICAL_EVAL_EXPERIMENT.md` — the standing eval-experiment program
+- `docs/BRANCHING.md` — branch model and gate-before-merge rules.
+- `docs/CLASSICAL_EVAL_EXPERIMENT.md` — the standing eval-experiment program
   (frozen N0 baseline, gates, promotion policy, tooling checklist).
-- `benchmarks/N0-identity.json` — the pinned champion identity.
+- `docs/NNUE_SCALING_CLASSES.md`, `docs/CVS_ENGINE_NNUE_INVENTORY.md`,
+  `docs/CVS_HETEROGENEOUS_SMP.md` — eval architecture and specialist lanes.
 
-Promoted and experimental search/training work:
+Training and data:
 
-- `SEARCH_REPORT.md`
-- `SEARCH_PATCHES.md`
-- `RSI_LOOP_REPORT.md`
-- `GEN8_TRAINING_PLAN.md`
-- `benchmarks/README.md`
-- `benchmarks/GENERATION_STANDARD.md`
-- `benchmarks/ENGINE_STRENGTH_AUDIT.md`
-- `benchmarks/BASELINE_2026-06-19.md`
-- `benchmarks/CLEAN_HOLDOUT_2026-06-19.md`
-- `benchmarks/CLEAN_BASELINE_2026-06-19.md`
+- `training/funnel/README.md` — information-gain labeling funnel (#111) and its first
+  measured run.
+- `training/gen10/README.md` — gen10 evaluator slice: what was tried, what was found.
+- `docs/GEN8_TRAINING_PLAN.md`, `training/gen8/README.md` — gen8 plan and discipline.
 
-Current Gen8 discipline:
+Benchmarks and dated reports:
+
+- `benchmarks/README.md` — the gate ladder.
+- `benchmarks/ANCHOR_2026-09-10.md`, `benchmarks/ANCHOR_2026-09-11.md` — native Stockfish anchors.
+- `benchmarks/INV1_GATE_INTEGRITY_2026-09-09.md` — which gate records are superseded and why.
+- `benchmarks/ENGINE_STRENGTH_AUDIT.md`, `benchmarks/BASELINE_2026-06-19.md`,
+  `benchmarks/CLEAN_HOLDOUT_2026-06-19.md`, `benchmarks/CLEAN_BASELINE_2026-06-19.md`
+- `docs/reports/` — SEARCH_REPORT, SEARCH_PATCHES, RSI_LOOP_REPORT, PERFT_REPORT,
+  EVAL_PARITY_REPORT, R4_GATE_REPORT, R5_INTEGRATION_REPORT, DANGER_EXTENSION_AB_REPORT.
+- `benchmarks/results/legacy-root/` — pre-registry raw match/bench outputs, kept as a record.
+
+## Research Lab Integration
+
+[chess-vision-studio-lab](https://github.com/Mnehmos/chess-vision-studio-lab) treats this
+engine as a pinned subject under test (issues #1 and #2 there define the standard). The
+engine-side contract:
+
+- Every experiment pins an engine commit and reads identities from the registries above.
+  An experiment never edits this repo silently.
+- Gate records in `benchmarks/results/` map to lab evidence states: promote → SUPPORTED,
+  reject → REJECTED, hold → INCONCLUSIVE, never gated → PROPOSED.
+- Label producers keep provenance classes separate: deterministic geometry, bounded
+  tactical proof, search-derived, game outcome, external oracle
+  (`training/funnel/`, `docs/TEACHING_FACTS_PROTOCOL.md`).
+- The lab's legacy intake catalog (`tools/intake/legacy_catalog.py` in the lab repo)
+  inventories nets, corpora, suites and gate evidence from here by content hash.
+
+Gen8-era discipline (still applies):
 
 - Keep the hot path raw, incremental, and speed-preserving.
 - Use CVS geometry as side intelligence until it earns a per-node cost.

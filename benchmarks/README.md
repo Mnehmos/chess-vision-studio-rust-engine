@@ -2,7 +2,7 @@
 
 > **Champion note (2026-07-01):** the frozen champion for the standing eval
 > experiment is **N0 = gen9 `g9.current-default.raw-plus-residual`**, pinned in
-> [`N0-identity.json`](N0-identity.json) (see `CLASSICAL_EVAL_EXPERIMENT.md`).
+> [`N0-identity.json`](N0-identity.json) (see `docs/CLASSICAL_EVAL_EXPERIMENT.md`).
 > The gen7 snapshot below remains the historical gate-ladder baseline these
 > gate definitions were written against.
 >
@@ -108,7 +108,7 @@ top-level counters and will be warned as incomplete telemetry rows.
 
 ## Fixed-node experiment tooling (2026-07-01)
 
-The deterministic fixed-node control (`CLASSICAL_EVAL_EXPERIMENT.md` #6) runs a
+The deterministic fixed-node control (`docs/CLASSICAL_EVAL_EXPERIMENT.md` #6) runs a
 search that stops at an exact node count, cold (fresh searcher, single thread) —
 no clock noise, byte-reproducible. It is exposed three ways and consumed by four
 tools:

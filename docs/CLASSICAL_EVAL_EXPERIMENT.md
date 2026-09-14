@@ -54,7 +54,7 @@ contract.
 
 ## References
 
-Repo: README.md, CVS_ENGINE_NNUE_INVENTORY.md, RSI_LOOP_REPORT.md, benchmarks/README.md,
+Repo: README.md, docs/CVS_ENGINE_NNUE_INVENTORY.md, docs/reports/RSI_LOOP_REPORT.md, benchmarks/README.md,
 benchmarks/GENERATION_STANDARD.md, benchmarks/engines.json; Epic #4; Promotion policy #5;
 Fixed-node diagnostics #6; Stabilization and quarantine #7; Differential Evaluator probes #8;
 Corpus provenance #9; Residual hybrid #10; Gap routing #11; RSI ledger #12; Gen9 training

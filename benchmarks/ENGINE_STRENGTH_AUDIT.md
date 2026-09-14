@@ -106,7 +106,7 @@ resource-matched prototype. See `TACTICAL_SENTINEL_V1_2026-06-19.md`.
 ## Known Methodology Risks
 
 - `suite-fresh-100` leaked into Gen8-v2 training for 47 of 100 positions.
-- Historical `all_gen_bench.txt` mixed binaries, models, helper roles, and
+- Historical `benchmarks/results/legacy-root/all_gen_bench.txt` mixed binaries, models, helper roles, and
   search defaults.
 - Several scripts hard-code `F:/tools`.
 - Historical results sometimes use dirty commits.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Phase-8 detector-coverage guard (CLASSICAL_EVAL_EXPERIMENT.md).
+"""Phase-8 detector-coverage guard (docs/CLASSICAL_EVAL_EXPERIMENT.md).
 
 Cross-checks the motif taxonomy's `detectedBy` claims against the ACTUAL detector
 registry in the engine source (the validators registered in move_bundle.rs). Fails CI

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Canonical SPRT match runner (issue #5, CLASSICAL_EVAL_EXPERIMENT.md Phase 6).
+"""Canonical SPRT match runner (issue #5, docs/CLASSICAL_EVAL_EXPERIMENT.md Phase 6).
 
 A Sequential Probability Ratio Test decides — with declared error rates — whether a candidate
 is stronger than the frozen baseline, streaming game results and stopping the moment the

@@ -35,7 +35,7 @@ bindings can replace it later **without changing the seam**.
 ## Config flag
 
 `CVS_ENGINE_BACKEND=rust|ts` (also `legacy`→ts). **Default: `rust`**, flipped on
-the strength of the GREEN R4 gate (see R4_GATE_REPORT.md: parity at d2–d4;
+the strength of the GREEN R4 gate (see docs/reports/R4_GATE_REPORT.md: parity at d2–d4;
 Rust d6 −27% avg cpLoss vs TS d4 at 32× speed; illegal=0; mate-missed=0).
 Rust operating depth default: **6** (`RUST_DEFAULT_DEPTH`).
 

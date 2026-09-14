@@ -24,3 +24,7 @@ Codex Image*.gif
 
 # gen10 corpora (regenerable; too large for git)
 training/gen10/corpus*/
+
+# scratch output (not evidence)
+tmp-test/
+training/gen10/out/

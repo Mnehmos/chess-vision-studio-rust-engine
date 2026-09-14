@@ -58,7 +58,7 @@ attacking/forcing-looking moves while missing defensive consolidation."**
 - `danger_level(pos)`: enemy queen + king-zone pressure + off-home-rank → +1/+2 root plies, gated OFF by default.
 - Targeted A/B (regression rows from g14): ply24 and ply40 recovered to SF-d20
   first moves; ply20 correctly persisted (eval-head evidence). See
-  `DANGER_EXTENSION_AB_REPORT.md`.
+  `docs/reports/DANGER_EXTENSION_AB_REPORT.md`.
 - Mini-gauntlet (experimental identity, SF-2200, 5 games): regressed → **not
   promoted**. Kept for analysis/RSI rescoring only. This is the gate system
   working: a patch that helps hand-picked positions but not games stays out

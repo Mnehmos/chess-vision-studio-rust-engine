@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fixed-node A/B match driver (the P-SEARCH follow-up slice; CLASSICAL_EVAL_EXPERIMENT.md
+"""Fixed-node A/B match driver (the P-SEARCH follow-up slice; docs/CLASSICAL_EVAL_EXPERIMENT.md
 Phase 6). Plays candidate vs baseline with cutechess-cli at a NODE budget per move (tc=inf +
 nodes=N: deterministic effort, no clock noise — the match analogue of the #6 fixed-node
 diagnostic control), then emits the per-game JSONL stream sprt_runner.py consumes and,

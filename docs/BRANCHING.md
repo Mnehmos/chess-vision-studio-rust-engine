@@ -48,3 +48,15 @@ git worktree remove ..\chess-vision-studio-rust-engine-<topic>
 
 Build a worktree into its own `--target-dir` so a candidate binary is never confused with
 the baseline binary, and record both executables' sha256 in the decision record.
+
+## Current state (2026-09-14)
+
+The model above is the policy; the history has drifted from it and this note records the
+drift rather than hiding it:
+
+- `master` is the integration reality: it contains all of `origin/develop` plus 29 later
+  commits (gated search work, gen10/gen11 training tooling, selfplay pipeline). `develop`
+  has not moved since #102.
+- Recent work landed on `master` from short-lived branches, not via `develop`.
+- Until `develop` is fast-forwarded to `master`, cut new `feature/*` branches from `master`
+  so the gate baseline is the code that actually runs.

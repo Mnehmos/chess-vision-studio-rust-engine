@@ -30,7 +30,7 @@ opts in. Binaries default to no net; `--nnue <json>` enables raw NNUE.
 | PST tables | `src/eval/pst.rs` (Michniewski, post-`pstScale`) |
 | Raw NNUE | `src/eval/nnue.rs` — `Nnue::load()` + `eval_stm()` (l.70), f32 full recompute |
 | Model files | `chess-vision-studio/arena/out/nnue-*.json` (app repo) |
-| Benchmark/gates | cutechess-cli vs `f:\tools\cvs-baselines\*.exe`; PGN tally scripts; `RSI_LOOP_REPORT.md` |
+| Benchmark/gates | cutechess-cli vs `f:\tools\cvs-baselines\*.exe`; PGN tally scripts; `docs/reports/RSI_LOOP_REPORT.md` |
 
 ## NNUE input representation (the raw baseline)
 

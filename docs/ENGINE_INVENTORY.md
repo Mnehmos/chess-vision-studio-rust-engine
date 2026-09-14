@@ -1,4 +1,4 @@
-# Engine inventory — 2026-09-10
+# Engine inventory — 2026-09-10 (flags section regenerated 2026-09-14)
 
 One page answering: **what builds exist, what is deployed, what each one can do, and what
 every flag is set to.**
@@ -50,55 +50,19 @@ Unmerged branches carrying engine work: `feature/singular-exclusion-search`,
 
 ## 4. Flags
 
-Every flag below is a boolean toggle in `src/search/types.rs`; `--flag` opts an experiment
-in, `--no-flag` forces it off. "default" is `SearchOptions::default()`; "live" is what the
-deployed bot runs (defaults + its env list); "evidence" is the record on the fixed harness
-(2000-game gates, independent positions) unless marked historical.
+The boolean switch tables that used to live here went stale within a day (seeprune,
+improving and tt2 were turned off after their 2026-09-10 high-power re-gates; conthist,
+lmp and pinmovegen became defaults). The authoritative list is now **generated from
+`src/search/types.rs` and the gate records**:
 
-### On in the flagship
+- `docs/SEARCH_SWITCHES.md`: table of every toggle and value switch, with source default,
+  lab evidence state and latest gate
+- `benchmarks/search-switches.json`: the same, machine-readable
+- regenerate/verify: `python benchmarks/scripts/build_switch_registry.py [--check]`
 
-| ON / OFF | field | default | live | evidence |
-|---|---|---|---|---|
-| `--loglmr` / `--no-loglmr` | log-based LMR | on | on | **PROMOTED** — LLR +2.965 upper crossed (1030g) |
-| `--seeprune` / `--no-seeprune` | SEE pruning | on | on | re-gate HOLD +0.291 — unproven, kept |
-| `--caphist` / `--no-caphist` | capture history | on | on | re-gate HOLD −1.163 — unproven, kept |
-| `--improving` / `--no-improving` | improving flag | on | on | re-gate HOLD −0.966 — unproven, kept |
-| `--tt2` / `--no-tt2` | two-bucket TT | on | on | re-gate HOLD −0.498 — unproven, kept |
-| `--king-activity` / `--no-king-activity` | endgame king term | on | on | re-gate HOLD +0.470 — unproven, kept |
-| `--futility` / `--no-futility` | futility pruning | on | on | historical: fixed-N +34, accepted-with-note |
-| `--rfp` / `--no-rfp` | reverse futility | on | on | historical: formal SPRT +68.8 |
-| `--tt-prune-store` / `--no-tt-prune-store` | store RFP cuts | on | on | historical: fixed-N +15.6, accepted-with-note |
-| `--qtt` / `--no-qtt` | qsearch TT | on | on | historical: −7.4% nodes, accepted-with-note |
-| `--histmalus` / `--no-histmalus` | history maluses | on | on | historical: fixed-N 53.2%/400, accepted-with-note |
-| `--histlmr` / `--no-histlmr` | history-informed LMR | on | on | same record as histmalus |
-| `--lmp` / `--no-lmp` | late move pruning | **off** | **on** | historical NEGATIVE note; on anyway in the bot and in `N0_FLAGS` |
-| `--null` / `--no-null` | null-move pruning | on | on | baseline since gen2 |
-| `--lmr` / `--no-lmr` | late move reductions | on | on | baseline |
-| `--pvs` / `--no-pvs` | principal variation search | on | on | baseline |
-| `--tt` / `--no-tt` | transposition table | on | on | baseline |
-| `--quiet-checks` / `--no-quiet-checks` | quiet checks in qsearch | on | on | baseline |
-| `--matett` / `--no-matett` | mate-TT ply normalization | on | on | audit #60: correctness, not strength |
-| `--syzygy` / `--no-syzygy` | tablebase probing | on | on | needs `--syzygy <dir>`; fixed in #95 |
-| `--book-enabled` / `--no-book` | polyglot book | on | on | inert without `--book <file>` |
-| `--cvs-bonus` / `--no-cvs-bonus` | CVS geometry bonus | on | on | unflagged legacy default |
-
-### Off in the flagship (available, gated)
-
-| ON / OFF | field | default | live | evidence |
-|---|---|---|---|---|
-| `--razoring` / `--no-razoring` | razoring | off | off | gate HOLD −0.400 (2000g) |
-| `--probcut` / `--no-probcut` | ProbCut | off | off | gating now |
-| `--recapture` / `--no-recapture` | recapture extension | off | off | gating now |
-| `--delta` / `--no-delta` | delta pruning | off | off | HOLD +0.490; high-power gate queued |
-| `--conthist` / `--no-conthist` | continuation history | off | off | HOLD +0.127; high-power gate queued |
-| `--countermove` / `--no-countermove` | countermove heuristic | off | off | HOLD −1.904 |
-| `--iid` / `--no-iid` | internal iterative deepening | off | off | HOLD −0.704 |
-| `--singular` / `--no-singular` | singular extensions | off | off | HOLD −0.401 |
-| `--rule50` / `--no-rule50` | rule-50 score scaling | off | off | historical reject |
-| `--seeverify` / `--no-seeverify` | SEE verification | off | off | **REJECT** LLR −2.958 (hurts) |
-| `--rootsafequiet` / `--no-rootsafequiet` | root safe-quiet ordering | off | off | HOLD −0.732 |
-| `--shuffled-geometry` / `--no-shuffled-geometry` | geometry shuffle | off | off | untested |
-| `--root-diagnostics` / `--no-root-diagnostics` | root order diagnostics | off | off | analysis only |
+The live bot is the source defaults plus the invocation in section 1. The bot's
+`--futility --rfp --tt-prune-store --qtt --histmalus --histlmr --lmp` are all defaults now,
+so they are redundant but harmless.
 
 ### Value flags (take an argument)
 

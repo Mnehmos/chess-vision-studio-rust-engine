@@ -179,7 +179,7 @@ Protocol constants:
 | `benchmarks/` | Gate ladder, benchmark instructions, result templates. |
 | `training/gen8/` | Gen8 training documentation and artifacts. |
 | `frozen-evals/` | Frozen evaluation snapshots/manifests for parity and regression anchors. |
-| `*_REPORT.md`, `SEARCH_*.md`, `GEN8_TRAINING_PLAN.md`, `CVS_*` | Engineering reports, accepted/rejected patches, claim discipline, and training/search notes. |
+| `docs/reports/` (`*_REPORT.md`, `SEARCH_*.md`), `docs/GEN8_TRAINING_PLAN.md`, `docs/CVS_*.md`, `docs/CLASSICAL_EVAL_EXPERIMENT.md` | Engineering reports, accepted/rejected patches, claim discipline, and training/search notes. |
 
 ## Change Standards
 
