@@ -11,15 +11,14 @@ use crate::{castle, rank_of, Color, Move, MoveFlag, Piece, Position};
 /// in chess, and keeping search move lists on the stack avoids per-node heap
 /// allocation in the hot path.
 pub const MAX_MOVES: usize = 256;
-const EMPTY_MOVE: Move = Move {
-    from: 0,
-    to: 0,
-    flag: MoveFlag::Quiet,
-};
 
+/// Stack-allocated move list. The backing array is NOT zero-initialized: the
+/// search creates several lists per node and `[Move; 256]` initialization wrote
+/// 2KB per list (a real cost at ~1M nodes/s). Elements below `len` are always
+/// initialized; `MaybeUninit` makes that an invariant of the type.
 #[derive(Clone)]
 pub struct MoveList {
-    moves: [Move; MAX_MOVES],
+    moves: [std::mem::MaybeUninit<Move>; MAX_MOVES],
     len: usize,
 }
 
@@ -34,15 +33,15 @@ impl MoveList {
     #[inline]
     pub fn new() -> MoveList {
         MoveList {
-            moves: [EMPTY_MOVE; MAX_MOVES],
+            moves: [std::mem::MaybeUninit::uninit(); MAX_MOVES],
             len: 0,
         }
     }
 
     #[inline]
     pub fn push(&mut self, mv: Move) {
-        assert!(self.len < MAX_MOVES, "move list overflow");
-        self.moves[self.len] = mv;
+        debug_assert!(self.len < MAX_MOVES, "move list overflow");
+        self.moves[self.len].write(mv);
         self.len += 1;
     }
 
@@ -59,17 +58,21 @@ impl MoveList {
     #[inline]
     pub fn get(&self, index: usize) -> Move {
         debug_assert!(index < self.len);
-        self.moves[index]
+        // SAFETY: elements below `len` are initialized by `push`.
+        unsafe { self.moves[index].assume_init() }
     }
 
     #[inline]
     pub fn as_slice(&self) -> &[Move] {
-        &self.moves[..self.len]
+        // SAFETY: the first `len` elements are initialized; MaybeUninit<Move>
+        // has the same layout as Move and Move is a plain Copy struct.
+        unsafe { std::slice::from_raw_parts(self.moves.as_ptr() as *const Move, self.len) }
     }
 
     #[inline]
     pub fn as_mut_slice(&mut self) -> &mut [Move] {
-        &mut self.moves[..self.len]
+        // SAFETY: as `as_slice`, plus an exclusive borrow of self.
+        unsafe { std::slice::from_raw_parts_mut(self.moves.as_mut_ptr() as *mut Move, self.len) }
     }
 
     pub fn retain<F>(&mut self, mut keep: F)
@@ -78,9 +81,9 @@ impl MoveList {
     {
         let mut out = 0usize;
         for i in 0..self.len {
-            let mv = self.moves[i];
+            let mv = self.get(i);
             if keep(&mv) {
-                self.moves[out] = mv;
+                self.moves[out].write(mv);
                 out += 1;
             }
         }

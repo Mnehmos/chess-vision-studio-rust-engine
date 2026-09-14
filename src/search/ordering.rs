@@ -1,5 +1,16 @@
 use super::*;
 
+/// Everything the per-move ordering score needs that is constant across one
+/// node's move list (resolved once per node by `order_ctx`).
+#[derive(Clone, Copy)]
+pub(super) struct OrderCtx {
+    side: usize,
+    pkey: usize,
+    killers: [Option<Move>; 2],
+    counter: Option<Move>,
+    ch_key: Option<(Piece, u8)>,
+}
+
 impl Searcher {
     #[inline]
     pub(super) fn history_idx(side: usize, mv: Move) -> usize {
@@ -366,6 +377,14 @@ impl Searcher {
             }
         }
 
+        let ctx = self.order_ctx(pos, ply);
+        let score_of = |m: &Move| -> i32 { self.order_score(pos, m, tt_move, ply, &ctx) };
+        Self::sort_by_key_desc(moves, score_of);
+    }
+
+    /// Per-node ordering context: everything the per-move score needs that is
+    /// constant across the move list, resolved once per node.
+    fn order_ctx(&self, pos: &Position, ply: u32) -> OrderCtx {
         let side = pos.stm.index();
         let pkey = if self.opts.pawnhist { self.pawn_key(pos) } else { 0 };
         let killers = self.killers.get(ply as usize).copied().unwrap_or([None; 2]);
@@ -396,89 +415,151 @@ impl Searcher {
         } else {
             None
         };
-        let score_of = |m: &Move| -> i32 {
-            if Some(*m) == tt_move {
-                return 1_000_000_000;
+        OrderCtx { side, pkey, killers, counter, ch_key }
+    }
+
+    /// Score one move for ordering. Ordering-only — values are unaffected.
+    pub(super) fn order_score(
+        &self,
+        pos: &Position,
+        m: &Move,
+        tt_move: Option<Move>,
+        ply: u32,
+        ctx: &OrderCtx,
+    ) -> i32 {
+        let &OrderCtx { side, pkey, killers, counter, ch_key } = ctx;
+        if Some(*m) == tt_move {
+            return 1_000_000_000;
+        }
+        if m.flag.promo_piece().is_some() {
+            return 900_000 + self.capture_order(pos, *m);
+        }
+        if m.flag.is_capture() {
+            // En passant is always a pawn-takes-pawn — never losing.
+            let winning = m.flag == MoveFlag::EnPassant || see(pos, m.from, m.to) >= 0;
+            return if winning {
+                800_000 + self.capture_order(pos, *m)
+            } else {
+                -100_000 + self.capture_order(pos, *m)
+            };
+        }
+        if killers[0] == Some(*m) {
+            return 700_000 + self.lane_bonus(pos, *m, ply);
+        }
+        if killers[1] == Some(*m) {
+            return 699_999 + self.lane_bonus(pos, *m, ply);
+        }
+        let mut s = self.history[Self::history_idx(side, *m)] + self.lane_bonus(pos, *m, ply);
+        // Root safe-quiet boost (--rootsafequiet): targets the measured #1 weakness
+        // (missed-safe-quiet, 57-58% of POSITIONAL/KING_DEFENSE misses vs SF-d24).
+        // At the root, a quiet whose destination the opponent does NOT control is a
+        // calm, sound improvement CVS tends to skip — lift it toward the top of the
+        // quiet band (+8000 ≈ the history bound). Ordering-only -> value-preserving.
+        if self.opts.root_safe_quiet
+            && ply == 0
+            && !crate::attacks::is_square_attacked(pos, m.to, pos.stm.flip(), pos.all)
+        {
+            s += 8_000;
+        }
+        if counter == Some(*m) {
+            // Countermove as an additive bonus within the quiet band (≈ half
+            // the ±8192 history bound) — reorders among quiets rather than
+            // hard-promoting an often-stale countermove above genuine high-
+            // history quiets (the old fixed 650k tier regressed).
+            s += 4096;
+        }
+        if let Some((pp, pt)) = ch_key {
+            if let Some((_, cp)) = pos.piece_at(m.from) {
+                s += self.conthist[Self::conthist_idx(pp, pt, cp, m.to)];
             }
-            if m.flag.promo_piece().is_some() {
-                return 900_000 + self.capture_order(pos, *m);
+        }
+        if self.opts.pawnhist {
+            if let Some((_, mp)) = pos.piece_at(m.from) {
+                s += self.pawnhist[Self::pawnhist_idx(pkey, mp, m.to)];
             }
-            if m.flag.is_capture() {
-                // En passant is always a pawn-takes-pawn — never losing.
-                let winning = m.flag == MoveFlag::EnPassant || see(pos, m.from, m.to) >= 0;
-                return if winning {
-                    800_000 + self.capture_order(pos, *m)
+        }
+        if self.opts.conthist2 && ply >= 2 {
+            if let Some(gp) = self.prev_moves.get(ply as usize - 1).copied().flatten() {
+                if let (Some((_, gpp)), Some((_, cp))) =
+                    (pos.piece_at(gp.to), pos.piece_at(m.from))
+                {
+                    s += self.conthist2[Self::conthist_idx(gpp, gp.to, cp, m.to)];
+                }
+            }
+        }
+        if ply == 0 && self.opts.cvs_bonus {
+            if let Some(helper) = &self.helper_nnue {
+                if helper.is_ranker {
+                    if let Some(cache) = &self.root_attention_cache {
+                        if let Some(att) = cache.iter().find(|att| att.mv == *m) {
+                            s += att.ordering_bonus;
+                        }
+                    }
                 } else {
-                    -100_000 + self.capture_order(pos, *m)
-                };
-            }
-            if killers[0] == Some(*m) {
-                return 700_000 + self.lane_bonus(pos, *m, ply);
-            }
-            if killers[1] == Some(*m) {
-                return 699_999 + self.lane_bonus(pos, *m, ply);
-            }
-            let mut s = self.history[Self::history_idx(side, *m)] + self.lane_bonus(pos, *m, ply);
-            // Root safe-quiet boost (--rootsafequiet): targets the measured #1 weakness
-            // (missed-safe-quiet, 57-58% of POSITIONAL/KING_DEFENSE misses vs SF-d24).
-            // At the root, a quiet whose destination the opponent does NOT control is a
-            // calm, sound improvement CVS tends to skip — lift it toward the top of the
-            // quiet band (+8000 ≈ the history bound). Ordering-only -> value-preserving.
-            if self.opts.root_safe_quiet
-                && ply == 0
-                && !crate::attacks::is_square_attacked(pos, m.to, pos.stm.flip(), pos.all)
-            {
-                s += 8_000;
-            }
-            if counter == Some(*m) {
-                // Countermove as an additive bonus within the quiet band (≈ half
-                // the ±8192 history bound) — reorders among quiets rather than
-                // hard-promoting an often-stale countermove above genuine high-
-                // history quiets (the old fixed 650k tier regressed).
-                s += 4096;
-            }
-            if let Some((pp, pt)) = ch_key {
-                if let Some((_, cp)) = pos.piece_at(m.from) {
-                    s += self.conthist[Self::conthist_idx(pp, pt, cp, m.to)];
-                }
-            }
-            if self.opts.pawnhist {
-                if let Some((_, mp)) = pos.piece_at(m.from) {
-                    s += self.pawnhist[Self::pawnhist_idx(pkey, mp, m.to)];
-                }
-            }
-            if self.opts.conthist2 && ply >= 2 {
-                if let Some(gp) = self.prev_moves.get(ply as usize - 1).copied().flatten() {
-                    if let (Some((_, gpp)), Some((_, cp))) =
-                        (pos.piece_at(gp.to), pos.piece_at(m.from))
-                    {
-                        s += self.conthist2[Self::conthist_idx(gpp, gp.to, cp, m.to)];
-                    }
-                }
-            }
-            if ply == 0 && self.opts.cvs_bonus {
-                if let Some(helper) = &self.helper_nnue {
-                    if helper.is_ranker {
-                        if let Some(cache) = &self.root_attention_cache {
-                            if let Some(att) = cache.iter().find(|att| att.mv == *m) {
-                                s += att.ordering_bonus;
-                            }
-                        }
-                    } else {
-                        if let Some(cache) = &self.root_geom_cache {
-                            if let Some(&(_, geom_score)) =
-                                cache.move_scores.iter().find(|(mv, _)| mv == m)
-                            {
-                                let geom_bonus = (geom_score * 10).clamp(-4000, 4000);
-                                s += geom_bonus;
-                            }
+                    if let Some(cache) = &self.root_geom_cache {
+                        if let Some(&(_, geom_score)) =
+                            cache.move_scores.iter().find(|(mv, _)| mv == m)
+                        {
+                            let geom_bonus = (geom_score * 10).clamp(-4000, 4000);
+                            s += geom_bonus;
                         }
                     }
                 }
             }
-            s
-        };
-        Self::sort_by_key_desc(moves, score_of);
+        }
+        s
+    }
+
+    /// Hot-path ordering: fill `out` with PACKED per-move scores but DO NOT
+    /// sort. The move loop consumes the list best-first via `pick_best_move`,
+    /// which only pays for the moves actually tried before a cutoff (a full
+    /// sort pays for all of them).
+    pub(super) fn score_moves(
+        &self,
+        pos: &Position,
+        moves: &[Move],
+        tt_move: Option<Move>,
+        ply: u32,
+        out: &mut [std::mem::MaybeUninit<i64>],
+    ) {
+        let ctx = self.order_ctx(pos, ply);
+        for (i, m) in moves.iter().enumerate() {
+            let s = self.order_score(pos, m, tt_move, ply, &ctx) as i64;
+            // Ties resolve to the SMALLER original index. Selection swaps moves
+            // around, so without the index tag a swap would order equal-scored
+            // moves differently from the stable sort this replaces.
+            let tie = (crate::movegen::MAX_MOVES as i64 - 1 - i as i64) & 0xFFFF_FFFF;
+            out[i].write((s << 32) | tie);
+        }
+    }
+
+    /// Selection step for the lazy move loop: swap the best remaining move
+    /// (by packed score, ties to smallest original index) into position `from`. Elements below `from` are already
+    /// consumed; elements at/above `from` are all initialized.
+    #[inline]
+    pub(super) fn pick_best_move(
+        moves: &mut [Move],
+        scores: &mut [std::mem::MaybeUninit<i64>],
+        from: usize,
+    ) {
+        if from >= moves.len() {
+            return;
+        }
+        let mut best = from;
+        // SAFETY: indices scanned are >= `from` and < len, all written by
+        // `score_moves` before the loop starts.
+        unsafe {
+            let mut best_score = scores[best].assume_init();
+            for j in (from + 1)..moves.len() {
+                let s = scores[j].assume_init();
+                if s > best_score {
+                    best_score = s;
+                    best = j;
+                }
+            }
+        }
+        moves.swap(from, best);
+        scores.swap(from, best);
     }
 
     /// Lane ordering bonus (Level-1 specialist lanes). Applied to quiet/killer

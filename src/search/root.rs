@@ -507,7 +507,12 @@ impl Searcher {
             }
         }
 
-        self.order_moves(pos, legal.as_mut_slice(), tt_move, ply);
+        // Lazy ordering: score every move once, but only select best-first as
+        // the loop consumes them — a cutoff after k moves pays for k selections
+        // instead of a full sort of the whole list.
+        let mut order_scores: [std::mem::MaybeUninit<i64>; crate::movegen::MAX_MOVES] =
+            [std::mem::MaybeUninit::uninit(); crate::movegen::MAX_MOVES];
+        self.score_moves(pos, legal.as_slice(), tt_move, ply, &mut order_scores);
         let key = self.tt_key(pos);
         let side = pos.stm.index();
         let mut best = -INF;
@@ -534,6 +539,7 @@ impl Searcher {
         let mut tried_quiets = MoveList::new();
         let mut tried_caps = MoveList::new();
         for move_index in 0..legal.len() {
+            Self::pick_best_move(legal.as_mut_slice(), &mut order_scores, move_index);
             let mv = legal.get(move_index);
             if Some(mv) == self.excluded_move {
                 continue;
