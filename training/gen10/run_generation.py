@@ -72,69 +72,58 @@ def ids_to_bitset(ids):
 
 
 class SfProc:
-    """One persistent Stockfish UCI process, one position at a time."""
+    """Stockfish in FILE-BATCH mode: commands are written to a file, output is
+    read from a file, and the process is reaped with wait(). No interactive
+    pipes exist, so the UCI pipe deadlock (engine idle on stdin while the
+    parent waits on stdout) cannot happen. One process per worker slice."""
 
     def __init__(self):
-        self.proc = subprocess.Popen(
-            [SF_BIN], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL, text=True, bufsize=1)
-        self.send("uci")
-        while True:
-            line = self.proc.stdout.readline()
-            if not line or line.startswith("uciok"):
-                break
-        self.send("setoption name Threads value 1")
-        self.send("setoption name Hash value 32")
-        self.send("setoption name MultiPV value 1")
-        self.send("isready")
-        while True:
-            line = self.proc.stdout.readline()
-            if not line or line.startswith("readyok"):
-                break
+        pass
 
-    def send(self, cmd):
-        self.proc.stdin.write(cmd + "\n")
-        self.proc.stdin.flush()
-
-    def label(self, fen, depth):
-        """Returns (cp_stm, depth_reached, nodes, best_uci) or None on failure."""
-        self.send("position fen " + fen)
-        self.send(f"go depth {depth}")
-        cp, reached, nodes, best = None, 0, 0, None
-        while True:
-            line = self.proc.stdout.readline()
-            if not line:
-                return None
-            if line.startswith("bestmove"):
+    def label_many(self, fens, depth, cmd_path, out_path):
+        """Returns a list of (cp_stm, depth, nodes, best_uci) aligned with fens."""
+        with open(cmd_path, "w", encoding="utf-8") as f:
+            f.write("uci\n")
+            f.write("setoption name Threads value 1\n")
+            f.write("setoption name Hash value 32\n")
+            f.write("isready\n")
+            for fen in fens:
+                f.write("position fen " + fen + "\n")
+                f.write(f"go depth {depth}\n")
+            f.write("quit\n")
+        timeout = max(600, int(len(fens) * 5))
+        with open(cmd_path, "rb") as inp, open(out_path, "w", encoding="utf-8") as out:
+            subprocess.run([SF_BIN], stdin=inp, stdout=out,
+                           stderr=subprocess.DEVNULL, timeout=timeout)
+        labels = []
+        cp, reached, nodes = None, 0, 0
+        with open(out_path, encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("bestmove"):
+                    parts = line.split()
+                    best = parts[1] if len(parts) > 1 and parts[1] != "(none)" else None
+                    labels.append((cp, reached, nodes, best) if cp is not None else None)
+                    cp, reached, nodes = None, 0, 0
+                    continue
+                if not line.startswith("info") or " score " not in line:
+                    continue
                 parts = line.split()
-                if len(parts) > 1 and parts[1] != "(none)":
-                    best = parts[1]
-                break
-            if not line.startswith("info") or " score " not in line:
-                continue
-            parts = line.split()
-            try:
-                if "depth" in parts:
-                    reached = int(parts[parts.index("depth") + 1])
-                if "nodes" in parts:
-                    nodes = int(parts[parts.index("nodes") + 1])
-                if "cp" in parts:
-                    cp = int(parts[parts.index("cp") + 1])
-                elif "mate" in parts:
-                    m = int(parts[parts.index("mate") + 1])
-                    cp = (MATE_CP - min(abs(m), 100) * 10) * (1 if m > 0 else -1)
-            except (ValueError, IndexError):
-                continue
-        if cp is None:
-            return None
-        return cp, reached, nodes, best
+                try:
+                    if "depth" in parts:
+                        reached = int(parts[parts.index("depth") + 1])
+                    if "nodes" in parts:
+                        nodes = int(parts[parts.index("nodes") + 1])
+                    if "cp" in parts:
+                        cp = int(parts[parts.index("cp") + 1])
+                    elif "mate" in parts:
+                        m = int(parts[parts.index("mate") + 1])
+                        cp = (MATE_CP - min(abs(m), 100) * 10) * (1 if m > 0 else -1)
+                except (ValueError, IndexError):
+                    continue
+        return labels, out_path
 
     def close(self):
-        try:
-            self.send("quit")
-            self.proc.kill()
-        except Exception:
-            pass
+        pass
 
 
 class AnalyzeProc:
@@ -172,36 +161,105 @@ class AnalyzeProc:
             pass
 
 
-def make_labeler():
-    if LABELER == "sf":
-        return SfProc(), (lambda p, fen: p.label(fen, LABEL_DEPTH))
-    proc = AnalyzeProc(["--depth", str(LABEL_DEPTH)] + NNUE_FLAGS)
-    return proc, (lambda p, fen: p.label(fen, LABEL_NODES))
+def label_rows_sf(rows, batch_no):
+    """Split positions across LABEL_WORKERS file-batch SF slices in threads."""
+    n = max(1, min(LABEL_WORKERS, len(rows)))
+    slices = [list(range(i, len(rows), n)) for i in range(n)]  # round-robin
+    results = {}
+
+    def run_chunk(idx, indices):
+        chunk = [rows[i] for i in indices]
+        # SF segfaults on malformed FENs; validate before writing the batch.
+        import chess
+        valid = []
+        for i, row in zip(indices, chunk):
+            try:
+                chess.Board(row["fen"])
+                valid.append((i, row))
+            except ValueError:
+                pass
+        indices = [i for i, _ in valid]
+        chunk = [r for _, r in valid]
+        if not chunk:
+            return
+        cmd_path = os.path.join(OUTPUT_DIR, f"sfcmd-{REPLICA}-{batch_no:05d}-{idx:02d}.txt")
+        out_path = os.path.join(OUTPUT_DIR, f"sfout-{REPLICA}-{batch_no:05d}-{idx:02d}.txt")
+        try:
+            labels, _ = SfProc().label_many([r["fen"] for r in chunk], LABEL_DEPTH,
+                                            cmd_path, out_path)
+            if len(labels) != len(chunk):
+                print(f"  worker {idx}: {len(labels)} labels for {len(chunk)} positions",
+                      flush=True)
+            for i, row, lab in zip(indices, chunk, labels):
+                if lab is None:
+                    continue
+                cp, depth, nodes, best = lab
+                stm_white = row["fen"].split()[1] == "w"
+                row["cp"] = cp if stm_white else -cp
+                row["label_depth"] = depth
+                row["label_nodes"] = nodes
+                if best:
+                    row["sf_best"] = best
+                results[i] = row
+        finally:
+            for p in (cmd_path, out_path):
+                try:
+                    os.remove(p)
+                except OSError:
+                    pass
+
+    threads = []
+    for i, indices in enumerate(slices):
+        t = threading.Thread(target=run_chunk, args=(i, indices))
+        t.start()
+        threads.append(t)
+    for t in threads:
+        t.join()
+    print(f"  {len(results)}/{len(rows)} labels across {len(slices)} SF workers",
+          flush=True)
+    return [results[i] for i in sorted(results)]
 
 
-def label_worker(fen_q, out_q, progress):
-    proc, fn = make_labeler()
-    while True:
-        try:
-            row = fen_q.get_nowait()
-        except queue.Empty:
-            break
-        try:
-            res = fn(proc, row["fen"])
-        except Exception:
-            res = None
-        if res is not None:
-            cp, depth, nodes, best = res
-            stm_white = row["fen"].split()[1] == "w"
-            row["cp"] = cp if stm_white else -cp
-            row["label_depth"] = depth
-            row["label_nodes"] = nodes
-            if best:
-                row["sf_best"] = best
-            out_q.append(row)
-        if next(progress) % 2000 == 0:
-            print(f"  labeled {out_q and len(out_q) or 0}", flush=True)
-    proc.close()
+def label_rows_cvs(rows):
+    """Fallback: our own engine at fixed nodes, one serve process per thread.
+    The nodeBudget request returns exactly one JSON line per position."""
+    n = max(1, min(LABEL_WORKERS, len(rows)))
+    q = queue.Queue()
+    for row in rows:
+        q.put(row)
+    out = []
+    counter = itertools.count(1)
+
+    def worker():
+        proc = AnalyzeProc(["--depth", str(LABEL_DEPTH)] + NNUE_FLAGS)
+        while True:
+            try:
+                row = q.get_nowait()
+            except queue.Empty:
+                break
+            try:
+                res = proc.label(row["fen"], LABEL_NODES)
+            except Exception:
+                res = None
+            if res is not None:
+                cp, depth, nodes, best = res
+                stm_white = row["fen"].split()[1] == "w"
+                row["cp"] = cp if stm_white else -cp
+                row["label_depth"] = depth
+                row["label_nodes"] = nodes
+                if best:
+                    row["sf_best"] = best
+                out.append(row)
+            if next(counter) % 2000 == 0:
+                print(f"  labeled {len(out)}", flush=True)
+        proc.close()
+
+    threads = [threading.Thread(target=worker) for _ in range(n)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    return out
 
 
 def cvs_geometry(fens, batch_no):
@@ -241,20 +299,11 @@ def run_batch(batch_no):
         r["cp_play"] = r.pop("cp")  # keep the play-depth score under its own key
     t2 = time.time()
 
-    # Phase 2: deep labels (SF d20 by default) across many single-thread workers.
-    fen_q = queue.Queue()
-    for row in rows:
-        fen_q.put(row)
-    labeled = []
-    threads = [
-        threading.Thread(target=label_worker,
-                         args=(fen_q, labeled, itertools.count(1)))
-        for _ in range(max(1, min(LABEL_WORKERS, len(rows))))
-    ]
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join()
+    # Phase 2: deep labels (SF d20 by default) in parallel worker slices.
+    if LABELER == "sf":
+        labeled = label_rows_sf(rows, batch_no)
+    else:
+        labeled = label_rows_cvs(rows)
     t3 = time.time()
 
     # Phase 3: CVS geometry feature IDs (the unique signal), one batch call.
