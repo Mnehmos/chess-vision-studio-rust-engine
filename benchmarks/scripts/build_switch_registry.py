@@ -223,8 +223,9 @@ def main(argv=None) -> int:
     js = json.dumps(reg, indent=2) + "\n"
     md = render_md(reg)
     if a.check:
+        # compare modulo line endings: .gitattributes may check the markdown out as CRLF
         stale = [p for p, want in ((OUT_JSON, js), (OUT_MD, md))
-                 if not p.exists() or p.read_text(encoding="utf-8") != want]
+                 if not p.exists() or p.read_text(encoding="utf-8").replace("\r\n", "\n") != want]
         for p in stale:
             print(f"stale: {p.relative_to(REPO).as_posix()} (run build_switch_registry.py)")
         return 1 if stale else 0
